@@ -1,0 +1,25 @@
+[package]
+name = "taskmgr_native"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "taskmgr_native"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+flutter_rust_bridge.workspace = true
+taskmgr-core = { path = "../taskmgr-core" }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+taskmgr-linux = { path = "../taskmgr-linux" }
+
+[target.'cfg(windows)'.dependencies]
+taskmgr-windows = { path = "../taskmgr-windows" }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(frb_expand)"] }

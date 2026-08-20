@@ -1,0 +1,3 @@
+rust_input: crate::api,taskmgr-core::model
+rust_root: ../crates/taskmgr-bridge/
+dart_output: lib/src/native_bridge

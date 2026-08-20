@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+  "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>taskmgr-rs</vendor>
+  <vendor_url>https://github.com/JamesLinYJ/taskmgr-rs-desktop</vendor_url>
+  <action id="io.github.jameslinyj.taskmgr_rs.privileged">
+    <description>Perform a privileged task-manager action</description>
+    <description xml:lang="zh_CN">执行需要提权的任务管理器操作</description>
+    <message>Authentication is required to perform this task-manager action</message>
+    <message xml:lang="zh_CN">执行此任务管理器操作需要身份验证</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/taskmgr-rs/taskmgr-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">false</annotate>
+  </action>
+</policyconfig>

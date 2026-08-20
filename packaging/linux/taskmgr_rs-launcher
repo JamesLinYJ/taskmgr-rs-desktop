@@ -1,0 +1,15 @@
+#!/bin/sh
+# +-------------------------------------------------------------------------
+#
+#   taskmgr-rs - Linux 安装包启动器
+#
+#   文件:       packaging/linux/taskmgr_rs-launcher
+#
+#   日期:       2026年08月20日
+#   环境:       Linux x64/ARM64；POSIX sh
+#   作者:       JamesLinYJ
+#   协助:       OpenAI Codex:gpt-5.6-sol
+#   参考标准:   Filesystem Hierarchy Standard；Flutter Linux bundle 布局
+# --------------------------------------------------------------------------
+
+exec /usr/lib/taskmgr-rs/taskmgr_rs "$@"

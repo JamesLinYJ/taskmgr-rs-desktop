@@ -1,0 +1,195 @@
+# +-------------------------------------------------------------------------
+#
+#   taskmgr-rs - 四平台架构持续集成
+#
+#   文件:       .github/workflows/ci.yml
+#
+#   日期:       2026年08月20日
+#   环境:       GitHub-hosted Windows/Linux x64/ARM64；Flutter 3.44.7；Rust 1.97.1
+#   作者:       JamesLinYJ
+#   协助:       OpenAI Codex:gpt-5.6-sol
+#   参考标准:   GitHub Actions hosted runner matrix；Flutter desktop support matrix
+# --------------------------------------------------------------------------
+
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generated-code:
+    name: Generated code and lockfiles
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+          components: rustfmt
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.7
+          channel: stable
+          cache: true
+      - name: Install FRB generator
+        run: cargo install flutter_rust_bridge_codegen --version 2.12.0 --locked
+      - name: Resolve pinned Flutter packages
+        working-directory: flutter_app
+        run: flutter pub get --enforce-lockfile
+      - name: Regenerate localization and bridge sources
+        working-directory: flutter_app
+        run: |
+          flutter gen-l10n
+          flutter_rust_bridge_codegen generate
+      - name: Normalize generated formatting
+        run: |
+          cargo fmt --all
+          dart format flutter_app/lib flutter_app/test flutter_app/integration_test
+      - name: Verify Cargokit lockfile mirror
+        run: cmp Cargo.lock crates/taskmgr-bridge/Cargo.lock
+      - name: Reject generated drift
+        run: git diff --exit-code
+
+  desktop:
+    name: ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Linux x64
+            runner: ubuntu-24.04
+            platform: linux
+            arch: x64
+          - label: Linux ARM64
+            runner: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
+          - label: Windows x64
+            runner: windows-2025
+            platform: windows
+            arch: x64
+          - label: Windows ARM64
+            runner: windows-11-arm
+            platform: windows
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+          components: rustfmt, clippy
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.7
+          channel: stable
+          cache: true
+      - name: Install Linux desktop toolchain
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libayatana-appindicator3-dev dpkg-dev rpm
+      - name: Install Inno Setup
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+      - name: Resolve pinned Flutter packages
+        working-directory: flutter_app
+        run: flutter pub get --enforce-lockfile
+      - name: Rust formatting
+        run: cargo fmt --all -- --check
+      - name: Rust lint
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - name: Rust tests
+        run: cargo test --workspace --all-features --locked
+      - name: Flutter analysis
+        working-directory: flutter_app
+        run: flutter analyze
+      - name: Flutter tests on Linux
+        if: runner.os == 'Linux'
+        working-directory: flutter_app
+        run: flutter test
+      - name: Flutter portable widget tests on Windows
+        if: runner.os == 'Windows'
+        working-directory: flutter_app
+        run: >-
+          flutter test
+          test/widget_test.dart
+          test/locale_scaling_test.dart
+          test/process_columns_test.dart
+          test/affinity_dialog_test.dart
+          test/nice_dialog_test.dart
+          test/message_dialog_test.dart
+          test/run_task_dialog_test.dart
+          test/window_options_test.dart
+      - name: Build Linux release bundle
+        if: runner.os == 'Linux'
+        working-directory: flutter_app
+        run: flutter build linux --release
+      - name: Audit Linux release bundle
+        if: runner.os == 'Linux'
+        run: scripts/audit-linux-bundle.sh flutter_app/build/linux/${{ matrix.arch }}/release/bundle
+      - name: Build Linux helper and packages
+        if: runner.os == 'Linux'
+        run: |
+          cargo build --release -p taskmgr-helper --locked
+          scripts/build-linux-packages.sh \
+            flutter_app/build/linux/${{ matrix.arch }}/release/bundle \
+            target/release/taskmgr-helper \
+            dist \
+            0.3.0
+          scripts/audit-linux-packages.sh dist 0.3.0 ${{ matrix.arch }}
+      - name: Build Windows release bundle
+        if: runner.os == 'Windows'
+        working-directory: flutter_app
+        run: flutter build windows --release
+      - name: Audit Windows release bundle
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: scripts/Audit-WindowsBundle.ps1 -Bundle flutter_app/build/windows/${{ matrix.arch }}/runner/Release
+      - name: Build Windows helper and packages
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cargo build --release -p taskmgr-helper --locked
+          scripts/Build-WindowsPackages.ps1 `
+            -Bundle flutter_app/build/windows/${{ matrix.arch }}/runner/Release `
+            -Helper target/release/taskmgr-helper.exe `
+            -Architecture ${{ matrix.arch }} `
+            -Output dist `
+            -Version 0.3.0
+      - name: Upload Linux bundle
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: taskmgr-rs-${{ matrix.platform }}-${{ matrix.arch }}
+          path: flutter_app/build/linux/${{ matrix.arch }}/release/bundle
+          if-no-files-found: error
+      - name: Upload Windows bundle
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: taskmgr-rs-${{ matrix.platform }}-${{ matrix.arch }}
+          path: flutter_app/build/windows/${{ matrix.arch }}/runner/Release
+          if-no-files-found: error
+      - name: Upload Linux packages
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: taskmgr-rs-${{ matrix.platform }}-${{ matrix.arch }}-packages
+          path: dist/*
+          if-no-files-found: error
+      - name: Upload Windows packages
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: taskmgr-rs-${{ matrix.platform }}-${{ matrix.arch }}-packages
+          path: dist/*
+          if-no-files-found: error

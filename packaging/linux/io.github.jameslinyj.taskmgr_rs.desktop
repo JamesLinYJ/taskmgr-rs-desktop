@@ -1,0 +1,21 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=Windows NT Task Manager
+Name[de]=Windows NT-Task-Manager
+Name[es]=Administrador de tareas de Windows NT
+Name[fr]=Gestionnaire des tâches Windows NT
+Name[pt]=Gestor de Tarefas do Windows NT
+Name[ru]=Диспетчер задач Windows NT
+Name[zh_CN]=Windows NT 任务管理器
+Name[zh_TW]=Windows NT 工作管理員
+Comment=Inspect applications, processes, performance, hardware, networking, and sessions
+Comment[zh_CN]=查看应用程序、进程、性能、硬件、网络和用户会话
+Exec=/usr/bin/taskmgr_rs
+Icon=io.github.jameslinyj.taskmgr_rs
+Terminal=false
+StartupNotify=true
+Categories=System;Monitor;
+Keywords=task;process;performance;system;monitor;
+X-GNOME-UsesNotifications=false
+X-KDE-Wayland-Interfaces=org_kde_plasma_window_management

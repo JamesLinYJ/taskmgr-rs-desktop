@@ -1,0 +1,5 @@
+cargo:
+  debug:
+    toolchain: 1.97.1
+  release:
+    toolchain: 1.97.1

@@ -1,0 +1,92 @@
+# +-------------------------------------------------------------------------
+# taskmgr-rs - 桌面 UI 机器可读基线
+# 日期: 2026-08-20
+# 作者: JamesLinYJ
+# 协助: OpenAI Codex:gpt-5.6-sol
+# 参考标准: 迁移前 Win32 结构；Flutter DesktopTheme 与 golden
+# --------------------------------------------------------------------------
+
+schema_version: 2
+acceptance_baseline: flutter_golden
+source_units: dlu
+legacy_geometry_is_reference_only: true
+main_window:
+  width: 264
+  height: 247
+  font: MS Shell Dlg
+  font_points: 8
+pages:
+  - id: applications
+    template_size: [393, 177]
+    list_rect: [9, 9, 378, 139]
+    columns: [250, 97, 70, 70]
+    view_modes: [large_icons, small_icons, details]
+    icon_sizes: [32, 16, 16]
+    icon_text_gap: 2
+    buttons:
+      end_task: [224, 152, 53, 14]
+      switch_to: [280, 152, 53, 14]
+      new_task: [336, 152, 53, 14]
+  - id: processes
+    template_size: [393, 197]
+    list_rect: [9, 9, 376, 131]
+    columns: [107, 50, 107, 60, 35, 70, 70, 70, 70, 70, 70, 70, 70, 60, 60, 60]
+    buttons:
+      end_process: [320, 144, 66, 14]
+  - id: performance
+    template_size: [438, 303]
+    meter_rects:
+      cpu: [14, 17, 48, 44]
+      memory: [14, 77, 48, 44]
+    metric_groups:
+      totals: [8, 129, 113, 39]
+      physical: [130, 129, 130, 39]
+      commit: [8, 173, 113, 39]
+      kernel: [130, 173, 130, 39]
+  - id: cpu
+    template_size: [438, 369]
+    graph_rect: [8, 36, 416, 126]
+    metric_group_size: [206, 88]
+    metric_counts: [9, 6, 12, 12]
+  - id: gpu
+    template_size: [438, 369]
+    engine_graph_size: [206, 48]
+    dedicated_graph_rect: [8, 188, 416, 42]
+    shared_graph_rect: [8, 244, 416, 42]
+  - id: network
+    template_size: [438, 303]
+    list_rect: [9, 9, 376, 131]
+  - id: users
+    template_size: [393, 197]
+    list_rect: [9, 9, 376, 131]
+colors:
+  background: '#F2F4F7'
+  surface: '#FFFFFF'
+  surface_muted: '#F7F8FA'
+  text: '#20242B'
+  muted_text: '#667085'
+  disabled_text: '#98A2B3'
+  accent: '#2563EB'
+  selection: '#DBEAFE'
+  selection_text: '#172554'
+  divider: '#E1E6ED'
+  border: '#CBD3DD'
+  graph_background: '#101820'
+  graph_grid: '#1D5C49'
+  graph_primary: '#32E875'
+  graph_secondary: '#FFCF4A'
+  graph_kernel: '#FF6262'
+radii:
+  small: 4
+  medium: 7
+  large: 10
+heights:
+  menu: 28
+  tabs: 32
+  table_header: 27
+  table_row: 23
+  button: 28
+  status: 24
+stroke_widths:
+  grid: 1
+  series: 2

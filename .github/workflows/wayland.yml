@@ -1,0 +1,48 @@
+# +-------------------------------------------------------------------------
+#
+#   taskmgr-rs - KDE Wayland 桌面集成流水线
+#
+#   文件:       .github/workflows/wayland.yml
+#
+#   日期:       2026年08月20日
+#   环境:       GitHub-hosted Ubuntu x64；KWin Wayland；Flutter 3.44.7；Rust 1.97.1
+#   作者:       JamesLinYJ
+#   协助:       OpenAI Codex:gpt-5.6-sol
+#   参考标准:   KDE plasma-window-management；Flutter Linux integration_test
+# --------------------------------------------------------------------------
+
+name: Wayland integration
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 18 * * 3'
+
+permissions:
+  contents: read
+
+jobs:
+  kde-wayland:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.7
+          channel: stable
+          cache: true
+      - name: Install Linux and KWin test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libayatana-appindicator3-dev kwin-wayland plasma-workspace zenity dbus-x11
+      - name: Resolve pinned Flutter packages
+        working-directory: flutter_app
+        run: flutter pub get --enforce-lockfile
+      - name: Run real KWin Wayland integration test
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: dbus-run-session -- scripts/test-kwin-wayland.sh
