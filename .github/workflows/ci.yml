@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.97.1
@@ -83,7 +83,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.97.1
@@ -190,28 +190,28 @@ jobs:
             -Version 0.3.0
       - name: Upload Linux bundle
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: taskmgr-rs-${{ matrix.platform }}-${{ matrix.arch }}
           path: flutter_app/build/linux/${{ matrix.arch }}/release/bundle
           if-no-files-found: error
       - name: Upload Windows bundle
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: taskmgr-rs-${{ matrix.platform }}-${{ matrix.arch }}
           path: flutter_app/build/windows/${{ matrix.arch }}/runner/Release
           if-no-files-found: error
       - name: Upload Linux packages
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: taskmgr-rs-${{ matrix.platform }}-${{ matrix.arch }}-packages
           path: dist/*
           if-no-files-found: error
       - name: Upload Windows packages
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: taskmgr-rs-${{ matrix.platform }}-${{ matrix.arch }}-packages
           path: dist/*
