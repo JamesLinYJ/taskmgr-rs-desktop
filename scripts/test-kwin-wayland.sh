@@ -16,7 +16,7 @@ set -euo pipefail
 
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 flutter_bin=${FLUTTER_BIN:-flutter}
-for command_name in "$flutter_bin" kwin_wayland zenity; do
+for command_name in "$flutter_bin" kwin_wayland timeout zenity; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     echo "required command is unavailable: $command_name" >&2
     exit 1
@@ -56,6 +56,14 @@ kwin_pid=
 fixture_pid=
 cleanup() {
   status=$?
+  if ((status != 0)); then
+    for log_path in "$test_root/kwin.log" "$test_root/fixture.log"; do
+      if [[ -s "$log_path" ]]; then
+        echo "===== $log_path =====" >&2
+        tail -200 "$log_path" >&2
+      fi
+    done
+  fi
   if [[ -n "$fixture_pid" ]]; then
     kill "$fixture_pid" 2>/dev/null || true
   fi
@@ -80,6 +88,8 @@ export XDG_DATA_HOME="$data_home"
 export XDG_DATA_DIRS=${XDG_DATA_DIRS:-/usr/local/share:/usr/share}
 export XDG_CACHE_HOME="$cache_home"
 export XDG_SESSION_TYPE=wayland
+export XDG_CURRENT_DESKTOP=KDE
+export XDG_SESSION_DESKTOP=KDE
 export WAYLAND_DISPLAY=taskmgr-wayland
 export GDK_BACKEND=wayland
 
@@ -122,5 +132,6 @@ fixture_pid=$!
 export TASKMGR_EXPECT_WINDOW_TITLE=TaskmgrWaylandFixture
 (
   cd "$repo_root/flutter_app"
-  "$flutter_bin" test integration_test/backend_smoke_test.dart -d linux
+  timeout --foreground 180s \
+    "$flutter_bin" test integration_test/backend_smoke_test.dart -d linux
 )
