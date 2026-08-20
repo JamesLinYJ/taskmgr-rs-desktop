@@ -87,10 +87,29 @@ jobs:
           toolchain: 1.97.1
           components: rustfmt, clippy
       - uses: subosito/flutter-action@v2
+        if: matrix.arch == 'x64'
         with:
           flutter-version: 3.44.7
           channel: stable
           cache: true
+      - name: Bootstrap pinned Flutter on Linux ARM64
+        if: matrix.arch == 'arm64' && runner.os == 'Linux'
+        shell: bash
+        run: |
+          git clone --depth 1 --branch 3.44.7 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/flutter/bin/flutter" --version
+      - name: Bootstrap pinned Flutter on Windows ARM64
+        if: matrix.arch == 'arm64' && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $flutterRoot = Join-Path $env:RUNNER_TEMP 'flutter'
+          git clone --depth 1 --branch 3.44.7 https://github.com/flutter/flutter.git $flutterRoot
+          Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $flutterRoot 'bin')
+          & (Join-Path $flutterRoot 'bin\flutter.bat') --version
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
       - name: Install Linux desktop toolchain
         if: runner.os == 'Linux'
         run: |
