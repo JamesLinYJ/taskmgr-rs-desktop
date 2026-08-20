@@ -53,7 +53,7 @@ SetupIconFile={#SetupIconPath}
 UninstallDisplayIcon={app}\taskmgr_rs.exe
 Compression=lzma2/max
 SolidCompression=yes
-WizardStyle=classic
+WizardStyle=modern dynamic
 PrivilegesRequired=admin
 ArchitecturesAllowed={#MyArch}
 ArchitecturesInstallIn64BitMode={#MyArch}
@@ -68,7 +68,9 @@ SignTool={#SignToolName}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
+#if FileExists(AddBackslash(CompilerPath) + "Languages\ChineseSimplified.isl")
 Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+#endif
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
