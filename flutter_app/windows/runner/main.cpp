@@ -1,9 +1,28 @@
+// +-------------------------------------------------------------------------
+//
+//   taskmgr-rs - Windows Flutter 桌面入口
+//
+//   文件:       flutter_app/windows/runner/main.cpp
+//
+//   日期:       2026年08月21日
+//   环境:       Windows 10/11 x64、ARM64；Flutter 3.44.7；Win32
+//   作者:       JamesLinYJ
+//   协助:       OpenAI Codex:gpt-5.6-sol
+//   参考标准:   Win32 wWinMain；Flutter Windows runner；项目窗口尺寸契约
+// --------------------------------------------------------------------------
+
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
 
 #include "flutter_window.h"
 #include "utils.h"
+
+namespace {
+constexpr wchar_t kDefaultWindowTitle[] = L"Windows NT Task Manager";
+constexpr int kOriginalWindowWidth = 396;
+constexpr int kOriginalWindowHeight = 401;
+}  // namespace
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
@@ -26,8 +45,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
-  Win32Window::Size size(1280, 720);
-  if (!window.Create(L"taskmgr_rs", origin, size)) {
+  Win32Window::Size size(kOriginalWindowWidth, kOriginalWindowHeight);
+  if (!window.Create(kDefaultWindowTitle, origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

@@ -8,7 +8,7 @@
 //   环境:       Fedora Linux 46 x86_64；Flutter 3.44.7；Dart 3.12.2
 //   作者:       JamesLinYJ
 //   协助:       OpenAI Codex:gpt-5.6-sol
-//   参考标准:   Flutter widget test；项目 600x430 客户区与八语言矩阵
+//   参考标准:   Flutter widget test；原版 396×401 客户区与八语言矩阵
 // --------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
@@ -35,17 +35,17 @@ void main() {
     Locale('zh', 'TW'),
   ];
   const scales = <double>[1, 1.25, 1.5, 2];
-  const logicalSize = Size(600, 430);
+  const logicalSize = Size(396, 401);
 
   for (final locale in locales) {
     for (final scale in scales) {
       testWidgets(
         '${locale.toLanguageTag()} at ${scale * 100}% renders all pages without overflow',
         (tester) async {
-          tester.platformDispatcher.localeTestValue = locale;
+          tester.platformDispatcher.localesTestValue = <Locale>[locale];
           tester.view.devicePixelRatio = scale;
           tester.view.physicalSize = logicalSize * scale;
-          addTearDown(tester.platformDispatcher.clearLocaleTestValue);
+          addTearDown(tester.platformDispatcher.clearLocalesTestValue);
           addTearDown(tester.view.resetDevicePixelRatio);
           addTearDown(tester.view.resetPhysicalSize);
 

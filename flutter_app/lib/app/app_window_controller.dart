@@ -20,6 +20,7 @@ import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../src/native_bridge/third_party/taskmgr_core.dart';
+import 'product_contract.dart';
 
 int trayIconLevelForCpu(int? cpuPercent) {
   final usage = (cpuPercent ?? 0).clamp(0, 100);
@@ -103,7 +104,7 @@ final class DesktopAppWindowController
   String _exitLabel = '';
   String _alwaysOnTopLabel = '';
 
-  Future<void> initialize(UiSettings settings) async {
+  Future<void> initialize(UiSettings settings, {required String title}) async {
     final geometry = settings.window;
     _alwaysOnTop = settings.alwaysOnTop;
     _lastNormalGeometry = WindowGeometry(
@@ -119,8 +120,10 @@ final class DesktopAppWindowController
     await windowManager.waitUntilReadyToShow(
       WindowOptions(
         size: Size(geometry.width, geometry.height),
+        minimumSize: originalMainWindowSize,
         center: !restorePosition,
         alwaysOnTop: settings.alwaysOnTop,
+        title: title,
       ),
     );
     if (restorePosition) {

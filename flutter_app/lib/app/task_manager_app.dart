@@ -222,7 +222,9 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
                           children: <Widget>[
                             if (_notice(state, activePage) case final notice?)
                               _SnapshotNotice(text: notice),
-                            Expanded(child: _page(context, state, activePage)),
+                            Expanded(
+                              child: _animatedPage(context, state, activePage),
+                            ),
                           ],
                         ),
                       ),
@@ -585,6 +587,36 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
         confirmations: settings?.confirmations ?? true,
       ),
     };
+  }
+
+  Widget _animatedPage(BuildContext context, BackendState state, PageId page) {
+    final transitionDuration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : DesktopTheme.pageTransitionDuration;
+    return AnimatedSwitcher(
+      duration: transitionDuration,
+      reverseDuration: transitionDuration,
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      layoutBuilder: (currentChild, previousChildren) => Stack(
+        fit: StackFit.expand,
+        children: <Widget>[...previousChildren, ?currentChild],
+      ),
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.015),
+            end: Offset.zero,
+          ).animate(animation),
+          child: child,
+        ),
+      ),
+      child: KeyedSubtree(
+        key: ValueKey<PageId>(page),
+        child: _page(context, state, page),
+      ),
+    );
   }
 
   List<String> _statusItems(AppLocalizations l10n, BackendState state) {

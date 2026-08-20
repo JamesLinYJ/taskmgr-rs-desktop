@@ -97,6 +97,8 @@ Flutter -> taskmgr-bridge -> taskmgr-core <- taskmgr-windows/taskmgr-linux
 
 必须保持：
 
+- 主窗口标题在所有平台保持 Windows NT 品牌并随界面语言本地化，简体中文精确为“Windows NT 任务管理器”；默认及最小客户区严格采用归档 `264 × 247 DLU` 的 `396 × 401` 逻辑像素基准，允许用户向上放大并保存尺寸。
+- Windows 与支持服务端装饰的 Linux 桌面优先使用系统标题栏和原生外窗圆角；GNOME/未知 Wayland 回退到 30px 紧凑 CSD、8px 顶部圆角和 24px 标题按钮。不得在 Flutter 客户区再画一套标题栏。
 - 主窗口客户区尺寸关系、菜单层级、标签页顺序和快捷键。
 - 七页名称与顺序：应用程序、进程、性能、CPU、GPU、网络、用户。
 - 表格列顺序、初始列宽、紧凑行密度、排序、选择、键盘焦点和滚动行为。
@@ -113,7 +115,7 @@ Flutter -> taskmgr-bridge -> taskmgr-core <- taskmgr-windows/taskmgr-linux
 - 图表使用 `CustomPainter`；数据更新不得触发表格、菜单或整个页面无关区域重建。
 - 页面控制器和 `ValueNotifier` 保持轻量；只重建发生变化的区域。
 - 所有交互控件提供 `Semantics`、键盘焦点和快捷键，精确外观不能以牺牲可访问性为代价。
-- 状态动画只能短促且不改变布局；Windows 与 Linux 不得因平台分别重排页面。
+- 状态动画只能短促且不改变布局；页面切换使用 140 ms 淡入与轻微位移动画，系统要求减少动态效果时必须禁用；Windows 与 Linux 不得因平台分别重排页面。
 
 结构与视觉基线必须固化为 `docs/ui-baseline/` 中的规格和 Flutter golden；正式实现不能长期读取或编译旧 UI 源码。
 
@@ -227,7 +229,7 @@ Flutter 必须覆盖：
 - 八种语言无溢出，键盘、焦点、右键菜单与 Semantics 可用。
 - 大进程表和 500 ms 刷新时的帧稳定性。
 
-平台矩阵至少覆盖 Windows、X11、GNOME Wayland、KDE Wayland，以及协议/托盘/helper 不可用路径。ARM64 正式发布前必须在真实或虚拟 ARM64 环境做启动与采样冒烟测试。
+平台矩阵至少覆盖 Windows、GNOME Wayland、KDE Wayland 与一个 X11 桌面（优先 Xfce），并核对默认客户区、系统/CSD 标题栏、本地化、四档缩放，以及协议/托盘/helper 不可用路径。矩阵外桌面环境为尽力支持，但启动与七页主体不得依赖托盘或 foreign-toplevel 协议。ARM64 正式发布前必须在真实或虚拟 ARM64 环境做启动与采样冒烟测试。
 
 根目录的最低本地门槛：
 

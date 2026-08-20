@@ -19,6 +19,7 @@ import 'package:flutter/widgets.dart';
 import 'app/app_window_controller.dart';
 import 'app/backend_controller.dart';
 import 'app/task_manager_app.dart';
+import 'l10n/app_localizations.dart';
 import 'src/native_bridge/frb_generated.dart';
 
 Future<void> main() async {
@@ -38,7 +39,14 @@ Future<void> main() async {
   final settings = controller.value.settings;
   if (settings != null) {
     try {
-      await desktopWindow.initialize(settings);
+      final windowLocale = basicLocaleListResolution(
+        WidgetsBinding.instance.platformDispatcher.locales,
+        AppLocalizations.supportedLocales,
+      );
+      final windowTitle = (await AppLocalizations.delegate.load(
+        windowLocale,
+      )).appTitle;
+      await desktopWindow.initialize(settings, title: windowTitle);
       appWindow = desktopWindow;
     } catch (error) {
       desktopWindow.dispose();

@@ -1,3 +1,16 @@
+// +-------------------------------------------------------------------------
+//
+//   taskmgr-rs - Windows 系统窗口与原生装饰
+//
+//   文件:       flutter_app/windows/runner/win32_window.cpp
+//
+//   日期:       2026年08月21日
+//   环境:       Windows 10/11 x64、ARM64；Flutter 3.44.7；Win32/DWM
+//   作者:       JamesLinYJ
+//   协助:       OpenAI Codex:gpt-5.6-sol
+//   参考标准:   Win32 per-monitor DPI；DwmSetWindowAttribute；DWMWA_WINDOW_CORNER_PREFERENCE
+// --------------------------------------------------------------------------
+
 #include "win32_window.h"
 
 #include <dwmapi.h>
@@ -14,6 +27,14 @@ namespace {
 /// See: https://docs.microsoft.com/windows/win32/api/dwmapi/ne-dwmapi-dwmwindowattribute
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+
+#ifndef DWMWA_WINDOW_CORNER_PREFERENCE
+#define DWMWA_WINDOW_CORNER_PREFERENCE 33
+#endif
+
+#ifndef DWMWCP_ROUND
+#define DWMWCP_ROUND 2
 #endif
 
 constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
@@ -273,6 +294,12 @@ void Win32Window::OnDestroy() {
 }
 
 void Win32Window::UpdateTheme(HWND const window) {
+  const DWORD corner_preference = DWMWCP_ROUND;
+  DwmSetWindowAttribute(
+      window,
+      static_cast<DWMWINDOWATTRIBUTE>(DWMWA_WINDOW_CORNER_PREFERENCE),
+      &corner_preference, sizeof(corner_preference));
+
   DWORD light_mode;
   DWORD light_mode_size = sizeof(light_mode);
   LSTATUS result = RegGetValue(HKEY_CURRENT_USER, kGetPreferredBrightnessRegKey,

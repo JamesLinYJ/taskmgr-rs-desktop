@@ -6,13 +6,26 @@
 # 参考标准: 迁移前 Win32 结构；Flutter DesktopTheme 与 golden
 # --------------------------------------------------------------------------
 
-schema_version: 2
+schema_version: 3
 acceptance_baseline: flutter_golden
 source_units: dlu
-legacy_geometry_is_reference_only: true
+legacy_geometry_policy: exact_main_window_contract
 main_window:
-  width: 264
-  height: 247
+  title_policy: localized_windows_nt_brand
+  title_zh_CN: Windows NT 任务管理器
+  width_dlu: 264
+  height_dlu: 247
+  dialog_base_units: [6, 13]
+  logical_client_size: [396, 401]
+  minimum_logical_client_size: [396, 401]
+  resizable_above_minimum: true
+  page_transition_ms: 140
+  decorations:
+    windows: system_titlebar_with_native_rounding
+    kde: server_side_titlebar
+    gnome: compact_client_side_titlebar
+    fallback_titlebar_height: 30
+    fallback_top_corner_radius: 8
   font: MS Shell Dlg
   font_points: 8
 pages:

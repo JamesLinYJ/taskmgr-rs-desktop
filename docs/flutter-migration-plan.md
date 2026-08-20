@@ -98,8 +98,9 @@ shutdownBackend(BackendHandle)
 
 ### 4.1 视觉来源
 
-- 现有 Win32 DLU 用于恢复主窗口、七页和对话框的结构比例；Flutter 使用统一内置 Noto Sans，并以当前 Flutter golden 作为正式视觉基准。
-- 主窗口标题、菜单层级、标签顺序和状态栏文本保持现有定义。
+- 主窗口严格采用归档 Win32 `264 × 247 DLU`、`MS Shell Dlg 8pt` 的 100% 基准，即 `396 × 401` 逻辑像素客户区及最小尺寸；用户只能向上放大，放大后的尺寸继续持久化。
+- 主窗口在 Windows 与 Linux 使用相同的本地化标题，简体中文精确为“Windows NT 任务管理器”，其余语言保留各自的 Windows NT 品牌译名；菜单层级、标签顺序和状态栏文本保持现有定义。
+- Windows 与 KDE 优先使用系统/服务端标题栏及原生外窗圆角；GNOME/未知 Wayland 使用 30px 紧凑 CSD、8px 顶部圆角和 24px 标题按钮，不在 Flutter 客户区自绘第二套标题栏。
 - 表头顺序、默认列宽、对齐方式和按钮相对位置沿用现有页面常量，不引入侧栏、悬浮导航、移动端重排或现代大间距。
 - 视觉采用中性浅灰背景、白色工作区、蓝色交互强调、小圆角、轻阴影与柔和分隔；不直接套用 Material 默认控件皮肤。
 - 图表保留绿色用户/总量曲线、红色内核曲线、黄色辅助曲线、采样方向与历史窗口，背景和网格改由 `DesktopTheme` 统一定义。
@@ -112,6 +113,7 @@ shutdownBackend(BackendHandle)
 - `DesktopDataTable`：基于 `two_dimensional_scrollables/TableView`，支持虚拟化、表头排序、列宽调整、选择保持和右键菜单。
 - `DesktopGroupBox`、`DesktopButton`、`DesktopCheckbox`、`DesktopStatusBar`：统一圆角、边框、字体、hover、禁用态和焦点态。
 - `DesktopGraph`、`DesktopMeter`：使用 `CustomPainter`，仅在历史或尺寸变化时重绘。
+- 七页切换使用 140 ms 淡入与轻微位移，不改变布局；系统要求减少动态效果时即时切换。
 - 所有自定义交互控件提供 Flutter `Semantics`、键盘顺序和错误状态文本，颜色不是唯一状态信号。
 
 ### 4.3 页面映射
@@ -184,7 +186,8 @@ shutdownBackend(BackendHandle)
 ### 9.2 运行时矩阵
 
 - Windows x64/ARM64，100%、125%、150%、200% DPI。
-- Linux X11、GNOME Wayland、KDE Wayland，x64/ARM64。
+- Linux GNOME Wayland、KDE Wayland 与一个 X11 桌面（优先 Xfce），x64/ARM64；逐项核对 `396 × 401` 默认客户区、系统/CSD 标题栏、八语言标题及 100%/125%/150%/200% 缩放。
+- 矩阵外桌面环境为尽力支持；启动和七页主体不得依赖托盘或 foreign-toplevel 协议，缺失能力只禁用对应集成功能。
 - 无 GPU、多个 GPU、多网卡、64+ CPU、隐藏 `/proc`、无托盘扩展、无 polkit、用户取消提权。
 - 八种语言全部做溢出检查；中文、英文做全页视觉基线。
 
@@ -217,8 +220,8 @@ shutdownBackend(BackendHandle)
 
 ### 10.1 当前已验证结果
 
-- Rust workspace 已通过 `cargo clippy --workspace --all-targets --all-features -- -D warnings` 与全部本机单元测试；当前包括 core 10 项、helper 3 项、Linux 15 项。GitHub-hosted Windows x64/ARM64 与 Linux x64/ARM64 runner 均已通过对应原生目标的严格 Clippy 和 workspace 测试。
-- Flutter 已通过 `flutter analyze` 和全部 66 项测试，包括九张现代桌面页面/应用视图真实 Noto 字体 golden、窗口选项、窗口菜单、多选/平铺、“转到进程”的完整身份定位与 PID 复用防护、三种应用视图与 16/32px 图标 PNG/回退、12 级 CPU 托盘映射、托盘可用性门控、既有快捷键与快照换代后的选择同步行为，以及 8 个 locale × 100%/125%/150%/200% × 7 页的无溢出测试。
+- Rust workspace 已通过 `cargo clippy --workspace --all-targets -- -D warnings` 与全部本机单元测试；当前包括 core 11 项、helper 3 项、Linux 15 项。GitHub-hosted Windows x64/ARM64 与 Linux x64/ARM64 runner 均已通过对应原生目标的严格 Clippy 和 workspace 测试。
+- Flutter 已通过 `flutter analyze` 和全部 68 项测试，包括九张现代桌面页面/应用视图真实 Noto 字体 golden、八语言 Windows NT 标题、140 ms 页面切换、窗口选项、窗口菜单、多选/平铺、“转到进程”的完整身份定位与 PID 复用防护、三种应用视图与 16/32px 图标 PNG/回退、12 级 CPU 托盘映射、托盘可用性门控、既有快捷键与快照换代后的选择同步行为，以及 8 个 locale × `396 × 401` 客户区 × 100%/125%/150%/200% × 7 页的无溢出测试。
 - Linux x64/ARM64 release bundle 均已完成实包构建与内容审计，每个平台只包含一个项目 Rust 动态库 `libtaskmgr_native.so`。
 - KWin 6.7.4 虚拟 Wayland 会话已验证 desktop entry 授权、KDE Plasma 后端选择、真实 Zenity 顶层窗口枚举、含 AppIndicator 插件的 Flutter 展示和后端有序关闭。
 - Wayland 后端选择固定为标准 ext → wlroots → KDE Plasma → X11；标准协议绑定失败时会继续尝试下一 Wayland 后端，而不是直接降到 X11。

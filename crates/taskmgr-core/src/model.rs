@@ -21,8 +21,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 
 pub const PROTOCOL_VERSION: u16 = 1;
-pub const SETTINGS_SCHEMA_VERSION: u16 = 1;
+pub const SETTINGS_SCHEMA_VERSION: u16 = 2;
 pub const HISTORY_CAPACITY: usize = 120;
+pub const ORIGINAL_MAIN_WINDOW_WIDTH: f64 = 396.0;
+pub const ORIGINAL_MAIN_WINDOW_HEIGHT: f64 = 401.0;
+
+const PREVIOUS_MAIN_WINDOW_WIDTH: f64 = 600.0;
+const PREVIOUS_MAIN_WINDOW_HEIGHT: f64 = 430.0;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -215,8 +220,8 @@ impl Default for WindowGeometry {
         Self {
             x: None,
             y: None,
-            width: 600.0,
-            height: 430.0,
+            width: ORIGINAL_MAIN_WINDOW_WIDTH,
+            height: ORIGINAL_MAIN_WINDOW_HEIGHT,
             maximized: false,
         }
     }
@@ -300,12 +305,19 @@ impl Default for UiSettings {
 
 impl UiSettings {
     pub fn normalize(mut self) -> Self {
-        self.schema_version = SETTINGS_SCHEMA_VERSION;
-        if !self.window.width.is_finite() || self.window.width < 400.0 {
-            self.window.width = 600.0;
+        if self.schema_version < SETTINGS_SCHEMA_VERSION
+            && self.window.width == PREVIOUS_MAIN_WINDOW_WIDTH
+            && self.window.height == PREVIOUS_MAIN_WINDOW_HEIGHT
+        {
+            self.window.width = ORIGINAL_MAIN_WINDOW_WIDTH;
+            self.window.height = ORIGINAL_MAIN_WINDOW_HEIGHT;
         }
-        if !self.window.height.is_finite() || self.window.height < 300.0 {
-            self.window.height = 430.0;
+        self.schema_version = SETTINGS_SCHEMA_VERSION;
+        if !self.window.width.is_finite() || self.window.width < ORIGINAL_MAIN_WINDOW_WIDTH {
+            self.window.width = ORIGINAL_MAIN_WINDOW_WIDTH;
+        }
+        if !self.window.height.is_finite() || self.window.height < ORIGINAL_MAIN_WINDOW_HEIGHT {
+            self.window.height = ORIGINAL_MAIN_WINDOW_HEIGHT;
         }
         if self.window.x.is_some_and(|value| !value.is_finite()) {
             self.window.x = None;
@@ -833,7 +845,9 @@ pub fn unix_time_millis() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::{
-        ActionRequest, ApplicationIdentity, ColumnId, PageId, UiSettings, WindowArrangement,
+        ActionRequest, ApplicationIdentity, ColumnId, ORIGINAL_MAIN_WINDOW_HEIGHT,
+        ORIGINAL_MAIN_WINDOW_WIDTH, PageId, SETTINGS_SCHEMA_VERSION, UiSettings, WindowArrangement,
+        WindowGeometry,
     };
 
     #[test]
@@ -858,13 +872,31 @@ mod tests {
         settings.process_columns.clear();
         settings.window.width = f64::NAN;
         let settings = settings.normalize();
-        assert_eq!(settings.window.width, 600.0);
+        assert_eq!(settings.window.width, ORIGINAL_MAIN_WINDOW_WIDTH);
         assert!(
             settings
                 .process_columns
                 .iter()
                 .any(|layout| layout.column == ColumnId::ImageName)
         );
+    }
+
+    #[test]
+    fn previous_default_geometry_migrates_to_the_original_dialog_size() {
+        let settings = UiSettings {
+            schema_version: 1,
+            window: WindowGeometry {
+                width: 600.0,
+                height: 430.0,
+                ..WindowGeometry::default()
+            },
+            ..UiSettings::default()
+        }
+        .normalize();
+
+        assert_eq!(settings.schema_version, SETTINGS_SCHEMA_VERSION);
+        assert_eq!(settings.window.width, ORIGINAL_MAIN_WINDOW_WIDTH);
+        assert_eq!(settings.window.height, ORIGINAL_MAIN_WINDOW_HEIGHT);
     }
 
     #[test]

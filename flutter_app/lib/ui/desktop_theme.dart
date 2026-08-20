@@ -52,6 +52,7 @@ abstract final class DesktopTheme {
   static const double buttonHeight = 28;
   static const double statusHeight = 24;
   static const double contentMargin = 8;
+  static const Duration pageTransitionDuration = Duration(milliseconds: 140);
 
   static ThemeData data() {
     const textStyle = TextStyle(

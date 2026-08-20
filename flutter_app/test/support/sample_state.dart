@@ -21,7 +21,7 @@ BackendState sampleState(PageId activePage) {
   final history = _history(8, 72);
   final secondHistory = _history(16, 38);
   final settings = UiSettings(
-    schemaVersion: 1,
+    schemaVersion: 2,
     activePage: activePage,
     updateSpeed: UpdateSpeed.normal,
     alwaysOnTop: false,

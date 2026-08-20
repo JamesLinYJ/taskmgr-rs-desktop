@@ -1,3 +1,16 @@
+// +-------------------------------------------------------------------------
+//
+//   taskmgr-rs - Linux Flutter 窗口启动与桌面装饰适配
+//
+//   文件:       flutter_app/linux/runner/my_application.cc
+//
+//   日期:       2026年08月21日
+//   环境:       Fedora Linux 46 x86_64；Flutter 3.44.7；GTK 3；KDE Wayland
+//   作者:       JamesLinYJ
+//   协助:       OpenAI Codex:gpt-5.6-sol
+//   参考标准:   GTK 3 GtkApplication/GtkHeaderBar；XDG_CURRENT_DESKTOP；Wayland/X11
+// --------------------------------------------------------------------------
+
 #include "my_application.h"
 
 #include <flutter_linux/flutter_linux.h>
@@ -6,6 +19,53 @@
 #endif
 
 #include "flutter/generated_plugin_registrant.h"
+
+namespace {
+constexpr char kDefaultWindowTitle[] = "Windows NT Task Manager";
+constexpr int kOriginalWindowWidth = 396;
+constexpr int kOriginalWindowHeight = 401;
+
+gboolean desktop_prefers_server_decorations() {
+  const gchar* desktop = g_getenv("XDG_CURRENT_DESKTOP");
+  if (desktop == nullptr) {
+    return FALSE;
+  }
+  g_autofree gchar* lowercase = g_ascii_strdown(desktop, -1);
+  return g_strrstr(lowercase, "kde") != nullptr ||
+         g_strrstr(lowercase, "plasma") != nullptr;
+}
+
+void configure_compact_header_bar(GtkHeaderBar* header_bar) {
+  constexpr char kHeaderBarCss[] =
+      ".taskmgr-compact-header {"
+      "  min-height: 30px;"
+      "  padding: 0 6px;"
+      "  border-radius: 8px 8px 0 0;"
+      "}"
+      ".taskmgr-compact-header button.titlebutton {"
+      "  min-width: 24px;"
+      "  min-height: 24px;"
+      "  margin: 2px;"
+      "  padding: 0;"
+      "  border-radius: 6px;"
+      "}";
+  GtkWidget* widget = GTK_WIDGET(header_bar);
+  gtk_style_context_add_class(gtk_widget_get_style_context(widget),
+                              "taskmgr-compact-header");
+  gtk_header_bar_set_has_subtitle(header_bar, FALSE);
+
+  GtkCssProvider* provider = gtk_css_provider_new();
+  g_autoptr(GError) error = nullptr;
+  if (!gtk_css_provider_load_from_data(provider, kHeaderBarCss, -1, &error)) {
+    g_warning("Failed to apply compact title bar style: %s", error->message);
+  } else {
+    gtk_style_context_add_provider_for_screen(
+        gtk_widget_get_screen(widget), GTK_STYLE_PROVIDER(provider),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  }
+  g_object_unref(provider);
+}
+}  // namespace
 
 struct _MyApplication {
   GtkApplication parent_instance;
@@ -32,7 +92,7 @@ static void my_application_activate(GApplication* application) {
   // in case the window manager does more exotic layout, e.g. tiling.
   // If running on Wayland assume the header bar will work (may need changing
   // if future cases occur).
-  gboolean use_header_bar = TRUE;
+  gboolean use_header_bar = !desktop_prefers_server_decorations();
 #ifdef GDK_WINDOWING_X11
   GdkScreen* screen = gtk_window_get_screen(window);
   if (GDK_IS_X11_SCREEN(screen)) {
@@ -45,14 +105,19 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "taskmgr_rs");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
+    configure_compact_header_bar(header_bar);
+    GBinding* title_binding =
+        g_object_bind_property(window, "title", header_bar, "title",
+                               G_BINDING_SYNC_CREATE);
+    g_object_set_data_full(G_OBJECT(window), "taskmgr-title-binding",
+                           title_binding, g_object_unref);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
-  } else {
-    gtk_window_set_title(window, "taskmgr_rs");
   }
+  gtk_window_set_title(window, kDefaultWindowTitle);
 
-  gtk_window_set_default_size(window, 1280, 720);
+  gtk_window_set_default_size(window, kOriginalWindowWidth,
+                              kOriginalWindowHeight);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(

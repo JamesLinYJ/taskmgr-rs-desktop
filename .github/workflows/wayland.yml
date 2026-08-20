@@ -15,6 +15,24 @@ name: Wayland integration
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/wayland.yml'
+      - 'crates/taskmgr-linux/**'
+      - 'flutter_app/integration_test/**'
+      - 'flutter_app/lib/**'
+      - 'flutter_app/linux/**'
+      - 'scripts/test-kwin-wayland.sh'
+  pull_request:
+    paths:
+      - '.github/workflows/wayland.yml'
+      - 'crates/taskmgr-linux/**'
+      - 'flutter_app/integration_test/**'
+      - 'flutter_app/lib/**'
+      - 'flutter_app/linux/**'
+      - 'scripts/test-kwin-wayland.sh'
   schedule:
     - cron: '23 18 * * 3'
 
