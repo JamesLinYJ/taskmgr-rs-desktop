@@ -129,6 +129,9 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
         final activePage = pages.contains(state.activePage)
             ? state.activePage
             : pages.first;
+        final tinyFootprint =
+            activePage == PageId.performance &&
+            (state.settings?.tinyFootprint ?? false);
         final selectedApplications = _selectedApplicationsFor(
           state.applications,
         );
@@ -187,41 +190,50 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
                 autofocus: true,
                 child: Column(
                   children: <Widget>[
-                    DesktopMenuBar(
-                      menus: _menus(
-                        context,
-                        state,
-                        activePage,
-                        selectedApplications,
+                    if (!tinyFootprint)
+                      DesktopMenuBar(
+                        menus: _menus(
+                          context,
+                          state,
+                          activePage,
+                          selectedApplications,
+                        ),
                       ),
-                    ),
-                    DesktopTabs<PageId>(
-                      tabs: pages
-                          .map(
-                            (page) => DesktopTab<PageId>(
-                              page,
-                              _pageLabel(l10n, page),
-                            ),
-                          )
-                          .toList(growable: false),
-                      selected: activePage,
-                      onSelected: widget.controller.selectPage,
-                    ),
+                    if (!tinyFootprint)
+                      DesktopTabs<PageId>(
+                        tabs: pages
+                            .map(
+                              (page) => DesktopTab<PageId>(
+                                page,
+                                _pageLabel(l10n, page),
+                              ),
+                            )
+                            .toList(growable: false),
+                        selected: activePage,
+                        onSelected: widget.controller.selectPage,
+                      ),
                     Expanded(
                       child: Container(
-                        margin: const EdgeInsets.fromLTRB(6, 6, 6, 4),
+                        margin: tinyFootprint
+                            ? EdgeInsets.zero
+                            : const EdgeInsets.fromLTRB(6, 6, 6, 4),
                         clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
                           color: DesktopTheme.surface,
-                          border: Border.all(color: DesktopTheme.border),
-                          borderRadius: BorderRadius.circular(
-                            DesktopTheme.radiusMedium,
-                          ),
+                          border: tinyFootprint
+                              ? null
+                              : Border.all(color: DesktopTheme.border),
+                          borderRadius: tinyFootprint
+                              ? null
+                              : BorderRadius.circular(
+                                  DesktopTheme.radiusMedium,
+                                ),
                         ),
                         child: Column(
                           children: <Widget>[
-                            if (_notice(state, activePage) case final notice?)
-                              _SnapshotNotice(text: notice),
+                            if (!tinyFootprint)
+                              if (_notice(state, activePage) case final notice?)
+                                _SnapshotNotice(text: notice),
                             Expanded(
                               child: _animatedPage(context, state, activePage),
                             ),
@@ -229,7 +241,8 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
                         ),
                       ),
                     ),
-                    DesktopStatusBar(items: _statusItems(l10n, state)),
+                    if (!tinyFootprint)
+                      DesktopStatusBar(items: _statusItems(l10n, state)),
                   ],
                 ),
               ),
@@ -571,12 +584,16 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
       PageId.performance => PerformancePage(
         data: state.performance,
         showKernelTimes: settings?.showKernelTimes ?? false,
-        oneGraphPerCpu: settings?.oneGraphPerCpu ?? false,
+        oneGraphPerCpu: settings?.oneGraphPerCpu ?? true,
+        platform: state.capabilities?.platform,
+        tinyFootprint: settings?.tinyFootprint ?? false,
+        onToggleTinyFootprint: () => widget.controller.setUiPreferences(
+          tinyFootprint: !(settings?.tinyFootprint ?? false),
+        ),
       ),
       PageId.cpu => CpuPage(
         data: state.cpu,
-        kernelHistory:
-            state.performance?.kernelHistory.toList() ?? const <double>[],
+        platform: state.capabilities?.platform,
         showKernelTimes: settings?.showKernelTimes ?? false,
       ),
       PageId.gpu => GpuPage(data: state.gpu),

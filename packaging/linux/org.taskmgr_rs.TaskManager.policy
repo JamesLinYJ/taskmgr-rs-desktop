@@ -5,7 +5,7 @@
 <policyconfig>
   <vendor>taskmgr-rs</vendor>
   <vendor_url>https://github.com/JamesLinYJ/taskmgr-rs-desktop</vendor_url>
-  <action id="io.github.jameslinyj.taskmgr_rs.privileged">
+  <action id="org.taskmgr_rs.TaskManager.privileged">
     <description>Perform a privileged task-manager action</description>
     <description xml:lang="zh_CN">执行需要提权的任务管理器操作</description>
     <message>Authentication is required to perform this task-manager action</message>

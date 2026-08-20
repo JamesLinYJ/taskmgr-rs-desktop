@@ -16,6 +16,7 @@ set -euo pipefail
 
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 flutter_bin=${FLUTTER_BIN:-flutter}
+application_id=org.taskmgr_rs.TaskManager
 for command_name in "$flutter_bin" kwin_wayland timeout zenity; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     echo "required command is unavailable: $command_name" >&2
@@ -78,9 +79,9 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-desktop_file="$data_home/applications/io.github.jameslinyj.taskmgr_rs.desktop"
+desktop_file="$data_home/applications/$application_id.desktop"
 sed "s|^Exec=/usr/bin/taskmgr_rs$|Exec=$executable|" \
-  "$repo_root/packaging/linux/io.github.jameslinyj.taskmgr_rs.desktop" \
+  "$repo_root/packaging/linux/$application_id.desktop" \
   > "$desktop_file"
 
 export XDG_RUNTIME_DIR="$runtime_dir"

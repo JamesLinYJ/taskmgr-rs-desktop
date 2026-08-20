@@ -21,7 +21,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 
 pub const PROTOCOL_VERSION: u16 = 1;
-pub const SETTINGS_SCHEMA_VERSION: u16 = 2;
+pub const SETTINGS_SCHEMA_VERSION: u16 = 3;
 pub const HISTORY_CAPACITY: usize = 120;
 pub const ORIGINAL_MAIN_WINDOW_WIDTH: f64 = 396.0;
 pub const ORIGINAL_MAIN_WINDOW_HEIGHT: f64 = 401.0;
@@ -247,6 +247,8 @@ pub struct UiSettings {
     pub show_kernel_times: bool,
     pub one_graph_per_cpu: bool,
     #[serde(default)]
+    pub tiny_footprint: bool,
+    #[serde(default)]
     pub application_view_mode: ApplicationViewMode,
     pub window: WindowGeometry,
     pub process_columns: Vec<ColumnLayout>,
@@ -264,7 +266,9 @@ impl Default for UiSettings {
             confirmations: true,
             hide_when_minimized: false,
             show_kernel_times: false,
-            one_graph_per_cpu: false,
+            // The archived Task Manager defaults to one history pane per logical processor.
+            one_graph_per_cpu: true,
+            tiny_footprint: false,
             application_view_mode: ApplicationViewMode::Details,
             window: WindowGeometry::default(),
             process_columns: vec![
@@ -305,12 +309,18 @@ impl Default for UiSettings {
 
 impl UiSettings {
     pub fn normalize(mut self) -> Self {
-        if self.schema_version < SETTINGS_SCHEMA_VERSION
+        let source_schema = self.schema_version;
+        if source_schema < SETTINGS_SCHEMA_VERSION
             && self.window.width == PREVIOUS_MAIN_WINDOW_WIDTH
             && self.window.height == PREVIOUS_MAIN_WINDOW_HEIGHT
         {
             self.window.width = ORIGINAL_MAIN_WINDOW_WIDTH;
             self.window.height = ORIGINAL_MAIN_WINDOW_HEIGHT;
+        }
+        if source_schema < 3 {
+            // Schema 1/2 accidentally inverted the archived default. Those schemas were only
+            // emitted by the pre-release Flutter port, so migrate them to the intended default.
+            self.one_graph_per_cpu = true;
         }
         self.schema_version = SETTINGS_SCHEMA_VERSION;
         if !self.window.width.is_finite() || self.window.width < ORIGINAL_MAIN_WINDOW_WIDTH {
@@ -417,23 +427,113 @@ pub struct ProcessRow {
     pub row_error: Option<BackendError>,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct MetricValue {
-    pub label: String,
-    pub value: Option<String>,
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum CpuCacheKind {
+    Data,
+    Instruction,
+    Unified,
+    Trace,
+    Other,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct CpuMetricGroup {
-    pub title: String,
-    pub metrics: Vec<MetricValue>,
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct CpuCache {
+    pub level: u8,
+    pub kind: CpuCacheKind,
+    /// Capacity of one cache instance.
+    pub size_bytes: u64,
+    pub instance_count: u32,
+    pub associativity: Option<u32>,
+    pub line_size_bytes: Option<u32>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct CpuCoreClass {
+    /// Windows efficiency class or Linux scheduler capacity. `None` means a uniform topology.
+    pub efficiency_class: Option<u32>,
+    pub core_count: u32,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct CpuCurrentMetrics {
+    pub average_frequency_mhz: Option<f64>,
+    pub minimum_frequency_mhz: Option<f64>,
+    pub maximum_frequency_mhz: Option<f64>,
+    pub user_percent: Option<f64>,
+    pub kernel_percent: Option<f64>,
+    pub dpc_percent: Option<f64>,
+    pub interrupt_percent: Option<f64>,
+    pub interrupts_per_second: Option<u64>,
+    pub uptime_seconds: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct CpuSystemMetrics {
+    pub process_count: Option<u64>,
+    pub thread_count: Option<u64>,
+    pub handle_count: Option<u64>,
+    pub file_descriptor_count: Option<u64>,
+    pub open_file_count: Option<u64>,
+    pub processor_queue_length: Option<u64>,
+    pub context_switches_per_second: Option<u64>,
+    pub system_calls_per_second: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct CpuTopologyMetrics {
+    pub package_count: Option<u32>,
+    pub numa_node_count: Option<u32>,
+    pub processor_group_count: Option<u32>,
+    pub die_count: Option<u32>,
+    pub module_count: Option<u32>,
+    pub physical_core_count: Option<u32>,
+    pub logical_processor_count: Option<u32>,
+    pub core_classes: Vec<CpuCoreClass>,
+    pub smt_core_count: Option<u32>,
+    pub minimum_threads_per_core: Option<u32>,
+    pub maximum_threads_per_core: Option<u32>,
+    pub virtualization: Option<bool>,
+    pub second_level_address_translation: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct CpuHardwareMetrics {
+    pub manufacturer: Option<String>,
+    pub socket: Option<String>,
+    pub processor_id: Option<String>,
+    pub architecture: Option<String>,
+    pub address_width_bits: Option<u16>,
+    pub data_width_bits: Option<u16>,
+    pub family: Option<String>,
+    pub level: Option<String>,
+    pub revision: Option<String>,
+    pub stepping: Option<String>,
+    pub firmware_max_frequency_mhz: Option<f64>,
+    pub isa_features: Vec<String>,
+    pub caches: Vec<CpuCache>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct GpuEngine {
-    pub name: String,
+    pub id: String,
+    pub kind: GpuEngineKind,
+    pub ordinal: Option<u32>,
+    /// Driver-defined engine name, used only when `kind` is `Other`.
+    pub name: Option<String>,
     pub utilization_percent: Option<f64>,
     pub history: Vec<f64>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum GpuEngineKind {
+    Overall,
+    ThreeD,
+    Copy,
+    VideoEncode,
+    VideoDecode,
+    Compute,
+    Security,
+    Other,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -446,14 +546,17 @@ pub struct GpuAdapter {
     pub shared_used_bytes: Option<u64>,
     pub shared_total_bytes: Option<u64>,
     pub temperature_celsius: Option<f64>,
+    pub driver_name: Option<String>,
     pub driver_version: Option<String>,
     pub driver_date: Option<String>,
     pub graphics_api: Option<String>,
     pub physical_location: Option<String>,
     pub hardware_reserved_bytes: Option<u64>,
     pub engines: Vec<GpuEngine>,
-    pub dedicated_history: Vec<f64>,
-    pub shared_history: Vec<f64>,
+    /// Dedicated-memory utilization history normalized to 0–100 percent.
+    pub dedicated_usage_history_percent: Vec<f64>,
+    /// Shared-memory utilization history normalized to 0–100 percent.
+    pub shared_usage_history_percent: Vec<f64>,
     pub detail_error: Option<BackendError>,
 }
 
@@ -504,7 +607,10 @@ pub struct ProcessesData {
 pub struct PerformanceData {
     pub process_count: Option<u64>,
     pub thread_count: Option<u64>,
+    /// Windows system handle count; `None` on Linux.
     pub handle_count: Option<u64>,
+    /// Linux in-use file-handle count from `/proc/sys/fs/file-nr`; `None` on Windows.
+    pub open_file_count: Option<u64>,
     pub memory_total_kib: Option<u64>,
     pub memory_available_kib: Option<u64>,
     pub file_cache_kib: Option<u64>,
@@ -514,21 +620,30 @@ pub struct PerformanceData {
     pub kernel_total_kib: Option<u64>,
     pub kernel_paged_kib: Option<u64>,
     pub kernel_non_paged_kib: Option<u64>,
+    /// Linux-native memory details. Windows leaves these fields unavailable.
+    pub swap_used_kib: Option<u64>,
+    pub slab_kib: Option<u64>,
+    pub kernel_stack_kib: Option<u64>,
+    pub page_tables_kib: Option<u64>,
     pub cpu_percent: Option<f64>,
     pub memory_percent: Option<f64>,
     pub cpu_history: Vec<f64>,
     pub kernel_history: Vec<f64>,
     pub memory_history: Vec<f64>,
     pub logical_cpu_histories: Vec<Vec<f64>>,
+    pub logical_kernel_histories: Vec<Vec<f64>>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct CpuData {
     pub model: Option<String>,
-    pub status: Option<String>,
     pub utilization_percent: Option<f64>,
     pub history: Vec<f64>,
-    pub groups: Vec<CpuMetricGroup>,
+    pub kernel_history: Vec<f64>,
+    pub current: CpuCurrentMetrics,
+    pub system: CpuSystemMetrics,
+    pub topology: CpuTopologyMetrics,
+    pub hardware: CpuHardwareMetrics,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -553,7 +668,7 @@ pub enum SnapshotData {
     Applications(ApplicationsData),
     Processes(ProcessesData),
     Performance(Box<PerformanceData>),
-    Cpu(CpuData),
+    Cpu(Box<CpuData>),
     Gpu(GpuData),
     Network(NetworkData),
     Users(UsersData),
@@ -579,7 +694,7 @@ impl SnapshotData {
             Self::Performance(data) => {
                 BackendEvent::Performance(Box::new(PageSnapshot { meta, data: *data }))
             }
-            Self::Cpu(data) => BackendEvent::Cpu(PageSnapshot { meta, data }),
+            Self::Cpu(data) => BackendEvent::Cpu(Box::new(PageSnapshot { meta, data: *data })),
             Self::Gpu(data) => BackendEvent::Gpu(PageSnapshot { meta, data }),
             Self::Network(data) => BackendEvent::Network(PageSnapshot { meta, data }),
             Self::Users(data) => BackendEvent::Users(PageSnapshot { meta, data }),
@@ -665,7 +780,7 @@ pub enum BackendEvent {
     Applications(PageSnapshot<ApplicationsData>),
     Processes(PageSnapshot<ProcessesData>),
     Performance(Box<PageSnapshot<PerformanceData>>),
-    Cpu(PageSnapshot<CpuData>),
+    Cpu(Box<PageSnapshot<CpuData>>),
     Gpu(PageSnapshot<GpuData>),
     Network(PageSnapshot<NetworkData>),
     Users(PageSnapshot<UsersData>),
@@ -897,6 +1012,30 @@ mod tests {
         assert_eq!(settings.schema_version, SETTINGS_SCHEMA_VERSION);
         assert_eq!(settings.window.width, ORIGINAL_MAIN_WINDOW_WIDTH);
         assert_eq!(settings.window.height, ORIGINAL_MAIN_WINDOW_HEIGHT);
+    }
+
+    #[test]
+    fn pre_v3_settings_migrate_to_the_original_per_cpu_default() {
+        let settings = UiSettings {
+            schema_version: 2,
+            one_graph_per_cpu: false,
+            ..UiSettings::default()
+        }
+        .normalize();
+
+        assert!(settings.one_graph_per_cpu);
+        assert_eq!(settings.schema_version, SETTINGS_SCHEMA_VERSION);
+    }
+
+    #[test]
+    fn current_settings_preserve_an_explicit_combined_cpu_graph() {
+        let settings = UiSettings {
+            one_graph_per_cpu: false,
+            ..UiSettings::default()
+        }
+        .normalize();
+
+        assert!(!settings.one_graph_per_cpu);
     }
 
     #[test]

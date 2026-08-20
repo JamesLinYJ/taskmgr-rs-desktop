@@ -17,24 +17,39 @@
 //! 实例名缓冲区经过边界验证，适配器身份来自 WDDM LUID 与 physical index。
 
 use std::collections::{BTreeMap, HashMap, HashSet};
+use std::ffi::c_void;
 use std::mem::size_of;
 use std::ptr::{null, null_mut};
 use std::slice;
 
 use taskmgr_core::{
-    BackendError, GpuAdapter, GpuData, GpuEngine, HISTORY_CAPACITY, HistoryBuffer, SnapshotData,
+    BackendError, GpuAdapter, GpuData, GpuEngine, GpuEngineKind, HISTORY_CAPACITY, HistoryBuffer,
+    SnapshotData,
+};
+use windows::Win32::Graphics::Direct3D::{
+    D3D_FEATURE_LEVEL, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_12_0,
+    D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_2,
+};
+use windows::Win32::Graphics::Direct3D12::{
+    D3D12_FEATURE_DATA_FEATURE_LEVELS, D3D12_FEATURE_FEATURE_LEVELS, ID3D12Device,
 };
 use windows::Win32::Graphics::Dxgi::{
     CreateDXGIFactory1, DXGI_ADAPTER_FLAG_REMOTE, DXGI_ADAPTER_FLAG_SOFTWARE, DXGI_ERROR_NOT_FOUND,
     IDXGIFactory1,
 };
-use windows_sys::Win32::Foundation::ERROR_SUCCESS;
+use windows::core::Interface;
+use windows_sys::Win32::Foundation::{
+    ERROR_GEN_FAILURE, ERROR_SUCCESS, FreeLibrary, GetLastError, HMODULE,
+};
+use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW};
 use windows_sys::Win32::System::Performance::{
     PDH_CSTATUS_INVALID_DATA, PDH_CSTATUS_NEW_DATA, PDH_CSTATUS_VALID_DATA,
     PDH_FMT_COUNTERVALUE_ITEM_W, PDH_FMT_DOUBLE, PDH_FMT_LARGE, PDH_HCOUNTER, PDH_HQUERY,
     PDH_MORE_DATA, PdhAddEnglishCounterW, PdhCloseQuery, PdhCollectQueryData,
     PdhGetFormattedCounterArrayW, PdhOpenQueryW,
 };
+
+use crate::gpu_metadata::{GpuMetadata, query_gpu_metadata};
 
 const ENGINE_PATH: &str = r"\GPU Engine(*)\Utilization Percentage";
 const DEDICATED_PATH: &str = r"\GPU Adapter Memory(*)\Dedicated Usage";
@@ -66,6 +81,7 @@ struct AdapterInventory {
     name: String,
     dedicated_total: u64,
     shared_total: u64,
+    graphics_api: Option<String>,
 }
 
 impl AdapterHistory {
@@ -81,6 +97,8 @@ impl AdapterHistory {
 pub(crate) struct GpuSampler {
     query: Option<PdhQuery>,
     histories: HashMap<AdapterId, AdapterHistory>,
+    metadata: HashMap<AdapterId, (Option<u64>, Result<GpuMetadata, BackendError>)>,
+    graphics_api: HashMap<(u32, u32), Option<String>>,
 }
 
 impl GpuSampler {
@@ -88,6 +106,8 @@ impl GpuSampler {
         Self {
             query: None,
             histories: HashMap::new(),
+            metadata: HashMap::new(),
+            graphics_api: HashMap::new(),
         }
     }
 
@@ -162,13 +182,14 @@ impl GpuSampler {
             .or(dedicated.error)
             .or(shared.error);
 
-        let inventory = match query_dxgi_inventory() {
+        let inventory = match query_dxgi_inventory(&mut self.graphics_api) {
             Ok(inventory) => inventory,
             Err(error) => {
                 first_detail_error.get_or_insert(error);
                 HashMap::new()
             }
         };
+        self.graphics_api.retain(|id, _| inventory.contains_key(id));
         for &(luid_high, luid_low) in inventory.keys() {
             builders
                 .entry(AdapterId {
@@ -198,14 +219,57 @@ impl GpuSampler {
                 .or_default() += 1;
         }
         self.histories.retain(|id, _| live.contains(id));
+        self.metadata.retain(|id, _| live.contains(id));
         let mut adapters = Vec::with_capacity(builders.len());
         for (index, (id, builder)) in builders.into_iter().enumerate() {
-            let history = self.histories.entry(id).or_insert_with(AdapterHistory::new);
-            if let Some(value) = builder.dedicated {
-                history.dedicated.push(value as f64);
+            let inventory = inventory.get(&(id.luid_high, id.luid_low));
+            let single_physical =
+                physical_counts.get(&(id.luid_high, id.luid_low)).copied() == Some(1);
+            let dedicated_total = inventory
+                .filter(|_| single_physical)
+                .map(|inventory| inventory.dedicated_total)
+                .filter(|value| *value > 0);
+            let shared_total = inventory
+                .filter(|_| single_physical)
+                .map(|inventory| inventory.shared_total)
+                .filter(|value| *value > 0);
+            if self
+                .metadata
+                .get(&id)
+                .is_none_or(|(limit, _)| *limit != dedicated_total)
+            {
+                self.metadata.insert(
+                    id,
+                    (
+                        dedicated_total,
+                        query_gpu_metadata(
+                            id.luid_high,
+                            id.luid_low,
+                            id.physical_index,
+                            dedicated_total,
+                        ),
+                    ),
+                );
             }
-            if let Some(value) = builder.shared {
-                history.shared.push(value as f64);
+            let metadata = self
+                .metadata
+                .get(&id)
+                .expect("GPU metadata inserted above")
+                .1
+                .clone();
+            let (metadata, metadata_error) = match metadata {
+                Ok(metadata) => {
+                    let error = metadata.detail_error.clone();
+                    (metadata, error)
+                }
+                Err(error) => (GpuMetadata::default(), Some(error)),
+            };
+            let history = self.histories.entry(id).or_insert_with(AdapterHistory::new);
+            if let Some(value) = memory_percent(builder.dedicated, dedicated_total) {
+                history.dedicated.push(value);
+            }
+            if let Some(value) = memory_percent(builder.shared, shared_total) {
+                history.shared.push(value);
             }
             let mut engines = Vec::with_capacity(builder.engines.len());
             let mut live_engines = HashSet::with_capacity(builder.engines.len());
@@ -218,8 +282,16 @@ impl GpuSampler {
                     .entry(history_key)
                     .or_insert_with(|| HistoryBuffer::new(HISTORY_CAPACITY));
                 engine_history.push(utilization);
+                let kind = engine_kind(&engine_id.kind);
                 engines.push(GpuEngine {
-                    name: engine_display_name(&engine_id.kind, engine_id.ordinal),
+                    id: format!(
+                        "{}:{}",
+                        engine_id.kind.to_ascii_lowercase(),
+                        engine_id.ordinal
+                    ),
+                    kind,
+                    ordinal: Some(engine_id.ordinal),
+                    name: (kind == GpuEngineKind::Other).then_some(engine_id.kind),
                     utilization_percent: Some(utilization),
                     history: engine_history.snapshot(),
                 });
@@ -227,15 +299,12 @@ impl GpuSampler {
             history
                 .engines
                 .retain(|engine, _| live_engines.contains(engine));
-            engines.sort_by(|left, right| left.name.cmp(&right.name));
+            engines.sort_by(|left, right| left.id.cmp(&right.id));
             let utilization_percent = engines
                 .iter()
                 .filter_map(|engine| engine.utilization_percent)
                 .reduce(f64::max);
             let stable_id = adapter_id_string(id);
-            let inventory = inventory.get(&(id.luid_high, id.luid_low));
-            let single_physical =
-                physical_counts.get(&(id.luid_high, id.luid_low)).copied() == Some(1);
             adapters.push(GpuAdapter {
                 id: stable_id.clone(),
                 name: inventory
@@ -243,25 +312,20 @@ impl GpuSampler {
                     .unwrap_or_else(|| format!("GPU {index} ({stable_id})")),
                 utilization_percent,
                 dedicated_used_bytes: builder.dedicated,
-                dedicated_total_bytes: inventory
-                    .filter(|_| single_physical)
-                    .map(|inventory| inventory.dedicated_total)
-                    .filter(|value| *value > 0),
+                dedicated_total_bytes: dedicated_total,
                 shared_used_bytes: builder.shared,
-                shared_total_bytes: inventory
-                    .filter(|_| single_physical)
-                    .map(|inventory| inventory.shared_total)
-                    .filter(|value| *value > 0),
-                temperature_celsius: None,
-                driver_version: None,
-                driver_date: None,
-                graphics_api: Some("DirectX/DXGI + WDDM/PDH".to_string()),
-                physical_location: None,
-                hardware_reserved_bytes: None,
+                shared_total_bytes: shared_total,
+                temperature_celsius: metadata.temperature_celsius,
+                driver_name: metadata.driver_name,
+                driver_version: metadata.driver_version,
+                driver_date: metadata.driver_date,
+                graphics_api: inventory.and_then(|value| value.graphics_api.clone()),
+                physical_location: metadata.physical_location,
+                hardware_reserved_bytes: metadata.hardware_reserved_bytes,
                 engines,
-                dedicated_history: history.dedicated.snapshot(),
-                shared_history: history.shared.snapshot(),
-                detail_error: first_detail_error.clone(),
+                dedicated_usage_history_percent: history.dedicated.snapshot(),
+                shared_usage_history_percent: history.shared.snapshot(),
+                detail_error: metadata_error.or_else(|| first_detail_error.clone()),
             });
         }
         Ok(SnapshotData::Gpu(GpuData {
@@ -597,11 +661,15 @@ fn adapter_id_string(id: AdapterId) -> String {
     )
 }
 
-fn query_dxgi_inventory() -> Result<HashMap<(u32, u32), AdapterInventory>, BackendError> {
+fn query_dxgi_inventory(
+    graphics_api_cache: &mut HashMap<(u32, u32), Option<String>>,
+) -> Result<HashMap<(u32, u32), AdapterInventory>, BackendError> {
     // SAFETY: CreateDXGIFactory1 initializes and returns one reference-counted COM interface.
     let factory: IDXGIFactory1 = unsafe { CreateDXGIFactory1() }
         .map_err(|error| hresult_error("CreateDXGIFactory1 GPU inventory", error.code().0))?;
     let mut inventory = HashMap::new();
+    let mut d3d12 = None;
+    let mut d3d12_attempted = false;
     let mut index = 0u32;
     loop {
         // SAFETY: factory remains live for enumeration and index is monotonically bounded by DXGI.
@@ -633,32 +701,176 @@ fn query_dxgi_inventory() -> Result<HashMap<(u32, u32), AdapterInventory>, Backe
             .unwrap_or(description.Description.len());
         let name = String::from_utf16(&description.Description[..length])
             .map_err(|_| invalid_data("DXGI adapter description encoding"))?;
+        let id = (
+            description.AdapterLuid.HighPart as u32,
+            description.AdapterLuid.LowPart,
+        );
+        let graphics_api = if let Some(value) = graphics_api_cache.get(&id) {
+            value.clone()
+        } else {
+            if !d3d12_attempted {
+                d3d12 = D3d12Runtime::load().ok();
+                d3d12_attempted = true;
+            }
+            let value = d3d12
+                .as_ref()
+                .and_then(|runtime| runtime.query_feature_level(&adapter).ok().flatten());
+            graphics_api_cache.insert(id, value.clone());
+            value
+        };
         inventory.insert(
-            (
-                description.AdapterLuid.HighPart as u32,
-                description.AdapterLuid.LowPart,
-            ),
+            id,
             AdapterInventory {
                 name,
                 dedicated_total: description.DedicatedVideoMemory as u64,
                 shared_total: description.SharedSystemMemory as u64,
+                graphics_api,
             },
         );
     }
     Ok(inventory)
 }
 
-fn engine_display_name(kind: &str, ordinal: u32) -> String {
-    let display = match kind.to_ascii_lowercase().as_str() {
-        "3d" => "3D",
-        "copy" => "Copy",
-        "videoencode" => "Video Encode",
-        "videodecode" => "Video Decode",
-        "compute" | "computing" => "Compute",
-        "security" => "Security",
-        _ => kind,
-    };
-    format!("{display} {ordinal}")
+type D3d12CreateDevice = unsafe extern "system" fn(
+    *mut c_void,
+    D3D_FEATURE_LEVEL,
+    *const windows::core::GUID,
+    *mut *mut c_void,
+) -> i32;
+
+struct D3d12Runtime {
+    _library: DynamicLibrary,
+    create_device: D3d12CreateDevice,
+}
+
+impl D3d12Runtime {
+    fn load() -> Result<Self, BackendError> {
+        let library = DynamicLibrary::load("d3d12.dll")?;
+        let procedure = unsafe { GetProcAddress(library.0, c"D3D12CreateDevice".as_ptr().cast()) };
+        let Some(procedure) = procedure else {
+            return Err(last_win32_error("GetProcAddress D3D12CreateDevice"));
+        };
+        // SAFETY: the symbol was resolved from the system D3D12 module under its documented
+        // export name; `library` remains owned by this runtime for the function's lifetime.
+        let create_device = unsafe {
+            std::mem::transmute::<unsafe extern "system" fn() -> isize, D3d12CreateDevice>(
+                procedure,
+            )
+        };
+        Ok(Self {
+            _library: library,
+            create_device,
+        })
+    }
+
+    fn query_feature_level(
+        &self,
+        adapter: &windows::Win32::Graphics::Dxgi::IDXGIAdapter1,
+    ) -> Result<Option<String>, BackendError> {
+        let mut raw_device = null_mut();
+        let result = unsafe {
+            (self.create_device)(
+                adapter.as_raw(),
+                D3D_FEATURE_LEVEL_11_0,
+                &ID3D12Device::IID,
+                &mut raw_device,
+            )
+        };
+        if result < 0 {
+            return Ok(None);
+        }
+        if raw_device.is_null() {
+            return Err(invalid_data("D3D12CreateDevice GPU output"));
+        }
+        let device = unsafe { ID3D12Device::from_raw(raw_device) };
+        let requested = [
+            D3D_FEATURE_LEVEL_12_2,
+            D3D_FEATURE_LEVEL_12_1,
+            D3D_FEATURE_LEVEL_12_0,
+            D3D_FEATURE_LEVEL_11_1,
+            D3D_FEATURE_LEVEL_11_0,
+        ];
+        let mut levels = D3D12_FEATURE_DATA_FEATURE_LEVELS {
+            NumFeatureLevels: requested.len() as u32,
+            pFeatureLevelsRequested: requested.as_ptr(),
+            MaxSupportedFeatureLevel: D3D_FEATURE_LEVEL_11_0,
+        };
+        unsafe {
+            device.CheckFeatureSupport(
+                D3D12_FEATURE_FEATURE_LEVELS,
+                (&mut levels as *mut D3D12_FEATURE_DATA_FEATURE_LEVELS).cast(),
+                size_of::<D3D12_FEATURE_DATA_FEATURE_LEVELS>() as u32,
+            )
+        }
+        .map_err(|error| hresult_error("ID3D12Device::CheckFeatureSupport GPU", error.code().0))?;
+        Ok(feature_level_name(levels.MaxSupportedFeatureLevel).map(str::to_string))
+    }
+}
+
+fn feature_level_name(level: D3D_FEATURE_LEVEL) -> Option<&'static str> {
+    match level {
+        D3D_FEATURE_LEVEL_12_2 => Some("DirectX 12 (FL 12.2)"),
+        D3D_FEATURE_LEVEL_12_1 => Some("DirectX 12 (FL 12.1)"),
+        D3D_FEATURE_LEVEL_12_0 => Some("DirectX 12 (FL 12.0)"),
+        D3D_FEATURE_LEVEL_11_1 => Some("DirectX 12 (FL 11.1)"),
+        D3D_FEATURE_LEVEL_11_0 => Some("DirectX 12 (FL 11.0)"),
+        _ => None,
+    }
+}
+
+struct DynamicLibrary(HMODULE);
+
+impl DynamicLibrary {
+    fn load(name: &str) -> Result<Self, BackendError> {
+        let name = name.encode_utf16().chain([0]).collect::<Vec<_>>();
+        let library = unsafe { LoadLibraryW(name.as_ptr()) };
+        if library.is_null() {
+            Err(last_win32_error("LoadLibraryW D3D12"))
+        } else {
+            Ok(Self(library))
+        }
+    }
+}
+
+impl Drop for DynamicLibrary {
+    fn drop(&mut self) {
+        if !self.0.is_null() {
+            let _result = unsafe { FreeLibrary(self.0) };
+            self.0 = null_mut();
+        }
+    }
+}
+
+fn last_win32_error(context: &str) -> BackendError {
+    let code = unsafe { GetLastError() };
+    BackendError {
+        domain: "win32".to_string(),
+        code: i64::from(if code == ERROR_SUCCESS {
+            ERROR_GEN_FAILURE
+        } else {
+            code
+        }),
+        context: context.to_string(),
+        message: format!("Win32 error {code}"),
+    }
+}
+
+fn engine_kind(value: &str) -> GpuEngineKind {
+    match value.to_ascii_lowercase().as_str() {
+        "3d" => GpuEngineKind::ThreeD,
+        "copy" => GpuEngineKind::Copy,
+        "videoencode" => GpuEngineKind::VideoEncode,
+        "videodecode" => GpuEngineKind::VideoDecode,
+        "compute" | "computing" => GpuEngineKind::Compute,
+        "security" => GpuEngineKind::Security,
+        _ => GpuEngineKind::Other,
+    }
+}
+
+fn memory_percent(used: Option<u64>, total: Option<u64>) -> Option<f64> {
+    used.zip(total).and_then(|(used, total)| {
+        (total > 0).then(|| (used as f64 * 100.0 / total as f64).clamp(0.0, 100.0))
+    })
 }
 
 fn pdh_error(context: impl Into<String>, status: u32) -> BackendError {
@@ -690,7 +902,7 @@ fn invalid_data(context: impl Into<String>) -> BackendError {
 
 #[cfg(test)]
 mod tests {
-    use super::{AdapterId, parse_engine_instance, parse_memory_instance};
+    use super::{AdapterId, memory_percent, parse_engine_instance, parse_memory_instance};
 
     #[test]
     fn parses_wddm_engine_identity() {
@@ -712,5 +924,12 @@ mod tests {
     fn rejects_malformed_memory_identity() {
         assert!(parse_memory_instance("luid_0x0_phys_0").is_none());
         assert!(parse_memory_instance("luid_0x0_0x71_phys_0").is_some());
+    }
+
+    #[test]
+    fn memory_history_uses_percent_instead_of_raw_bytes() {
+        assert_eq!(memory_percent(Some(256), Some(1_024)), Some(25.0));
+        assert_eq!(memory_percent(Some(256), None), None);
+        assert_eq!(memory_percent(Some(256), Some(0)), None);
     }
 }

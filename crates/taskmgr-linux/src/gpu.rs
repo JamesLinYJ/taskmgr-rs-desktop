@@ -18,7 +18,8 @@ use std::fs;
 use std::path::Path;
 
 use taskmgr_core::{
-    BackendError, GpuAdapter, GpuData, GpuEngine, HISTORY_CAPACITY, HistoryBuffer, SnapshotData,
+    BackendError, GpuAdapter, GpuData, GpuEngine, GpuEngineKind, HISTORY_CAPACITY, HistoryBuffer,
+    SnapshotData,
 };
 
 struct AdapterHistory {
@@ -84,11 +85,11 @@ impl GpuSampler {
             if let Some(value) = utilization {
                 history.utilization.push(value);
             }
-            if let Some(value) = dedicated_used {
-                history.dedicated.push(value as f64);
+            if let Some(value) = memory_percent(dedicated_used, dedicated_total) {
+                history.dedicated.push(value);
             }
-            if let Some(value) = shared_used {
-                history.shared.push(value as f64);
+            if let Some(value) = memory_percent(shared_used, shared_total) {
+                history.shared.push(value);
             }
             let detail_error = (utilization.is_none()
                 && dedicated_total.is_none()
@@ -108,18 +109,22 @@ impl GpuSampler {
                 shared_used_bytes: shared_used,
                 shared_total_bytes: shared_total,
                 temperature_celsius: temperature,
+                driver_name: driver.clone(),
                 driver_version: version,
                 driver_date: None,
-                graphics_api: driver.map(|driver| format!("DRM/{driver}")),
+                graphics_api: None,
                 physical_location: slot,
                 hardware_reserved_bytes: None,
                 engines: vec![GpuEngine {
-                    name: "3D".to_string(),
+                    id: "overall".to_string(),
+                    kind: GpuEngineKind::Overall,
+                    ordinal: None,
+                    name: None,
                     utilization_percent: utilization,
                     history: history.utilization.snapshot(),
                 }],
-                dedicated_history: history.dedicated.snapshot(),
-                shared_history: history.shared.snapshot(),
+                dedicated_usage_history_percent: history.dedicated.snapshot(),
+                shared_usage_history_percent: history.shared.snapshot(),
                 detail_error,
             });
         }
@@ -168,4 +173,9 @@ fn read_temperature(device: &Path) -> Option<f64> {
         }
     }
     None
+}
+
+fn memory_percent(used: Option<u64>, total: Option<u64>) -> Option<f64> {
+    let (used, total) = (used?, total?);
+    (total > 0).then(|| (used as f64 * 100.0 / total as f64).clamp(0.0, 100.0))
 }

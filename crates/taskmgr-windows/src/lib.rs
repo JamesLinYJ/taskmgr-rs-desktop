@@ -18,7 +18,11 @@
 #[cfg(windows)]
 mod applications;
 #[cfg(windows)]
+mod cpu;
+#[cfg(windows)]
 mod gpu;
+#[cfg(windows)]
+mod gpu_metadata;
 #[cfg(windows)]
 mod launch;
 #[cfg(windows)]
@@ -155,15 +159,18 @@ impl PlatformProvider for WindowsProvider {
                     availability: Availability::Supported,
                     columns: Vec::new(),
                     actions: vec![ActionKind::Refresh],
-                    detail: None,
+                    detail: Some(
+                        "per-logical-processor user and kernel histories use independent NT cumulative-counter baselines"
+                            .to_string(),
+                    ),
                 },
                 PageCapability {
                     page: PageId::Cpu,
-                    availability: Availability::Partial,
+                    availability: Availability::Supported,
                     columns: Vec::new(),
                     actions: vec![ActionKind::Refresh],
                     detail: Some(
-                        "aggregate CPU data is available; per-logical-processor histories and PDH diagnostics remain pending"
+                        "NT processor counters, power information, registry identity, processor groups, topology and cache relationships"
                             .to_string(),
                     ),
                 },
@@ -173,7 +180,7 @@ impl PlatformProvider for WindowsProvider {
                     columns: Vec::new(),
                     actions: vec![ActionKind::Refresh],
                     detail: Some(
-                        "DXGI inventory and WDDM GPU Engine/adapter-memory counters are available; driver metadata and temperature remain pending"
+                        "DXGI, WDDM PDH, D3DKMT, SetupAPI and optional D3D12 feature-level data; individual fields remain driver-dependent"
                             .to_string(),
                     ),
                 },

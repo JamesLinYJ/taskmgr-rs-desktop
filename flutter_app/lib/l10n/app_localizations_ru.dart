@@ -636,6 +636,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get handles => 'Дескрипторы';
 
   @override
+  String get openFileHandles => 'Открытые файлы';
+
+  @override
   String get threads => 'Потоки';
 
   @override
@@ -663,6 +666,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get kernelMemoryK => 'Память ядра (K)';
 
   @override
+  String get virtualMemoryK => 'Виртуальная память (K)';
+
+  @override
   String get totals => 'Итоги';
 
   @override
@@ -685,6 +691,24 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get peak => 'Пик';
+
+  @override
+  String get committed => 'Выделено';
+
+  @override
+  String get commitLimit => 'Предел выделения';
+
+  @override
+  String get swapUsed => 'Подкачка занята';
+
+  @override
+  String get slab => 'Slab';
+
+  @override
+  String get kernelStack => 'Стек ядра';
+
+  @override
+  String get pageTables => 'Таблицы страниц';
 
   @override
   String get noActiveNetworkAdaptersFound =>

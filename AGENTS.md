@@ -97,6 +97,7 @@ Flutter -> taskmgr-bridge -> taskmgr-core <- taskmgr-windows/taskmgr-linux
 
 必须保持：
 
+- Linux 运行时 application ID 固定为中性的 `org.taskmgr_rs.TaskManager`；GTK application ID、desktop 文件名、图标名与 polkit action 必须一致，不得从作者、协助者、GitHub 用户名或仓库所有者派生运行时 ID。
 - 主窗口标题在所有平台保持 Windows NT 品牌并随界面语言本地化，简体中文精确为“Windows NT 任务管理器”；默认及最小客户区严格采用归档 `264 × 247 DLU` 的 `396 × 401` 逻辑像素基准，允许用户向上放大并保存尺寸。
 - Windows 与支持服务端装饰的 Linux 桌面优先使用系统标题栏和原生外窗圆角；GNOME/未知 Wayland 回退到 30px 紧凑 CSD、8px 顶部圆角和 24px 标题按钮。不得在 Flutter 客户区再画一套标题栏。
 - 主窗口客户区尺寸关系、菜单层级、标签页顺序和快捷键。

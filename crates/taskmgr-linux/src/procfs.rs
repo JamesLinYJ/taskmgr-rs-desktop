@@ -15,16 +15,18 @@
 //!
 //! 危险操作先校验 PID 与 starttime；终止操作使用 pidfd，绝不降级为 PID-only kill。
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs;
 use std::io;
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+use std::path::Path;
 use std::process::Command;
 use std::time::Instant;
 
 use taskmgr_core::{
-    ActionRequest, ActionResult, BackendError, CpuData, CpuMetricGroup, HISTORY_CAPACITY,
-    HistoryBuffer, MetricValue, PerformanceData, ProcessIdentity, ProcessRow, ProcessesData,
+    ActionRequest, ActionResult, BackendError, CpuCache, CpuCacheKind, CpuCoreClass,
+    CpuCurrentMetrics, CpuData, CpuHardwareMetrics, CpuSystemMetrics, CpuTopologyMetrics,
+    HISTORY_CAPACITY, HistoryBuffer, PerformanceData, ProcessIdentity, ProcessRow, ProcessesData,
     SnapshotData,
 };
 
@@ -56,7 +58,31 @@ struct ProcessBaseline {
 struct CpuTimes {
     total: u64,
     idle: u64,
+    user: u64,
     kernel: u64,
+    interrupt: u64,
+}
+
+#[derive(Clone, Debug)]
+struct CpuDetailBaseline {
+    times: CpuTimes,
+    interrupts: Option<u64>,
+    context_switches: Option<u64>,
+    sampled_at: Instant,
+}
+
+#[derive(Clone, Debug)]
+struct CpuTopologySnapshot {
+    package_count: Option<u32>,
+    numa_node_count: Option<u32>,
+    die_count: Option<u32>,
+    module_count: Option<u32>,
+    physical_core_count: Option<u32>,
+    logical_processor_count: Option<u32>,
+    core_classes: Vec<CpuCoreClass>,
+    smt_core_count: Option<u32>,
+    minimum_threads_per_core: Option<u32>,
+    maximum_threads_per_core: Option<u32>,
 }
 
 pub struct ProcSampler {
@@ -68,6 +94,10 @@ pub struct ProcSampler {
     kernel_history: HistoryBuffer,
     memory_history: HistoryBuffer,
     per_cpu_histories: Vec<HistoryBuffer>,
+    per_cpu_kernel_histories: Vec<HistoryBuffer>,
+    cpu_detail_baseline: Option<CpuDetailBaseline>,
+    cpu_detail_history: HistoryBuffer,
+    cpu_detail_kernel_history: HistoryBuffer,
     clock_ticks_per_second: u64,
     page_size: u64,
     last_process_sample: Option<Instant>,
@@ -86,6 +116,10 @@ impl ProcSampler {
             kernel_history: HistoryBuffer::new(HISTORY_CAPACITY),
             memory_history: HistoryBuffer::new(HISTORY_CAPACITY),
             per_cpu_histories: Vec::new(),
+            per_cpu_kernel_histories: Vec::new(),
+            cpu_detail_baseline: None,
+            cpu_detail_history: HistoryBuffer::new(HISTORY_CAPACITY),
+            cpu_detail_kernel_history: HistoryBuffer::new(HISTORY_CAPACITY),
             clock_ticks_per_second: u64::try_from(clock_ticks)
                 .ok()
                 .filter(|value| *value > 0)
@@ -226,13 +260,8 @@ impl ProcSampler {
             BackendError::internal("parse /proc/stat", "aggregate CPU counters are missing")
         })?;
         let cpu_percent = utilization(self.performance_cpu_baseline, aggregate);
-        let kernel_percent = self.performance_cpu_baseline.and_then(|baseline| {
-            let total = aggregate.total.checked_sub(baseline.total)?;
-            if total == 0 {
-                return None;
-            }
-            Some(aggregate.kernel.saturating_sub(baseline.kernel) as f64 * 100.0 / total as f64)
-        });
+        let kernel_percent =
+            percentages(self.performance_cpu_baseline, aggregate).map(|value| value.kernel);
         self.performance_cpu_baseline = Some(aggregate);
         if let Some(value) = cpu_percent {
             self.cpu_history.push(value);
@@ -248,11 +277,13 @@ impl ProcSampler {
         resize_cpu_histories(
             &mut self.per_cpu_baselines,
             &mut self.per_cpu_histories,
+            &mut self.per_cpu_kernel_histories,
             per_cpu.len(),
         );
         for (index, current) in per_cpu.into_iter().enumerate() {
-            if let Some(value) = utilization(self.per_cpu_baselines[index], current) {
-                self.per_cpu_histories[index].push(value);
+            if let Some(value) = percentages(self.per_cpu_baselines[index], current) {
+                self.per_cpu_histories[index].push(value.busy);
+                self.per_cpu_kernel_histories[index].push(value.kernel);
             }
             self.per_cpu_baselines[index] = Some(current);
         }
@@ -267,12 +298,18 @@ impl ProcSampler {
         if let Some(value) = memory_percent {
             self.memory_history.push(value);
         }
-        let (process_count, thread_count, fd_count) = count_process_totals();
+        let (process_count, thread_count) = count_process_totals();
+        let swap_used_kib = memory
+            .get("SwapTotal")
+            .copied()
+            .zip(memory.get("SwapFree").copied())
+            .map(|(total, free)| total.saturating_sub(free));
 
         Ok(SnapshotData::Performance(Box::new(PerformanceData {
             process_count: Some(process_count),
             thread_count: Some(thread_count),
-            handle_count: Some(fd_count),
+            handle_count: None,
+            open_file_count: read_open_file_count(),
             memory_total_kib: total,
             memory_available_kib: available,
             file_cache_kib: sum_keys(&memory, &["Cached", "SReclaimable"]),
@@ -282,6 +319,10 @@ impl ProcSampler {
             kernel_total_kib: sum_keys(&memory, &["Slab", "KernelStack", "PageTables"]),
             kernel_paged_kib: None,
             kernel_non_paged_kib: None,
+            swap_used_kib,
+            slab_kib: memory.get("Slab").copied(),
+            kernel_stack_kib: memory.get("KernelStack").copied(),
+            page_tables_kib: memory.get("PageTables").copied(),
             cpu_percent,
             memory_percent,
             cpu_history: self.cpu_history.snapshot(),
@@ -292,98 +333,146 @@ impl ProcSampler {
                 .iter()
                 .map(HistoryBuffer::snapshot)
                 .collect(),
+            logical_kernel_histories: self
+                .per_cpu_kernel_histories
+                .iter()
+                .map(HistoryBuffer::snapshot)
+                .collect(),
         })))
     }
 
     pub fn sample_cpu(&mut self) -> Result<SnapshotData, BackendError> {
         let cpuinfo = fs::read_to_string("/proc/cpuinfo")
             .map_err(|error| BackendError::io("read /proc/cpuinfo", &error))?;
-        let first = cpuinfo.split("\n\n").next().unwrap_or_default();
-        let fields = key_value_lines(first);
-        let logical = cpuinfo
-            .lines()
-            .filter(|line| line.starts_with("processor"))
-            .count() as u64;
-        let cores = fields
-            .get("cpu cores")
-            .and_then(|value| value.parse::<u64>().ok());
-        let siblings = fields
-            .get("siblings")
-            .and_then(|value| value.parse::<u64>().ok());
-        let current =
-            read_cpu_times().map_err(|error| BackendError::io("read /proc/stat", &error))?;
-        let utilization_percent = utilization(self.performance_cpu_baseline, current);
-        let uptime = fs::read_to_string("/proc/uptime")
-            .ok()
-            .and_then(|text| text.split_whitespace().next()?.parse::<f64>().ok());
-        let frequency = fields.get("cpu MHz").cloned();
-        let model = fields
-            .get("model name")
-            .or_else(|| fields.get("Processor"))
-            .cloned();
+        let processors = cpuinfo
+            .split("\n\n")
+            .map(key_value_lines)
+            .filter(|fields| !fields.is_empty())
+            .collect::<Vec<_>>();
+        let fields = processors.first().cloned().unwrap_or_default();
+        let model = unique_cpuinfo_values(&processors, &["model name", "Processor", "cpu"])
+            .into_iter()
+            .reduce(|mut joined, value| {
+                joined.push_str(" | ");
+                joined.push_str(&value);
+                joined
+            });
         let flags = fields
             .get("flags")
             .or_else(|| fields.get("Features"))
-            .cloned();
-        let groups = vec![
-            CpuMetricGroup {
-                title: "Current State".to_string(),
-                metrics: vec![
-                    metric(
-                        "Average Frequency",
-                        frequency.map(|value| format!("{value} MHz")),
-                    ),
-                    metric("Uptime", uptime.map(format_duration)),
-                    metric("Processor Queue", read_load_average()),
-                ],
-            },
-            CpuMetricGroup {
-                title: "Topology and Features".to_string(),
-                metrics: vec![
-                    metric("Physical Cores", cores.map(|value| value.to_string())),
-                    metric("Logical Processors", Some(logical.to_string())),
-                    metric(
-                        "Threads/Core",
-                        siblings.zip(cores).and_then(|(siblings, cores)| {
-                            (cores > 0).then(|| (siblings / cores).to_string())
-                        }),
-                    ),
-                    metric(
-                        "Virtualization",
-                        flags.as_ref().map(|flags| {
-                            if flags
-                                .split_whitespace()
-                                .any(|flag| matches!(flag, "vmx" | "svm"))
-                            {
-                                "Yes"
-                            } else {
-                                "No"
-                            }
-                            .to_string()
-                        }),
-                    ),
-                ],
-            },
-            CpuMetricGroup {
-                title: "Hardware and Cache".to_string(),
-                metrics: vec![
-                    metric("Manufacturer", fields.get("vendor_id").cloned()),
-                    metric(
-                        "Architecture / Width",
-                        Some(format!("{} / {}-bit", std::env::consts::ARCH, usize::BITS)),
-                    ),
-                    metric("ISA Features", flags.map(|value| summarize_flags(&value))),
-                    metric("Firmware Max Frequency", read_max_frequency()),
-                ],
-            },
-        ];
-        Ok(SnapshotData::Cpu(CpuData {
+            .map(|value| {
+                value
+                    .split_whitespace()
+                    .map(str::to_string)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
+        let stat = fs::read_to_string("/proc/stat")
+            .map_err(|error| BackendError::io("read /proc/stat for CPU details", &error))?;
+        let stat_details = parse_cpu_detail_stat(&stat).ok_or_else(|| {
+            BackendError::internal(
+                "parse /proc/stat for CPU details",
+                "aggregate CPU counters are missing",
+            )
+        })?;
+        let now = Instant::now();
+        let delta = self
+            .cpu_detail_baseline
+            .as_ref()
+            .and_then(|baseline| cpu_detail_delta(baseline, &stat_details, now));
+        self.cpu_detail_baseline = Some(CpuDetailBaseline {
+            times: stat_details.times,
+            interrupts: stat_details.interrupts,
+            context_switches: stat_details.context_switches,
+            sampled_at: now,
+        });
+        if let Some(delta) = &delta {
+            self.cpu_detail_history.push(delta.busy_percent);
+            self.cpu_detail_kernel_history.push(delta.kernel_percent);
+        }
+
+        let frequencies = read_cpu_frequencies(&processors);
+        let topology = read_cpu_topology(processors.len());
+        let (process_count, thread_count) = count_process_totals();
+        let uptime_seconds = fs::read_to_string("/proc/uptime")
+            .ok()
+            .and_then(|text| text.split_whitespace().next()?.parse::<f64>().ok())
+            .filter(|value| value.is_finite() && *value >= 0.0)
+            .map(|value| value as u64);
+        let virtualization = (!flags.is_empty()).then(|| {
+            flags
+                .iter()
+                .any(|flag| matches!(flag.as_str(), "vmx" | "svm"))
+        });
+        let second_level_address_translation = (!flags.is_empty()).then(|| {
+            flags
+                .iter()
+                .any(|flag| matches!(flag.as_str(), "ept" | "npt"))
+        });
+
+        Ok(SnapshotData::Cpu(Box::new(CpuData {
             model,
-            status: None,
-            utilization_percent,
-            history: self.cpu_history.snapshot(),
-            groups,
-        }))
+            utilization_percent: delta.as_ref().map(|value| value.busy_percent),
+            history: self.cpu_detail_history.snapshot(),
+            kernel_history: self.cpu_detail_kernel_history.snapshot(),
+            current: CpuCurrentMetrics {
+                average_frequency_mhz: frequencies.average_current_mhz,
+                minimum_frequency_mhz: frequencies.minimum_current_mhz,
+                maximum_frequency_mhz: frequencies.maximum_current_mhz,
+                user_percent: delta.as_ref().map(|value| value.user_percent),
+                kernel_percent: delta.as_ref().map(|value| value.kernel_percent),
+                dpc_percent: None,
+                interrupt_percent: delta.as_ref().map(|value| value.interrupt_percent),
+                interrupts_per_second: delta.as_ref().and_then(|value| value.interrupts_per_second),
+                uptime_seconds,
+            },
+            system: CpuSystemMetrics {
+                process_count: Some(process_count),
+                thread_count: Some(thread_count),
+                handle_count: None,
+                file_descriptor_count: None,
+                open_file_count: read_open_file_count(),
+                processor_queue_length: stat_details.processor_queue_length,
+                context_switches_per_second: delta
+                    .as_ref()
+                    .and_then(|value| value.context_switches_per_second),
+                system_calls_per_second: None,
+            },
+            topology: CpuTopologyMetrics {
+                package_count: topology.package_count,
+                numa_node_count: topology.numa_node_count,
+                processor_group_count: None,
+                die_count: topology.die_count,
+                module_count: topology.module_count,
+                physical_core_count: topology.physical_core_count,
+                logical_processor_count: topology.logical_processor_count,
+                core_classes: topology.core_classes,
+                smt_core_count: topology.smt_core_count,
+                minimum_threads_per_core: topology.minimum_threads_per_core,
+                maximum_threads_per_core: topology.maximum_threads_per_core,
+                virtualization,
+                second_level_address_translation,
+            },
+            hardware: CpuHardwareMetrics {
+                manufacturer: first_cpuinfo_value(
+                    &fields,
+                    &["vendor_id", "CPU implementer", "Hardware"],
+                ),
+                socket: topology_package_ids(),
+                processor_id: first_cpuinfo_value(&fields, &["processor id", "Serial", "CPU part"]),
+                architecture: Some(std::env::consts::ARCH.to_string()),
+                address_width_bits: Some(usize::BITS as u16),
+                data_width_bits: Some(usize::BITS as u16),
+                family: first_cpuinfo_value(&fields, &["cpu family", "CPU architecture"]),
+                level: None,
+                revision: first_cpuinfo_value(&fields, &["revision", "microcode"]),
+                stepping: first_cpuinfo_value(&fields, &["stepping"]),
+                firmware_max_frequency_mhz: frequencies.firmware_maximum_mhz,
+                isa_features: flags,
+                caches: read_cpu_caches(),
+            },
+        })))
     }
 
     pub fn execute(&mut self, request: ActionRequest) -> ActionResult {
@@ -594,39 +683,95 @@ fn parse_cpu_line(line: &str) -> Option<CpuTimes> {
         .map(str::parse::<u64>)
         .collect::<Result<Vec<_>, _>>()
         .ok()?;
-    let total = values.iter().copied().sum();
+    let guest = values.get(8).copied().unwrap_or(0);
+    let guest_nice = values.get(9).copied().unwrap_or(0);
+    let user = values
+        .first()
+        .copied()
+        .unwrap_or(0)
+        .saturating_sub(guest)
+        .saturating_add(
+            values
+                .get(1)
+                .copied()
+                .unwrap_or(0)
+                .saturating_sub(guest_nice),
+        );
     let idle = values
         .get(3)
         .copied()
         .unwrap_or(0)
         .saturating_add(values.get(4).copied().unwrap_or(0));
+    let interrupt = values
+        .get(5)
+        .copied()
+        .unwrap_or(0)
+        .saturating_add(values.get(6).copied().unwrap_or(0));
     let kernel = values
         .get(2)
         .copied()
         .unwrap_or(0)
-        .saturating_add(values.get(5).copied().unwrap_or(0))
-        .saturating_add(values.get(6).copied().unwrap_or(0));
+        .saturating_add(interrupt);
+    let total = user
+        .saturating_add(kernel)
+        .saturating_add(idle)
+        .saturating_add(values.get(7).copied().unwrap_or(0));
     Some(CpuTimes {
         total,
         idle,
+        user,
         kernel,
+        interrupt,
     })
 }
 
 fn utilization(previous: Option<CpuTimes>, current: CpuTimes) -> Option<f64> {
+    percentages(previous, current).map(|value| value.busy)
+}
+
+#[derive(Clone, Copy, Debug)]
+struct CpuPercentages {
+    busy: f64,
+    user: f64,
+    kernel: f64,
+    interrupt: f64,
+}
+
+fn percentages(previous: Option<CpuTimes>, current: CpuTimes) -> Option<CpuPercentages> {
     let previous = previous?;
     let total = current.total.checked_sub(previous.total)?;
     let idle = current.idle.checked_sub(previous.idle)?;
-    (total > 0).then_some(total.saturating_sub(idle) as f64 * 100.0 / total as f64)
+    let user = current.user.checked_sub(previous.user)?;
+    let kernel = current.kernel.checked_sub(previous.kernel)?;
+    let interrupt = current.interrupt.checked_sub(previous.interrupt)?;
+    if total == 0 || idle > total || user > total || kernel > total || interrupt > total {
+        return None;
+    }
+    let percent = |value: u64| (value as f64 * 100.0 / total as f64).clamp(0.0, 100.0);
+    Some(CpuPercentages {
+        busy: percent(total - idle),
+        user: percent(user),
+        kernel: percent(kernel),
+        interrupt: percent(interrupt),
+    })
 }
 
 fn resize_cpu_histories(
     baselines: &mut Vec<Option<CpuTimes>>,
     histories: &mut Vec<HistoryBuffer>,
+    kernel_histories: &mut Vec<HistoryBuffer>,
     length: usize,
 ) {
-    baselines.resize(length, None);
-    histories.resize_with(length, || HistoryBuffer::new(HISTORY_CAPACITY));
+    if baselines.len() == length {
+        return;
+    }
+    *baselines = vec![None; length];
+    *histories = (0..length)
+        .map(|_| HistoryBuffer::new(HISTORY_CAPACITY))
+        .collect();
+    *kernel_histories = (0..length)
+        .map(|_| HistoryBuffer::new(HISTORY_CAPACITY))
+        .collect();
 }
 
 fn read_meminfo() -> io::Result<HashMap<String, u64>> {
@@ -647,22 +792,31 @@ fn sum_keys(values: &HashMap<String, u64>, keys: &[&str]) -> Option<u64> {
     (!present.is_empty()).then(|| present.into_iter().sum())
 }
 
-fn count_process_totals() -> (u64, u64, u64) {
+fn count_process_totals() -> (u64, u64) {
     let mut processes = 0_u64;
     let mut threads = 0_u64;
-    let mut fds = 0_u64;
     if let Ok(pids) = process_ids() {
         for pid in pids {
             if let Ok(stat) = read_process_stat(pid) {
                 processes += 1;
                 threads = threads.saturating_add(stat.threads);
-                if let Ok(entries) = fs::read_dir(format!("/proc/{pid}/fd")) {
-                    fds = fds.saturating_add(entries.filter_map(Result::ok).count() as u64);
-                }
             }
         }
     }
-    (processes, threads, fds)
+    (processes, threads)
+}
+
+fn read_open_file_count() -> Option<u64> {
+    fs::read_to_string("/proc/sys/fs/file-nr")
+        .ok()
+        .and_then(|value| parse_open_file_count(&value))
+}
+
+fn parse_open_file_count(value: &str) -> Option<u64> {
+    let mut fields = value.split_whitespace();
+    let allocated = fields.next()?.parse::<u64>().ok()?;
+    let unused = fields.next()?.parse::<u64>().ok()?;
+    Some(allocated.saturating_sub(unused))
 }
 
 fn signed_delta(current: u64, previous: u64) -> i64 {
@@ -673,46 +827,391 @@ fn signed_delta(current: u64, previous: u64) -> i64 {
     }
 }
 
-fn metric(label: &str, value: Option<String>) -> MetricValue {
-    MetricValue {
-        label: label.to_string(),
-        value,
+#[derive(Clone, Copy, Debug)]
+struct CpuDetailStat {
+    times: CpuTimes,
+    interrupts: Option<u64>,
+    context_switches: Option<u64>,
+    processor_queue_length: Option<u64>,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct CpuDetailDelta {
+    busy_percent: f64,
+    user_percent: f64,
+    kernel_percent: f64,
+    interrupt_percent: f64,
+    interrupts_per_second: Option<u64>,
+    context_switches_per_second: Option<u64>,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct CpuFrequencies {
+    average_current_mhz: Option<f64>,
+    minimum_current_mhz: Option<f64>,
+    maximum_current_mhz: Option<f64>,
+    firmware_maximum_mhz: Option<f64>,
+}
+
+fn parse_cpu_detail_stat(stat: &str) -> Option<CpuDetailStat> {
+    let mut lines = stat.lines();
+    let times = parse_cpu_line(lines.next()?)?;
+    let mut interrupts = None;
+    let mut context_switches = None;
+    let mut processor_queue_length = None;
+    for line in lines {
+        let mut fields = line.split_whitespace();
+        let Some(name) = fields.next() else {
+            continue;
+        };
+        match name {
+            "intr" => interrupts = fields.next().and_then(|value| value.parse().ok()),
+            "ctxt" => context_switches = fields.next().and_then(|value| value.parse().ok()),
+            "procs_running" => {
+                processor_queue_length = fields.next().and_then(|value| value.parse().ok())
+            }
+            _ => {}
+        }
+    }
+    Some(CpuDetailStat {
+        times,
+        interrupts,
+        context_switches,
+        processor_queue_length,
+    })
+}
+
+fn cpu_detail_delta(
+    baseline: &CpuDetailBaseline,
+    current: &CpuDetailStat,
+    sampled_at: Instant,
+) -> Option<CpuDetailDelta> {
+    let percentages = percentages(Some(baseline.times), current.times)?;
+    let elapsed = sampled_at.checked_duration_since(baseline.sampled_at)?;
+    let elapsed_seconds = elapsed.as_secs_f64();
+    if elapsed_seconds <= 0.0 {
+        return None;
+    }
+    Some(CpuDetailDelta {
+        busy_percent: percentages.busy,
+        user_percent: percentages.user,
+        kernel_percent: percentages.kernel,
+        interrupt_percent: percentages.interrupt,
+        interrupts_per_second: counter_rate(
+            baseline.interrupts,
+            current.interrupts,
+            elapsed_seconds,
+        ),
+        context_switches_per_second: counter_rate(
+            baseline.context_switches,
+            current.context_switches,
+            elapsed_seconds,
+        ),
+    })
+}
+
+fn counter_rate(previous: Option<u64>, current: Option<u64>, seconds: f64) -> Option<u64> {
+    let delta = current?.checked_sub(previous?)?;
+    let rate = delta as f64 / seconds;
+    (rate.is_finite() && rate >= 0.0 && rate <= u64::MAX as f64).then(|| rate.round() as u64)
+}
+
+fn unique_cpuinfo_values(processors: &[HashMap<String, String>], keys: &[&str]) -> Vec<String> {
+    processors
+        .iter()
+        .filter_map(|fields| first_cpuinfo_value(fields, keys))
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+fn first_cpuinfo_value(fields: &HashMap<String, String>, keys: &[&str]) -> Option<String> {
+    keys.iter().find_map(|key| {
+        fields
+            .get(*key)
+            .map(|value| value.trim())
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+    })
+}
+
+fn read_cpu_frequencies(processors: &[HashMap<String, String>]) -> CpuFrequencies {
+    let online = online_logical_processors();
+    let mut current = online
+        .iter()
+        .filter_map(|processor| {
+            read_f64_file(format!(
+                "/sys/devices/system/cpu/cpu{processor}/cpufreq/scaling_cur_freq"
+            ))
+            .or_else(|| {
+                read_f64_file(format!(
+                    "/sys/devices/system/cpu/cpu{processor}/cpufreq/cpuinfo_cur_freq"
+                ))
+            })
+            .map(|khz| khz / 1_000.0)
+        })
+        .filter(|value| value.is_finite() && *value >= 0.0)
+        .collect::<Vec<_>>();
+    if current.is_empty() {
+        current = processors
+            .iter()
+            .filter_map(|fields| fields.get("cpu MHz"))
+            .filter_map(|value| value.parse::<f64>().ok())
+            .filter(|value| value.is_finite() && *value >= 0.0)
+            .collect();
+    }
+    let firmware_maximum_mhz = online
+        .iter()
+        .filter_map(|processor| {
+            read_f64_file(format!(
+                "/sys/devices/system/cpu/cpu{processor}/cpufreq/cpuinfo_max_freq"
+            ))
+            .map(|khz| khz / 1_000.0)
+        })
+        .filter(|value| value.is_finite() && *value >= 0.0)
+        .reduce(f64::max);
+    let average_current_mhz =
+        (!current.is_empty()).then(|| current.iter().sum::<f64>() / current.len() as f64);
+    CpuFrequencies {
+        average_current_mhz,
+        minimum_current_mhz: current.iter().copied().reduce(f64::min),
+        maximum_current_mhz: current.iter().copied().reduce(f64::max),
+        firmware_maximum_mhz,
     }
 }
 
-fn format_duration(seconds: f64) -> String {
-    let seconds = seconds.max(0.0) as u64;
-    let days = seconds / 86_400;
-    let hours = seconds % 86_400 / 3_600;
-    let minutes = seconds % 3_600 / 60;
-    let seconds = seconds % 60;
-    format!("{days}:{hours:02}:{minutes:02}:{seconds:02}")
-}
+fn read_cpu_topology(processor_count_hint: usize) -> CpuTopologySnapshot {
+    #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+    struct CoreKey {
+        package: i64,
+        die: i64,
+        core: i64,
+    }
 
-fn read_load_average() -> Option<String> {
-    fs::read_to_string("/proc/loadavg")
+    let online = online_logical_processors();
+    let logical_processor_count = u32::try_from(if online.is_empty() {
+        processor_count_hint
+    } else {
+        online.len()
+    })
+    .ok();
+    let mut packages = BTreeSet::new();
+    let mut dies = BTreeSet::new();
+    let mut modules = BTreeSet::new();
+    let mut core_threads = BTreeMap::<CoreKey, u32>::new();
+    let mut core_classes = BTreeMap::<CoreKey, u32>::new();
+    for processor in online {
+        let topology = format!("/sys/devices/system/cpu/cpu{processor}/topology");
+        let Some(package) = read_i64_file(format!("{topology}/physical_package_id")) else {
+            continue;
+        };
+        let Some(core) = read_i64_file(format!("{topology}/core_id")) else {
+            continue;
+        };
+        let die = read_i64_file(format!("{topology}/die_id")).unwrap_or(-1);
+        let key = CoreKey { package, die, core };
+        packages.insert(package);
+        if die >= 0 {
+            dies.insert((package, die));
+        }
+        if let Some(module) = read_i64_file(format!("{topology}/cluster_id")) {
+            modules.insert((package, die, module));
+        }
+        *core_threads.entry(key).or_default() += 1;
+        if let Some(class) = read_u32_file(format!(
+            "/sys/devices/system/cpu/cpu{processor}/cpu_capacity"
+        ))
+        .or_else(|| read_u32_file(format!("{topology}/core_type")))
+        {
+            core_classes.entry(key).or_insert(class);
+        }
+    }
+    let physical_core_count = u32::try_from(core_threads.len())
         .ok()
-        .and_then(|text| text.split_whitespace().next().map(str::to_string))
+        .filter(|value| *value > 0);
+    let thread_counts = core_threads.values().copied().collect::<Vec<_>>();
+    let smt_core_count = (!thread_counts.is_empty()).then(|| {
+        u32::try_from(thread_counts.iter().filter(|count| **count > 1).count()).unwrap_or(u32::MAX)
+    });
+    let class_counts = if physical_core_count.is_some() {
+        if core_classes.is_empty() {
+            vec![CpuCoreClass {
+                efficiency_class: None,
+                core_count: physical_core_count.unwrap_or_default(),
+            }]
+        } else {
+            let mut counts = BTreeMap::<u32, u32>::new();
+            for class in core_classes.values() {
+                *counts.entry(*class).or_default() += 1;
+            }
+            counts
+                .into_iter()
+                .map(|(efficiency_class, core_count)| CpuCoreClass {
+                    efficiency_class: Some(efficiency_class),
+                    core_count,
+                })
+                .collect()
+        }
+    } else {
+        Vec::new()
+    };
+    CpuTopologySnapshot {
+        package_count: u32::try_from(packages.len())
+            .ok()
+            .filter(|value| *value > 0),
+        numa_node_count: fs::read_to_string("/sys/devices/system/node/online")
+            .ok()
+            .and_then(|value| parse_cpu_list(&value))
+            .and_then(|nodes| u32::try_from(nodes.len()).ok()),
+        die_count: u32::try_from(dies.len()).ok().filter(|value| *value > 0),
+        module_count: u32::try_from(modules.len()).ok().filter(|value| *value > 0),
+        physical_core_count,
+        logical_processor_count,
+        core_classes: class_counts,
+        smt_core_count,
+        minimum_threads_per_core: thread_counts.iter().copied().min(),
+        maximum_threads_per_core: thread_counts.iter().copied().max(),
+    }
 }
 
-fn read_max_frequency() -> Option<String> {
-    fs::read_to_string("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq")
-        .ok()
-        .and_then(|text| text.trim().parse::<u64>().ok())
-        .map(|khz| format!("{:.2} GHz", khz as f64 / 1_000_000.0))
-}
-
-fn summarize_flags(flags: &str) -> String {
-    const IMPORTANT: [&str; 12] = [
-        "sse2", "sse4_1", "sse4_2", "avx", "avx2", "avx512f", "aes", "sha_ni", "vmx", "svm",
-        "neon", "sve",
-    ];
-    let present = flags.split_whitespace().collect::<HashSet<_>>();
-    IMPORTANT
+fn topology_package_ids() -> Option<String> {
+    let packages = online_logical_processors()
         .into_iter()
-        .filter(|flag| present.contains(flag))
-        .collect::<Vec<_>>()
-        .join(", ")
+        .filter_map(|processor| {
+            read_i64_file(format!(
+                "/sys/devices/system/cpu/cpu{processor}/topology/physical_package_id"
+            ))
+        })
+        .collect::<BTreeSet<_>>();
+    (!packages.is_empty()).then(|| {
+        packages
+            .into_iter()
+            .map(|value| value.to_string())
+            .collect::<Vec<_>>()
+            .join(", ")
+    })
+}
+
+fn read_cpu_caches() -> Vec<CpuCache> {
+    #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+    struct CacheInstance {
+        level: u8,
+        kind: u8,
+        size_bytes: u64,
+        shared_cpu_list: String,
+        associativity: Option<u32>,
+        line_size_bytes: Option<u32>,
+    }
+
+    let mut instances = BTreeSet::new();
+    for processor in online_logical_processors() {
+        let root = format!("/sys/devices/system/cpu/cpu{processor}/cache");
+        let Ok(entries) = fs::read_dir(root) else {
+            continue;
+        };
+        for entry in entries.filter_map(Result::ok) {
+            let name = entry.file_name();
+            if !name.to_string_lossy().starts_with("index") {
+                continue;
+            }
+            let path = entry.path();
+            let Some(level) =
+                read_u32_file(path.join("level")).and_then(|value| u8::try_from(value).ok())
+            else {
+                continue;
+            };
+            let cache_type = fs::read_to_string(path.join("type")).unwrap_or_default();
+            let kind = match cache_type.trim() {
+                "Data" => 0,
+                "Instruction" => 1,
+                "Unified" => 2,
+                "Trace" => 3,
+                _ => 4,
+            };
+            let Some(size_bytes) = fs::read_to_string(path.join("size"))
+                .ok()
+                .and_then(|value| parse_cache_size(&value))
+            else {
+                continue;
+            };
+            let shared_cpu_list = fs::read_to_string(path.join("shared_cpu_list"))
+                .map(|value| value.trim().to_string())
+                .unwrap_or_else(|_| processor.to_string());
+            let associativity = read_u32_file(path.join("ways_of_associativity"))
+                .filter(|value| *value > 0 && *value != u32::MAX);
+            let line_size_bytes =
+                read_u32_file(path.join("coherency_line_size")).filter(|value| *value > 0);
+            instances.insert(CacheInstance {
+                level,
+                kind,
+                size_bytes,
+                shared_cpu_list,
+                associativity,
+                line_size_bytes,
+            });
+        }
+    }
+    let mut groups = BTreeMap::<(u8, u8, u64, Option<u32>, Option<u32>), u32>::new();
+    for instance in instances {
+        *groups
+            .entry((
+                instance.level,
+                instance.kind,
+                instance.size_bytes,
+                instance.associativity,
+                instance.line_size_bytes,
+            ))
+            .or_default() += 1;
+    }
+    groups
+        .into_iter()
+        .map(
+            |((level, kind, size_bytes, associativity, line_size_bytes), instance_count)| {
+                CpuCache {
+                    level,
+                    kind: match kind {
+                        0 => CpuCacheKind::Data,
+                        1 => CpuCacheKind::Instruction,
+                        2 => CpuCacheKind::Unified,
+                        3 => CpuCacheKind::Trace,
+                        _ => CpuCacheKind::Other,
+                    },
+                    size_bytes,
+                    instance_count,
+                    associativity,
+                    line_size_bytes,
+                }
+            },
+        )
+        .collect()
+}
+
+fn parse_cache_size(value: &str) -> Option<u64> {
+    let value = value.trim();
+    let split = value
+        .find(|character: char| !character.is_ascii_digit())
+        .unwrap_or(value.len());
+    let amount = value[..split].parse::<u64>().ok()?;
+    let multiplier = match value[split..].trim().to_ascii_uppercase().as_str() {
+        "" | "B" => 1,
+        "K" | "KB" => 1_024,
+        "M" | "MB" => 1_024 * 1_024,
+        "G" | "GB" => 1_024 * 1_024 * 1_024,
+        _ => return None,
+    };
+    amount.checked_mul(multiplier)
+}
+
+fn read_f64_file(path: impl AsRef<Path>) -> Option<f64> {
+    fs::read_to_string(path).ok()?.trim().parse().ok()
+}
+
+fn read_i64_file(path: impl AsRef<Path>) -> Option<i64> {
+    fs::read_to_string(path).ok()?.trim().parse().ok()
+}
+
+fn read_u32_file(path: impl AsRef<Path>) -> Option<u32> {
+    fs::read_to_string(path).ok()?.trim().parse().ok()
 }
 
 fn validate_identity(identity: &ProcessIdentity) -> Result<ParsedStat, BackendError> {
@@ -914,7 +1413,12 @@ fn open_file_location(identity: ProcessIdentity) -> ActionResult {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_cpu_line, parse_cpu_list, parse_process_stat};
+    use taskmgr_core::{HISTORY_CAPACITY, HistoryBuffer};
+
+    use super::{
+        parse_cache_size, parse_cpu_detail_stat, parse_cpu_line, parse_cpu_list,
+        parse_open_file_count, parse_process_stat, resize_cpu_histories,
+    };
 
     #[test]
     fn parses_process_names_containing_spaces_and_parentheses() {
@@ -930,7 +1434,58 @@ mod tests {
         let times = parse_cpu_line("cpu  10 2 3 40 5 6 7 0 0 0").expect("cpu line");
         assert_eq!(times.total, 73);
         assert_eq!(times.idle, 45);
+        assert_eq!(times.user, 12);
         assert_eq!(times.kernel, 16);
+        assert_eq!(times.interrupt, 13);
+    }
+
+    #[test]
+    fn guest_ticks_are_not_counted_twice() {
+        let times = parse_cpu_line("cpu  110 22 30 40 5 6 7 8 10 2").expect("cpu line");
+        assert_eq!(times.user, 120);
+        assert_eq!(times.kernel, 43);
+        assert_eq!(times.idle, 45);
+        assert_eq!(times.total, 216);
+    }
+
+    #[test]
+    fn blank_stat_lines_do_not_discard_valid_diagnostics() {
+        let details = parse_cpu_detail_stat(
+            "cpu 10 0 5 20 0 2 1 0 0 0\n\nintr 900\nctxt 700\nprocs_running 3\n",
+        )
+        .expect("valid /proc/stat fixture");
+        assert_eq!(details.interrupts, Some(900));
+        assert_eq!(details.context_switches, Some(700));
+        assert_eq!(details.processor_queue_length, Some(3));
+    }
+
+    #[test]
+    fn parses_kernel_cache_capacity_units() {
+        assert_eq!(parse_cache_size("48K\n"), Some(48 * 1_024));
+        assert_eq!(parse_cache_size("32M"), Some(32 * 1_024 * 1_024));
+        assert_eq!(parse_cache_size("invalid"), None);
+    }
+
+    #[test]
+    fn parses_in_use_file_handles_without_counting_unused_capacity() {
+        assert_eq!(parse_open_file_count("1200 80 922337\n"), Some(1120));
+        assert_eq!(parse_open_file_count("1200 0 922337\n"), Some(1200));
+        assert_eq!(parse_open_file_count("invalid"), None);
+    }
+
+    #[test]
+    fn processor_count_changes_reset_per_cpu_identity_history() {
+        let mut baselines = vec![None, None];
+        let mut histories = vec![HistoryBuffer::new(HISTORY_CAPACITY); 2];
+        let mut kernel_histories = vec![HistoryBuffer::new(HISTORY_CAPACITY); 2];
+        histories[0].push(50.0);
+        kernel_histories[0].push(20.0);
+
+        resize_cpu_histories(&mut baselines, &mut histories, &mut kernel_histories, 3);
+
+        assert_eq!(baselines.len(), 3);
+        assert!(histories.iter().all(HistoryBuffer::is_empty));
+        assert!(kernel_histories.iter().all(HistoryBuffer::is_empty));
     }
 
     #[test]

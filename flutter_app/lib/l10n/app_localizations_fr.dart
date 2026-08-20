@@ -643,6 +643,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get handles => 'Handles';
 
   @override
+  String get openFileHandles => 'Fichiers ouverts';
+
+  @override
   String get threads => 'Threads';
 
   @override
@@ -670,6 +673,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get kernelMemoryK => 'Mémoire noyau (K)';
 
   @override
+  String get virtualMemoryK => 'Mémoire virtuelle (K)';
+
+  @override
   String get totals => 'Totaux';
 
   @override
@@ -692,6 +698,24 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get peak => 'Pic';
+
+  @override
+  String get committed => 'Validée';
+
+  @override
+  String get commitLimit => 'Limite de validation';
+
+  @override
+  String get swapUsed => 'Échange utilisé';
+
+  @override
+  String get slab => 'Slab';
+
+  @override
+  String get kernelStack => 'Pile du noyau';
+
+  @override
+  String get pageTables => 'Tables de pages';
 
   @override
   String get noActiveNetworkAdaptersFound =>

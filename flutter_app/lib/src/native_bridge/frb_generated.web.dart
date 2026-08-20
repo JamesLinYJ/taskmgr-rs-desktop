@@ -149,6 +149,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BackendOptions dco_decode_box_autoadd_backend_options(dynamic raw);
 
   @protected
+  bool dco_decode_box_autoadd_bool(dynamic raw);
+
+  @protected
   BridgeActionRequest dco_decode_box_autoadd_bridge_action_request(dynamic raw);
 
   @protected
@@ -193,6 +196,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SnapshotMeta dco_decode_box_autoadd_snapshot_meta(dynamic raw);
 
   @protected
+  int dco_decode_box_autoadd_u_16(dynamic raw);
+
+  @protected
   int dco_decode_box_autoadd_u_32(dynamic raw);
 
   @protected
@@ -223,10 +229,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ColumnLayout dco_decode_column_layout(dynamic raw);
 
   @protected
+  CpuCache dco_decode_cpu_cache(dynamic raw);
+
+  @protected
+  CpuCacheKind dco_decode_cpu_cache_kind(dynamic raw);
+
+  @protected
+  CpuCoreClass dco_decode_cpu_core_class(dynamic raw);
+
+  @protected
+  CpuCurrentMetrics dco_decode_cpu_current_metrics(dynamic raw);
+
+  @protected
   CpuData dco_decode_cpu_data(dynamic raw);
 
   @protected
-  CpuMetricGroup dco_decode_cpu_metric_group(dynamic raw);
+  CpuHardwareMetrics dco_decode_cpu_hardware_metrics(dynamic raw);
+
+  @protected
+  CpuSystemMetrics dco_decode_cpu_system_metrics(dynamic raw);
+
+  @protected
+  CpuTopologyMetrics dco_decode_cpu_topology_metrics(dynamic raw);
 
   @protected
   double dco_decode_f_64(dynamic raw);
@@ -241,10 +265,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GpuEngine dco_decode_gpu_engine(dynamic raw);
 
   @protected
+  GpuEngineKind dco_decode_gpu_engine_kind(dynamic raw);
+
+  @protected
   int dco_decode_i_32(dynamic raw);
 
   @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw);
 
   @protected
   List<ActionKind> dco_decode_list_action_kind(dynamic raw);
@@ -262,7 +292,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<ColumnLayout> dco_decode_list_column_layout(dynamic raw);
 
   @protected
-  List<CpuMetricGroup> dco_decode_list_cpu_metric_group(dynamic raw);
+  List<CpuCache> dco_decode_list_cpu_cache(dynamic raw);
+
+  @protected
+  List<CpuCoreClass> dco_decode_list_cpu_core_class(dynamic raw);
 
   @protected
   List<GpuAdapter> dco_decode_list_gpu_adapter(dynamic raw);
@@ -272,9 +305,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<Float64List> dco_decode_list_list_prim_f_64_strict(dynamic raw);
-
-  @protected
-  List<MetricValue> dco_decode_list_metric_value(dynamic raw);
 
   @protected
   List<NetworkInterface> dco_decode_list_network_interface(dynamic raw);
@@ -298,9 +328,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<UserSession> dco_decode_list_user_session(dynamic raw);
 
   @protected
-  MetricValue dco_decode_metric_value(dynamic raw);
-
-  @protected
   NetworkData dco_decode_network_data(dynamic raw);
 
   @protected
@@ -311,6 +338,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BackendError? dco_decode_opt_box_autoadd_backend_error(dynamic raw);
+
+  @protected
+  bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
 
   @protected
   double? dco_decode_opt_box_autoadd_f_64(dynamic raw);
@@ -326,6 +356,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ProcessIdentity? dco_decode_opt_box_autoadd_process_identity(dynamic raw);
+
+  @protected
+  int? dco_decode_opt_box_autoadd_u_16(dynamic raw);
 
   @protected
   int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
@@ -554,6 +587,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
+
+  @protected
   BridgeActionRequest sse_decode_box_autoadd_bridge_action_request(
     SseDeserializer deserializer,
   );
@@ -610,6 +646,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  int sse_decode_box_autoadd_u_16(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_box_autoadd_u_32(SseDeserializer deserializer);
 
   @protected
@@ -646,10 +685,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ColumnLayout sse_decode_column_layout(SseDeserializer deserializer);
 
   @protected
+  CpuCache sse_decode_cpu_cache(SseDeserializer deserializer);
+
+  @protected
+  CpuCacheKind sse_decode_cpu_cache_kind(SseDeserializer deserializer);
+
+  @protected
+  CpuCoreClass sse_decode_cpu_core_class(SseDeserializer deserializer);
+
+  @protected
+  CpuCurrentMetrics sse_decode_cpu_current_metrics(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   CpuData sse_decode_cpu_data(SseDeserializer deserializer);
 
   @protected
-  CpuMetricGroup sse_decode_cpu_metric_group(SseDeserializer deserializer);
+  CpuHardwareMetrics sse_decode_cpu_hardware_metrics(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  CpuSystemMetrics sse_decode_cpu_system_metrics(SseDeserializer deserializer);
+
+  @protected
+  CpuTopologyMetrics sse_decode_cpu_topology_metrics(
+    SseDeserializer deserializer,
+  );
 
   @protected
   double sse_decode_f_64(SseDeserializer deserializer);
@@ -664,10 +727,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GpuEngine sse_decode_gpu_engine(SseDeserializer deserializer);
 
   @protected
+  GpuEngineKind sse_decode_gpu_engine_kind(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
   List<ActionKind> sse_decode_list_action_kind(SseDeserializer deserializer);
@@ -691,7 +760,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  List<CpuMetricGroup> sse_decode_list_cpu_metric_group(
+  List<CpuCache> sse_decode_list_cpu_cache(SseDeserializer deserializer);
+
+  @protected
+  List<CpuCoreClass> sse_decode_list_cpu_core_class(
     SseDeserializer deserializer,
   );
 
@@ -705,9 +777,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Float64List> sse_decode_list_list_prim_f_64_strict(
     SseDeserializer deserializer,
   );
-
-  @protected
-  List<MetricValue> sse_decode_list_metric_value(SseDeserializer deserializer);
 
   @protected
   List<NetworkInterface> sse_decode_list_network_interface(
@@ -735,9 +804,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<UserSession> sse_decode_list_user_session(SseDeserializer deserializer);
 
   @protected
-  MetricValue sse_decode_metric_value(SseDeserializer deserializer);
-
-  @protected
   NetworkData sse_decode_network_data(SseDeserializer deserializer);
 
   @protected
@@ -750,6 +816,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BackendError? sse_decode_opt_box_autoadd_backend_error(
     SseDeserializer deserializer,
   );
+
+  @protected
+  bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
   double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer);
@@ -767,6 +836,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ProcessIdentity? sse_decode_opt_box_autoadd_process_identity(
     SseDeserializer deserializer,
   );
+
+  @protected
+  int? sse_decode_opt_box_autoadd_u_16(SseDeserializer deserializer);
 
   @protected
   int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
@@ -1035,6 +1107,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
+
+  @protected
   void sse_encode_box_autoadd_bridge_action_request(
     BridgeActionRequest self,
     SseSerializer serializer,
@@ -1104,6 +1179,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_u_16(int self, SseSerializer serializer);
+
+  @protected
   void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer);
 
   @protected
@@ -1149,11 +1227,38 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_column_layout(ColumnLayout self, SseSerializer serializer);
 
   @protected
+  void sse_encode_cpu_cache(CpuCache self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_cpu_cache_kind(CpuCacheKind self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_cpu_core_class(CpuCoreClass self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_cpu_current_metrics(
+    CpuCurrentMetrics self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_cpu_data(CpuData self, SseSerializer serializer);
 
   @protected
-  void sse_encode_cpu_metric_group(
-    CpuMetricGroup self,
+  void sse_encode_cpu_hardware_metrics(
+    CpuHardwareMetrics self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_cpu_system_metrics(
+    CpuSystemMetrics self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_cpu_topology_metrics(
+    CpuTopologyMetrics self,
     SseSerializer serializer,
   );
 
@@ -1170,10 +1275,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_gpu_engine(GpuEngine self, SseSerializer serializer);
 
   @protected
+  void sse_encode_gpu_engine_kind(GpuEngineKind self, SseSerializer serializer);
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_action_kind(
@@ -1203,8 +1314,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_list_cpu_metric_group(
-    List<CpuMetricGroup> self,
+  void sse_encode_list_cpu_cache(List<CpuCache> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_cpu_core_class(
+    List<CpuCoreClass> self,
     SseSerializer serializer,
   );
 
@@ -1223,12 +1337,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_list_prim_f_64_strict(
     List<Float64List> self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_list_metric_value(
-    List<MetricValue> self,
     SseSerializer serializer,
   );
 
@@ -1275,9 +1383,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_metric_value(MetricValue self, SseSerializer serializer);
-
-  @protected
   void sse_encode_network_data(NetworkData self, SseSerializer serializer);
 
   @protected
@@ -1294,6 +1399,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     BackendError? self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_box_autoadd_f_64(double? self, SseSerializer serializer);
@@ -1318,6 +1426,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     ProcessIdentity? self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_16(int? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);

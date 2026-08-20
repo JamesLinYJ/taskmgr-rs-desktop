@@ -423,6 +423,7 @@ UiSettings _copySettings(UiSettings current, {required bool minimizeOnUse}) {
     hideWhenMinimized: current.hideWhenMinimized,
     showKernelTimes: current.showKernelTimes,
     oneGraphPerCpu: current.oneGraphPerCpu,
+    tinyFootprint: current.tinyFootprint,
     applicationViewMode: current.applicationViewMode,
     window: current.window,
     processColumns: current.processColumns,

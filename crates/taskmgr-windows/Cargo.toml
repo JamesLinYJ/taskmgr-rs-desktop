@@ -14,21 +14,30 @@ taskmgr-core = { path = "../taskmgr-core" }
 png.workspace = true
 windows = { version = "=0.62.2", features = [
     "Win32_Foundation",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D12",
     "Win32_Graphics_Dxgi",
 ] }
 windows-sys = { version = "0.61.2", features = [
+    "Wdk_Graphics_Direct3D",
+    "Win32_Devices_DeviceAndDriverInstallation",
+    "Win32_Devices_Properties",
     "Win32_Foundation",
     "Win32_Graphics_Gdi",
     "Win32_NetworkManagement_IpHelper",
     "Win32_NetworkManagement_Ndis",
     "Win32_Security",
     "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_Kernel",
+    "Win32_System_LibraryLoader",
     "Win32_System_Performance",
     "Win32_System_ProcessStatus",
+    "Win32_System_Registry",
     "Win32_System_RemoteDesktop",
     "Win32_System_StationsAndDesktops",
     "Win32_System_SystemInformation",
     "Win32_System_Threading",
+    "Win32_System_Time",
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging",
 ] }

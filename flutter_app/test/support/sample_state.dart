@@ -17,11 +17,14 @@ import 'dart:typed_data';
 import 'package:taskmgr_rs/app/backend_state.dart';
 import 'package:taskmgr_rs/src/native_bridge/third_party/taskmgr_core.dart';
 
-BackendState sampleState(PageId activePage) {
+BackendState sampleState(
+  PageId activePage, {
+  PlatformKind platform = PlatformKind.linux,
+}) {
   final history = _history(8, 72);
   final secondHistory = _history(16, 38);
   final settings = UiSettings(
-    schemaVersion: 2,
+    schemaVersion: 3,
     activePage: activePage,
     updateSpeed: UpdateSpeed.normal,
     alwaysOnTop: false,
@@ -29,7 +32,8 @@ BackendState sampleState(PageId activePage) {
     confirmations: true,
     hideWhenMinimized: false,
     showKernelTimes: true,
-    oneGraphPerCpu: false,
+    oneGraphPerCpu: true,
+    tinyFootprint: false,
     applicationViewMode: ApplicationViewMode.details,
     window: const WindowGeometry(width: 800, height: 600, maximized: false),
     processColumns: const <ColumnLayout>[],
@@ -47,16 +51,29 @@ BackendState sampleState(PageId activePage) {
   final performance = PerformanceData(
     processCount: BigInt.from(128),
     threadCount: BigInt.from(1936),
-    handleCount: BigInt.from(58240),
+    handleCount: platform == PlatformKind.windows ? BigInt.from(58240) : null,
+    openFileCount: platform == PlatformKind.linux ? BigInt.from(58240) : null,
     memoryTotalKib: BigInt.from(33554432),
     memoryAvailableKib: BigInt.from(12873664),
     fileCacheKib: BigInt.from(4890624),
     commitTotalKib: BigInt.from(21757952),
     commitLimitKib: BigInt.from(50331648),
-    commitPeakKib: BigInt.from(26378240),
-    kernelTotalKib: BigInt.from(1153024),
-    kernelPagedKib: BigInt.from(743424),
-    kernelNonPagedKib: BigInt.from(409600),
+    commitPeakKib: platform == PlatformKind.windows
+        ? BigInt.from(26378240)
+        : null,
+    kernelTotalKib: platform == PlatformKind.windows
+        ? BigInt.from(1153024)
+        : null,
+    kernelPagedKib: platform == PlatformKind.windows
+        ? BigInt.from(743424)
+        : null,
+    kernelNonPagedKib: platform == PlatformKind.windows
+        ? BigInt.from(409600)
+        : null,
+    swapUsedKib: platform == PlatformKind.linux ? BigInt.from(2097152) : null,
+    slabKib: platform == PlatformKind.linux ? BigInt.from(743424) : null,
+    kernelStackKib: platform == PlatformKind.linux ? BigInt.from(65536) : null,
+    pageTablesKib: platform == PlatformKind.linux ? BigInt.from(344064) : null,
     cpuPercent: 36,
     memoryPercent: 61.6,
     cpuHistory: history,
@@ -66,6 +83,10 @@ BackendState sampleState(PageId activePage) {
       8,
       (index) => _history(index * 5, 45 + index * 4),
     ),
+    logicalKernelHistories: List<Float64List>.generate(
+      8,
+      (index) => _history(index * 3, 16 + index * 2),
+    ),
   );
   return BackendState(
     loading: false,
@@ -74,7 +95,7 @@ BackendState sampleState(PageId activePage) {
     settings: settings,
     capabilities: PlatformCapabilities(
       protocolVersion: 1,
-      platform: PlatformKind.linux,
+      platform: platform,
       architecture: Architecture.x8664,
       pages: pages,
       privilegedDetails: Availability.partial,
@@ -147,39 +168,92 @@ BackendState sampleState(PageId activePage) {
     performance: performance,
     cpu: CpuData(
       model: 'AMD Ryzen 9 9955HX with Radeon Graphics',
-      status: 'Current state',
       utilizationPercent: 36,
       history: history,
-      groups: <CpuMetricGroup>[
-        _cpuGroup('System diagnostics', <(String, String)>[
-          ('Average frequency', '3.82 GHz'),
-          ('Uptime', '1:12:34:56'),
-          ('Queue length', '1'),
-          ('Context switches/s', '21,402'),
-          ('System calls/s', '9,842'),
-          ('Interrupts/s', '3,015'),
-        ]),
-        _cpuGroup('Topology and features', <(String, String)>[
-          ('Sockets', '1'),
-          ('Physical cores', '16'),
-          ('Logical processors', '32'),
-          ('Virtualization', 'Yes'),
-        ]),
-        _cpuGroup('Processor', <(String, String)>[
-          ('Manufacturer', 'AuthenticAMD'),
-          ('Architecture', '64-bit'),
-          ('Family', '26'),
-          ('Stepping', '0'),
-          ('ISA', 'SSE4, AVX2'),
-          ('SMT cores', '16'),
-        ]),
-        _cpuGroup('Hardware cache', <(String, String)>[
-          ('L1 data', '768 KiB'),
-          ('L1 instruction', '512 KiB'),
-          ('L2', '16 MiB'),
-          ('L3', '64 MiB'),
-        ]),
-      ],
+      kernelHistory: secondHistory,
+      current: CpuCurrentMetrics(
+        averageFrequencyMhz: 3820,
+        minimumFrequencyMhz: 540,
+        maximumFrequencyMhz: 5450,
+        userPercent: 23.4,
+        kernelPercent: 12.6,
+        dpcPercent: 0.4,
+        interruptPercent: 1.2,
+        interruptsPerSecond: BigInt.from(3015),
+        uptimeSeconds: BigInt.from(131696),
+      ),
+      system: CpuSystemMetrics(
+        processCount: BigInt.from(128),
+        threadCount: BigInt.from(1936),
+        handleCount: platform == PlatformKind.windows
+            ? BigInt.from(58240)
+            : null,
+        openFileCount: platform == PlatformKind.linux
+            ? BigInt.from(58240)
+            : null,
+        processorQueueLength: BigInt.one,
+        contextSwitchesPerSecond: BigInt.from(21402),
+        systemCallsPerSecond: BigInt.from(9842),
+      ),
+      topology: const CpuTopologyMetrics(
+        packageCount: 1,
+        numaNodeCount: 1,
+        processorGroupCount: 1,
+        dieCount: 1,
+        moduleCount: 2,
+        physicalCoreCount: 16,
+        logicalProcessorCount: 32,
+        coreClasses: <CpuCoreClass>[CpuCoreClass(coreCount: 16)],
+        smtCoreCount: 16,
+        minimumThreadsPerCore: 2,
+        maximumThreadsPerCore: 2,
+        virtualization: true,
+        secondLevelAddressTranslation: true,
+      ),
+      hardware: CpuHardwareMetrics(
+        manufacturer: 'AuthenticAMD',
+        socket: '0',
+        processorId: 'AMD64 Family 26 Model 36',
+        architecture: 'x86_64',
+        addressWidthBits: 64,
+        dataWidthBits: 64,
+        family: '26',
+        level: '25',
+        revision: '0xB201',
+        stepping: '1',
+        firmwareMaxFrequencyMhz: 5450,
+        isaFeatures: const <String>['sse4', 'avx2', 'aes', 'sha'],
+        caches: <CpuCache>[
+          CpuCache(
+            level: 1,
+            kind: CpuCacheKind.data,
+            sizeBytes: BigInt.from(49152),
+            instanceCount: 16,
+            associativity: 12,
+            lineSizeBytes: 64,
+          ),
+          CpuCache(
+            level: 1,
+            kind: CpuCacheKind.instruction,
+            sizeBytes: BigInt.from(32768),
+            instanceCount: 16,
+            associativity: 8,
+            lineSizeBytes: 64,
+          ),
+          CpuCache(
+            level: 2,
+            kind: CpuCacheKind.unified,
+            sizeBytes: BigInt.from(1048576),
+            instanceCount: 16,
+          ),
+          CpuCache(
+            level: 3,
+            kind: CpuCacheKind.unified,
+            sizeBytes: BigInt.from(33554432),
+            instanceCount: 2,
+          ),
+        ],
+      ),
     ),
     gpu: GpuData(
       selectedAdapter: BigInt.zero,
@@ -193,31 +267,44 @@ BackendState sampleState(PageId activePage) {
           sharedUsedBytes: BigInt.from(536870912),
           sharedTotalBytes: BigInt.from(17179869184),
           temperatureCelsius: 58,
+          driverName: 'amdgpu',
           driverVersion: 'amdgpu 6.18',
           driverDate: '2026-07-14',
           graphicsApi: 'Vulkan 1.4',
           physicalLocation: 'PCI 0000:65:00.0',
           hardwareReservedBytes: BigInt.from(16777216),
           engines: <GpuEngine>[
-            GpuEngine(name: '3D', utilizationPercent: 42, history: history),
             GpuEngine(
-              name: 'Copy',
+              id: '3d:0',
+              kind: GpuEngineKind.threeD,
+              ordinal: 0,
+              utilizationPercent: 42,
+              history: history,
+            ),
+            GpuEngine(
+              id: 'copy:0',
+              kind: GpuEngineKind.copy,
+              ordinal: 0,
               utilizationPercent: 8,
               history: secondHistory,
             ),
             GpuEngine(
-              name: 'Video Encode',
+              id: 'video-encode:0',
+              kind: GpuEngineKind.videoEncode,
+              ordinal: 0,
               utilizationPercent: 2,
               history: _history(5, 18),
             ),
             GpuEngine(
-              name: 'Video Decode',
+              id: 'video-decode:0',
+              kind: GpuEngineKind.videoDecode,
+              ordinal: 0,
               utilizationPercent: 16,
               history: _history(12, 32),
             ),
           ],
-          dedicatedHistory: _history(18, 44),
-          sharedHistory: _history(8, 26),
+          dedicatedUsageHistoryPercent: _history(18, 44),
+          sharedUsageHistoryPercent: _history(8, 26),
         ),
       ],
     ),
@@ -273,15 +360,6 @@ BackendState sampleState(PageId activePage) {
         ),
       ],
     ),
-  );
-}
-
-CpuMetricGroup _cpuGroup(String title, List<(String, String)> values) {
-  return CpuMetricGroup(
-    title: title,
-    metrics: values
-        .map((value) => MetricValue(label: value.$1, value: value.$2))
-        .toList(growable: false),
   );
 }
 

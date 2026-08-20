@@ -18,6 +18,7 @@ bundle=${1:?usage: build-linux-packages.sh <bundle> <helper> [output] [version]}
 helper=${2:?usage: build-linux-packages.sh <bundle> <helper> [output] [version]}
 output=${3:-dist}
 version=${4:-0.3.0}
+application_id=org.taskmgr_rs.TaskManager
 
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 bundle=$(realpath -- "$bundle")
@@ -77,11 +78,11 @@ install_tree() {
     "$repo_root/packaging/linux/taskmgr_rs-launcher" \
     "$root/usr/bin/taskmgr_rs"
   install -Dpm0644 \
-    "$repo_root/packaging/linux/io.github.jameslinyj.taskmgr_rs.desktop" \
-    "$root/usr/share/applications/io.github.jameslinyj.taskmgr_rs.desktop"
+    "$repo_root/packaging/linux/$application_id.desktop" \
+    "$root/usr/share/applications/$application_id.desktop"
   install -Dpm0644 \
-    "$repo_root/packaging/linux/io.github.jameslinyj.taskmgr_rs.policy" \
-    "$root/usr/share/polkit-1/actions/io.github.jameslinyj.taskmgr_rs.policy"
+    "$repo_root/packaging/linux/$application_id.policy" \
+    "$root/usr/share/polkit-1/actions/$application_id.policy"
   install -d "$root/usr/share/icons/hicolor"
   cp -a -- \
     "$repo_root/packaging/linux/icons/hicolor/." \
@@ -118,8 +119,8 @@ if command -v rpmbuild >/dev/null 2>&1; then
     --define "bundle_dir $bundle" \
     --define "helper_path $helper" \
     --define "launcher_path $repo_root/packaging/linux/taskmgr_rs-launcher" \
-    --define "desktop_path $repo_root/packaging/linux/io.github.jameslinyj.taskmgr_rs.desktop" \
-    --define "policy_path $repo_root/packaging/linux/io.github.jameslinyj.taskmgr_rs.policy" \
+    --define "desktop_path $repo_root/packaging/linux/$application_id.desktop" \
+    --define "policy_path $repo_root/packaging/linux/$application_id.policy" \
     --define "icons_path $repo_root/packaging/linux/icons/hicolor" \
     --define "license_path $repo_root/LICENSE"
   while IFS= read -r -d '' rpm; do

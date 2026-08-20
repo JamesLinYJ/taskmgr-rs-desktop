@@ -40,7 +40,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 162414445;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1733253857;
 
 // Section: executor
 
@@ -341,6 +341,137 @@ fn wire__taskmgr_core__backend_options_default_impl(
             move |context| {
                 transform_result_sse::<_, ()>((move || {
                     let output_ok = Result::<_, ()>::Ok(taskmgr_core::BackendOptions::default())?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__taskmgr_core__cpu_current_metrics_default_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "cpu_current_metrics_default",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok =
+                        Result::<_, ()>::Ok(taskmgr_core::CpuCurrentMetrics::default())?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__taskmgr_core__cpu_hardware_metrics_default_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "cpu_hardware_metrics_default",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok =
+                        Result::<_, ()>::Ok(taskmgr_core::CpuHardwareMetrics::default())?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__taskmgr_core__cpu_system_metrics_default_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "cpu_system_metrics_default",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok(taskmgr_core::CpuSystemMetrics::default())?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__taskmgr_core__cpu_topology_metrics_default_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "cpu_topology_metrics_default",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok =
+                        Result::<_, ()>::Ok(taskmgr_core::CpuTopologyMetrics::default())?;
                     Ok(output_ok)
                 })())
             }
@@ -1018,17 +1149,84 @@ const _: fn() = || {
         let _: bool = ColumnLayout.visible;
     }
     {
-        let CpuData = None::<taskmgr_core::CpuData>.unwrap();
-        let _: Option<String> = CpuData.model;
-        let _: Option<String> = CpuData.status;
-        let _: Option<f64> = CpuData.utilization_percent;
-        let _: Vec<f64> = CpuData.history;
-        let _: Vec<taskmgr_core::CpuMetricGroup> = CpuData.groups;
+        let CpuCache = None::<taskmgr_core::CpuCache>.unwrap();
+        let _: u8 = CpuCache.level;
+        let _: taskmgr_core::CpuCacheKind = CpuCache.kind;
+        let _: u64 = CpuCache.size_bytes;
+        let _: u32 = CpuCache.instance_count;
+        let _: Option<u32> = CpuCache.associativity;
+        let _: Option<u32> = CpuCache.line_size_bytes;
     }
     {
-        let CpuMetricGroup = None::<taskmgr_core::CpuMetricGroup>.unwrap();
-        let _: String = CpuMetricGroup.title;
-        let _: Vec<taskmgr_core::MetricValue> = CpuMetricGroup.metrics;
+        let CpuCoreClass = None::<taskmgr_core::CpuCoreClass>.unwrap();
+        let _: Option<u32> = CpuCoreClass.efficiency_class;
+        let _: u32 = CpuCoreClass.core_count;
+    }
+    {
+        let CpuCurrentMetrics = None::<taskmgr_core::CpuCurrentMetrics>.unwrap();
+        let _: Option<f64> = CpuCurrentMetrics.average_frequency_mhz;
+        let _: Option<f64> = CpuCurrentMetrics.minimum_frequency_mhz;
+        let _: Option<f64> = CpuCurrentMetrics.maximum_frequency_mhz;
+        let _: Option<f64> = CpuCurrentMetrics.user_percent;
+        let _: Option<f64> = CpuCurrentMetrics.kernel_percent;
+        let _: Option<f64> = CpuCurrentMetrics.dpc_percent;
+        let _: Option<f64> = CpuCurrentMetrics.interrupt_percent;
+        let _: Option<u64> = CpuCurrentMetrics.interrupts_per_second;
+        let _: Option<u64> = CpuCurrentMetrics.uptime_seconds;
+    }
+    {
+        let CpuData = None::<taskmgr_core::CpuData>.unwrap();
+        let _: Option<String> = CpuData.model;
+        let _: Option<f64> = CpuData.utilization_percent;
+        let _: Vec<f64> = CpuData.history;
+        let _: Vec<f64> = CpuData.kernel_history;
+        let _: taskmgr_core::CpuCurrentMetrics = CpuData.current;
+        let _: taskmgr_core::CpuSystemMetrics = CpuData.system;
+        let _: taskmgr_core::CpuTopologyMetrics = CpuData.topology;
+        let _: taskmgr_core::CpuHardwareMetrics = CpuData.hardware;
+    }
+    {
+        let CpuHardwareMetrics = None::<taskmgr_core::CpuHardwareMetrics>.unwrap();
+        let _: Option<String> = CpuHardwareMetrics.manufacturer;
+        let _: Option<String> = CpuHardwareMetrics.socket;
+        let _: Option<String> = CpuHardwareMetrics.processor_id;
+        let _: Option<String> = CpuHardwareMetrics.architecture;
+        let _: Option<u16> = CpuHardwareMetrics.address_width_bits;
+        let _: Option<u16> = CpuHardwareMetrics.data_width_bits;
+        let _: Option<String> = CpuHardwareMetrics.family;
+        let _: Option<String> = CpuHardwareMetrics.level;
+        let _: Option<String> = CpuHardwareMetrics.revision;
+        let _: Option<String> = CpuHardwareMetrics.stepping;
+        let _: Option<f64> = CpuHardwareMetrics.firmware_max_frequency_mhz;
+        let _: Vec<String> = CpuHardwareMetrics.isa_features;
+        let _: Vec<taskmgr_core::CpuCache> = CpuHardwareMetrics.caches;
+    }
+    {
+        let CpuSystemMetrics = None::<taskmgr_core::CpuSystemMetrics>.unwrap();
+        let _: Option<u64> = CpuSystemMetrics.process_count;
+        let _: Option<u64> = CpuSystemMetrics.thread_count;
+        let _: Option<u64> = CpuSystemMetrics.handle_count;
+        let _: Option<u64> = CpuSystemMetrics.file_descriptor_count;
+        let _: Option<u64> = CpuSystemMetrics.open_file_count;
+        let _: Option<u64> = CpuSystemMetrics.processor_queue_length;
+        let _: Option<u64> = CpuSystemMetrics.context_switches_per_second;
+        let _: Option<u64> = CpuSystemMetrics.system_calls_per_second;
+    }
+    {
+        let CpuTopologyMetrics = None::<taskmgr_core::CpuTopologyMetrics>.unwrap();
+        let _: Option<u32> = CpuTopologyMetrics.package_count;
+        let _: Option<u32> = CpuTopologyMetrics.numa_node_count;
+        let _: Option<u32> = CpuTopologyMetrics.processor_group_count;
+        let _: Option<u32> = CpuTopologyMetrics.die_count;
+        let _: Option<u32> = CpuTopologyMetrics.module_count;
+        let _: Option<u32> = CpuTopologyMetrics.physical_core_count;
+        let _: Option<u32> = CpuTopologyMetrics.logical_processor_count;
+        let _: Vec<taskmgr_core::CpuCoreClass> = CpuTopologyMetrics.core_classes;
+        let _: Option<u32> = CpuTopologyMetrics.smt_core_count;
+        let _: Option<u32> = CpuTopologyMetrics.minimum_threads_per_core;
+        let _: Option<u32> = CpuTopologyMetrics.maximum_threads_per_core;
+        let _: Option<bool> = CpuTopologyMetrics.virtualization;
+        let _: Option<bool> = CpuTopologyMetrics.second_level_address_translation;
     }
     {
         let GpuAdapter = None::<taskmgr_core::GpuAdapter>.unwrap();
@@ -1040,14 +1238,15 @@ const _: fn() = || {
         let _: Option<u64> = GpuAdapter.shared_used_bytes;
         let _: Option<u64> = GpuAdapter.shared_total_bytes;
         let _: Option<f64> = GpuAdapter.temperature_celsius;
+        let _: Option<String> = GpuAdapter.driver_name;
         let _: Option<String> = GpuAdapter.driver_version;
         let _: Option<String> = GpuAdapter.driver_date;
         let _: Option<String> = GpuAdapter.graphics_api;
         let _: Option<String> = GpuAdapter.physical_location;
         let _: Option<u64> = GpuAdapter.hardware_reserved_bytes;
         let _: Vec<taskmgr_core::GpuEngine> = GpuAdapter.engines;
-        let _: Vec<f64> = GpuAdapter.dedicated_history;
-        let _: Vec<f64> = GpuAdapter.shared_history;
+        let _: Vec<f64> = GpuAdapter.dedicated_usage_history_percent;
+        let _: Vec<f64> = GpuAdapter.shared_usage_history_percent;
         let _: Option<taskmgr_core::BackendError> = GpuAdapter.detail_error;
     }
     {
@@ -1057,14 +1256,12 @@ const _: fn() = || {
     }
     {
         let GpuEngine = None::<taskmgr_core::GpuEngine>.unwrap();
-        let _: String = GpuEngine.name;
+        let _: String = GpuEngine.id;
+        let _: taskmgr_core::GpuEngineKind = GpuEngine.kind;
+        let _: Option<u32> = GpuEngine.ordinal;
+        let _: Option<String> = GpuEngine.name;
         let _: Option<f64> = GpuEngine.utilization_percent;
         let _: Vec<f64> = GpuEngine.history;
-    }
-    {
-        let MetricValue = None::<taskmgr_core::MetricValue>.unwrap();
-        let _: String = MetricValue.label;
-        let _: Option<String> = MetricValue.value;
     }
     {
         let NetworkData = None::<taskmgr_core::NetworkData>.unwrap();
@@ -1097,6 +1294,7 @@ const _: fn() = || {
         let _: Option<u64> = PerformanceData.process_count;
         let _: Option<u64> = PerformanceData.thread_count;
         let _: Option<u64> = PerformanceData.handle_count;
+        let _: Option<u64> = PerformanceData.open_file_count;
         let _: Option<u64> = PerformanceData.memory_total_kib;
         let _: Option<u64> = PerformanceData.memory_available_kib;
         let _: Option<u64> = PerformanceData.file_cache_kib;
@@ -1106,12 +1304,17 @@ const _: fn() = || {
         let _: Option<u64> = PerformanceData.kernel_total_kib;
         let _: Option<u64> = PerformanceData.kernel_paged_kib;
         let _: Option<u64> = PerformanceData.kernel_non_paged_kib;
+        let _: Option<u64> = PerformanceData.swap_used_kib;
+        let _: Option<u64> = PerformanceData.slab_kib;
+        let _: Option<u64> = PerformanceData.kernel_stack_kib;
+        let _: Option<u64> = PerformanceData.page_tables_kib;
         let _: Option<f64> = PerformanceData.cpu_percent;
         let _: Option<f64> = PerformanceData.memory_percent;
         let _: Vec<f64> = PerformanceData.cpu_history;
         let _: Vec<f64> = PerformanceData.kernel_history;
         let _: Vec<f64> = PerformanceData.memory_history;
         let _: Vec<Vec<f64>> = PerformanceData.logical_cpu_histories;
+        let _: Vec<Vec<f64>> = PerformanceData.logical_kernel_histories;
     }
     {
         let PlatformCapabilities = None::<taskmgr_core::PlatformCapabilities>.unwrap();
@@ -1189,6 +1392,7 @@ const _: fn() = || {
         let _: bool = UiSettings.hide_when_minimized;
         let _: bool = UiSettings.show_kernel_times;
         let _: bool = UiSettings.one_graph_per_cpu;
+        let _: bool = UiSettings.tiny_footprint;
         let _: taskmgr_core::ApplicationViewMode = UiSettings.application_view_mode;
         let _: taskmgr_core::WindowGeometry = UiSettings.window;
         let _: Vec<taskmgr_core::ColumnLayout> = UiSettings.process_columns;
@@ -1733,32 +1937,191 @@ impl SseDecode for taskmgr_core::ColumnLayout {
     }
 }
 
-impl SseDecode for taskmgr_core::CpuData {
+impl SseDecode for taskmgr_core::CpuCache {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_model = <Option<String>>::sse_decode(deserializer);
-        let mut var_status = <Option<String>>::sse_decode(deserializer);
-        let mut var_utilizationPercent = <Option<f64>>::sse_decode(deserializer);
-        let mut var_history = <Vec<f64>>::sse_decode(deserializer);
-        let mut var_groups = <Vec<taskmgr_core::CpuMetricGroup>>::sse_decode(deserializer);
-        return taskmgr_core::CpuData {
-            model: var_model,
-            status: var_status,
-            utilization_percent: var_utilizationPercent,
-            history: var_history,
-            groups: var_groups,
+        let mut var_level = <u8>::sse_decode(deserializer);
+        let mut var_kind = <taskmgr_core::CpuCacheKind>::sse_decode(deserializer);
+        let mut var_sizeBytes = <u64>::sse_decode(deserializer);
+        let mut var_instanceCount = <u32>::sse_decode(deserializer);
+        let mut var_associativity = <Option<u32>>::sse_decode(deserializer);
+        let mut var_lineSizeBytes = <Option<u32>>::sse_decode(deserializer);
+        return taskmgr_core::CpuCache {
+            level: var_level,
+            kind: var_kind,
+            size_bytes: var_sizeBytes,
+            instance_count: var_instanceCount,
+            associativity: var_associativity,
+            line_size_bytes: var_lineSizeBytes,
         };
     }
 }
 
-impl SseDecode for taskmgr_core::CpuMetricGroup {
+impl SseDecode for taskmgr_core::CpuCacheKind {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_title = <String>::sse_decode(deserializer);
-        let mut var_metrics = <Vec<taskmgr_core::MetricValue>>::sse_decode(deserializer);
-        return taskmgr_core::CpuMetricGroup {
-            title: var_title,
-            metrics: var_metrics,
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => taskmgr_core::CpuCacheKind::Data,
+            1 => taskmgr_core::CpuCacheKind::Instruction,
+            2 => taskmgr_core::CpuCacheKind::Unified,
+            3 => taskmgr_core::CpuCacheKind::Trace,
+            4 => taskmgr_core::CpuCacheKind::Other,
+            _ => unreachable!("Invalid variant for CpuCacheKind: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for taskmgr_core::CpuCoreClass {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_efficiencyClass = <Option<u32>>::sse_decode(deserializer);
+        let mut var_coreCount = <u32>::sse_decode(deserializer);
+        return taskmgr_core::CpuCoreClass {
+            efficiency_class: var_efficiencyClass,
+            core_count: var_coreCount,
+        };
+    }
+}
+
+impl SseDecode for taskmgr_core::CpuCurrentMetrics {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_averageFrequencyMhz = <Option<f64>>::sse_decode(deserializer);
+        let mut var_minimumFrequencyMhz = <Option<f64>>::sse_decode(deserializer);
+        let mut var_maximumFrequencyMhz = <Option<f64>>::sse_decode(deserializer);
+        let mut var_userPercent = <Option<f64>>::sse_decode(deserializer);
+        let mut var_kernelPercent = <Option<f64>>::sse_decode(deserializer);
+        let mut var_dpcPercent = <Option<f64>>::sse_decode(deserializer);
+        let mut var_interruptPercent = <Option<f64>>::sse_decode(deserializer);
+        let mut var_interruptsPerSecond = <Option<u64>>::sse_decode(deserializer);
+        let mut var_uptimeSeconds = <Option<u64>>::sse_decode(deserializer);
+        return taskmgr_core::CpuCurrentMetrics {
+            average_frequency_mhz: var_averageFrequencyMhz,
+            minimum_frequency_mhz: var_minimumFrequencyMhz,
+            maximum_frequency_mhz: var_maximumFrequencyMhz,
+            user_percent: var_userPercent,
+            kernel_percent: var_kernelPercent,
+            dpc_percent: var_dpcPercent,
+            interrupt_percent: var_interruptPercent,
+            interrupts_per_second: var_interruptsPerSecond,
+            uptime_seconds: var_uptimeSeconds,
+        };
+    }
+}
+
+impl SseDecode for taskmgr_core::CpuData {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_model = <Option<String>>::sse_decode(deserializer);
+        let mut var_utilizationPercent = <Option<f64>>::sse_decode(deserializer);
+        let mut var_history = <Vec<f64>>::sse_decode(deserializer);
+        let mut var_kernelHistory = <Vec<f64>>::sse_decode(deserializer);
+        let mut var_current = <taskmgr_core::CpuCurrentMetrics>::sse_decode(deserializer);
+        let mut var_system = <taskmgr_core::CpuSystemMetrics>::sse_decode(deserializer);
+        let mut var_topology = <taskmgr_core::CpuTopologyMetrics>::sse_decode(deserializer);
+        let mut var_hardware = <taskmgr_core::CpuHardwareMetrics>::sse_decode(deserializer);
+        return taskmgr_core::CpuData {
+            model: var_model,
+            utilization_percent: var_utilizationPercent,
+            history: var_history,
+            kernel_history: var_kernelHistory,
+            current: var_current,
+            system: var_system,
+            topology: var_topology,
+            hardware: var_hardware,
+        };
+    }
+}
+
+impl SseDecode for taskmgr_core::CpuHardwareMetrics {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_manufacturer = <Option<String>>::sse_decode(deserializer);
+        let mut var_socket = <Option<String>>::sse_decode(deserializer);
+        let mut var_processorId = <Option<String>>::sse_decode(deserializer);
+        let mut var_architecture = <Option<String>>::sse_decode(deserializer);
+        let mut var_addressWidthBits = <Option<u16>>::sse_decode(deserializer);
+        let mut var_dataWidthBits = <Option<u16>>::sse_decode(deserializer);
+        let mut var_family = <Option<String>>::sse_decode(deserializer);
+        let mut var_level = <Option<String>>::sse_decode(deserializer);
+        let mut var_revision = <Option<String>>::sse_decode(deserializer);
+        let mut var_stepping = <Option<String>>::sse_decode(deserializer);
+        let mut var_firmwareMaxFrequencyMhz = <Option<f64>>::sse_decode(deserializer);
+        let mut var_isaFeatures = <Vec<String>>::sse_decode(deserializer);
+        let mut var_caches = <Vec<taskmgr_core::CpuCache>>::sse_decode(deserializer);
+        return taskmgr_core::CpuHardwareMetrics {
+            manufacturer: var_manufacturer,
+            socket: var_socket,
+            processor_id: var_processorId,
+            architecture: var_architecture,
+            address_width_bits: var_addressWidthBits,
+            data_width_bits: var_dataWidthBits,
+            family: var_family,
+            level: var_level,
+            revision: var_revision,
+            stepping: var_stepping,
+            firmware_max_frequency_mhz: var_firmwareMaxFrequencyMhz,
+            isa_features: var_isaFeatures,
+            caches: var_caches,
+        };
+    }
+}
+
+impl SseDecode for taskmgr_core::CpuSystemMetrics {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_processCount = <Option<u64>>::sse_decode(deserializer);
+        let mut var_threadCount = <Option<u64>>::sse_decode(deserializer);
+        let mut var_handleCount = <Option<u64>>::sse_decode(deserializer);
+        let mut var_fileDescriptorCount = <Option<u64>>::sse_decode(deserializer);
+        let mut var_openFileCount = <Option<u64>>::sse_decode(deserializer);
+        let mut var_processorQueueLength = <Option<u64>>::sse_decode(deserializer);
+        let mut var_contextSwitchesPerSecond = <Option<u64>>::sse_decode(deserializer);
+        let mut var_systemCallsPerSecond = <Option<u64>>::sse_decode(deserializer);
+        return taskmgr_core::CpuSystemMetrics {
+            process_count: var_processCount,
+            thread_count: var_threadCount,
+            handle_count: var_handleCount,
+            file_descriptor_count: var_fileDescriptorCount,
+            open_file_count: var_openFileCount,
+            processor_queue_length: var_processorQueueLength,
+            context_switches_per_second: var_contextSwitchesPerSecond,
+            system_calls_per_second: var_systemCallsPerSecond,
+        };
+    }
+}
+
+impl SseDecode for taskmgr_core::CpuTopologyMetrics {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_packageCount = <Option<u32>>::sse_decode(deserializer);
+        let mut var_numaNodeCount = <Option<u32>>::sse_decode(deserializer);
+        let mut var_processorGroupCount = <Option<u32>>::sse_decode(deserializer);
+        let mut var_dieCount = <Option<u32>>::sse_decode(deserializer);
+        let mut var_moduleCount = <Option<u32>>::sse_decode(deserializer);
+        let mut var_physicalCoreCount = <Option<u32>>::sse_decode(deserializer);
+        let mut var_logicalProcessorCount = <Option<u32>>::sse_decode(deserializer);
+        let mut var_coreClasses = <Vec<taskmgr_core::CpuCoreClass>>::sse_decode(deserializer);
+        let mut var_smtCoreCount = <Option<u32>>::sse_decode(deserializer);
+        let mut var_minimumThreadsPerCore = <Option<u32>>::sse_decode(deserializer);
+        let mut var_maximumThreadsPerCore = <Option<u32>>::sse_decode(deserializer);
+        let mut var_virtualization = <Option<bool>>::sse_decode(deserializer);
+        let mut var_secondLevelAddressTranslation = <Option<bool>>::sse_decode(deserializer);
+        return taskmgr_core::CpuTopologyMetrics {
+            package_count: var_packageCount,
+            numa_node_count: var_numaNodeCount,
+            processor_group_count: var_processorGroupCount,
+            die_count: var_dieCount,
+            module_count: var_moduleCount,
+            physical_core_count: var_physicalCoreCount,
+            logical_processor_count: var_logicalProcessorCount,
+            core_classes: var_coreClasses,
+            smt_core_count: var_smtCoreCount,
+            minimum_threads_per_core: var_minimumThreadsPerCore,
+            maximum_threads_per_core: var_maximumThreadsPerCore,
+            virtualization: var_virtualization,
+            second_level_address_translation: var_secondLevelAddressTranslation,
         };
     }
 }
@@ -1781,14 +2144,15 @@ impl SseDecode for taskmgr_core::GpuAdapter {
         let mut var_sharedUsedBytes = <Option<u64>>::sse_decode(deserializer);
         let mut var_sharedTotalBytes = <Option<u64>>::sse_decode(deserializer);
         let mut var_temperatureCelsius = <Option<f64>>::sse_decode(deserializer);
+        let mut var_driverName = <Option<String>>::sse_decode(deserializer);
         let mut var_driverVersion = <Option<String>>::sse_decode(deserializer);
         let mut var_driverDate = <Option<String>>::sse_decode(deserializer);
         let mut var_graphicsApi = <Option<String>>::sse_decode(deserializer);
         let mut var_physicalLocation = <Option<String>>::sse_decode(deserializer);
         let mut var_hardwareReservedBytes = <Option<u64>>::sse_decode(deserializer);
         let mut var_engines = <Vec<taskmgr_core::GpuEngine>>::sse_decode(deserializer);
-        let mut var_dedicatedHistory = <Vec<f64>>::sse_decode(deserializer);
-        let mut var_sharedHistory = <Vec<f64>>::sse_decode(deserializer);
+        let mut var_dedicatedUsageHistoryPercent = <Vec<f64>>::sse_decode(deserializer);
+        let mut var_sharedUsageHistoryPercent = <Vec<f64>>::sse_decode(deserializer);
         let mut var_detailError = <Option<taskmgr_core::BackendError>>::sse_decode(deserializer);
         return taskmgr_core::GpuAdapter {
             id: var_id,
@@ -1799,14 +2163,15 @@ impl SseDecode for taskmgr_core::GpuAdapter {
             shared_used_bytes: var_sharedUsedBytes,
             shared_total_bytes: var_sharedTotalBytes,
             temperature_celsius: var_temperatureCelsius,
+            driver_name: var_driverName,
             driver_version: var_driverVersion,
             driver_date: var_driverDate,
             graphics_api: var_graphicsApi,
             physical_location: var_physicalLocation,
             hardware_reserved_bytes: var_hardwareReservedBytes,
             engines: var_engines,
-            dedicated_history: var_dedicatedHistory,
-            shared_history: var_sharedHistory,
+            dedicated_usage_history_percent: var_dedicatedUsageHistoryPercent,
+            shared_usage_history_percent: var_sharedUsageHistoryPercent,
             detail_error: var_detailError,
         };
     }
@@ -1827,13 +2192,37 @@ impl SseDecode for taskmgr_core::GpuData {
 impl SseDecode for taskmgr_core::GpuEngine {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_id = <String>::sse_decode(deserializer);
+        let mut var_kind = <taskmgr_core::GpuEngineKind>::sse_decode(deserializer);
+        let mut var_ordinal = <Option<u32>>::sse_decode(deserializer);
+        let mut var_name = <Option<String>>::sse_decode(deserializer);
         let mut var_utilizationPercent = <Option<f64>>::sse_decode(deserializer);
         let mut var_history = <Vec<f64>>::sse_decode(deserializer);
         return taskmgr_core::GpuEngine {
+            id: var_id,
+            kind: var_kind,
+            ordinal: var_ordinal,
             name: var_name,
             utilization_percent: var_utilizationPercent,
             history: var_history,
+        };
+    }
+}
+
+impl SseDecode for taskmgr_core::GpuEngineKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => taskmgr_core::GpuEngineKind::Overall,
+            1 => taskmgr_core::GpuEngineKind::ThreeD,
+            2 => taskmgr_core::GpuEngineKind::Copy,
+            3 => taskmgr_core::GpuEngineKind::VideoEncode,
+            4 => taskmgr_core::GpuEngineKind::VideoDecode,
+            5 => taskmgr_core::GpuEngineKind::Compute,
+            6 => taskmgr_core::GpuEngineKind::Security,
+            7 => taskmgr_core::GpuEngineKind::Other,
+            _ => unreachable!("Invalid variant for GpuEngineKind: {}", inner),
         };
     }
 }
@@ -1849,6 +2238,18 @@ impl SseDecode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_i64::<NativeEndian>().unwrap()
+    }
+}
+
+impl SseDecode for Vec<String> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<String>::sse_decode(deserializer));
+        }
+        return ans_;
     }
 }
 
@@ -1914,13 +2315,25 @@ impl SseDecode for Vec<taskmgr_core::ColumnLayout> {
     }
 }
 
-impl SseDecode for Vec<taskmgr_core::CpuMetricGroup> {
+impl SseDecode for Vec<taskmgr_core::CpuCache> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ {
-            ans_.push(<taskmgr_core::CpuMetricGroup>::sse_decode(deserializer));
+            ans_.push(<taskmgr_core::CpuCache>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<taskmgr_core::CpuCoreClass> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<taskmgr_core::CpuCoreClass>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -1957,18 +2370,6 @@ impl SseDecode for Vec<Vec<f64>> {
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ {
             ans_.push(<Vec<f64>>::sse_decode(deserializer));
-        }
-        return ans_;
-    }
-}
-
-impl SseDecode for Vec<taskmgr_core::MetricValue> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut len_ = <i32>::sse_decode(deserializer);
-        let mut ans_ = Vec::with_capacity(len_ as usize);
-        for idx_ in 0..len_ {
-            ans_.push(<taskmgr_core::MetricValue>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -2058,18 +2459,6 @@ impl SseDecode for Vec<taskmgr_core::UserSession> {
     }
 }
 
-impl SseDecode for taskmgr_core::MetricValue {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_label = <String>::sse_decode(deserializer);
-        let mut var_value = <Option<String>>::sse_decode(deserializer);
-        return taskmgr_core::MetricValue {
-            label: var_label,
-            value: var_value,
-        };
-    }
-}
-
 impl SseDecode for taskmgr_core::NetworkData {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2132,6 +2521,17 @@ impl SseDecode for Option<taskmgr_core::BackendError> {
     }
 }
 
+impl SseDecode for Option<bool> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<bool>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<f64> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2181,6 +2581,17 @@ impl SseDecode for Option<taskmgr_core::ProcessIdentity> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<taskmgr_core::ProcessIdentity>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<u16> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<u16>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -2283,6 +2694,7 @@ impl SseDecode for taskmgr_core::PerformanceData {
         let mut var_processCount = <Option<u64>>::sse_decode(deserializer);
         let mut var_threadCount = <Option<u64>>::sse_decode(deserializer);
         let mut var_handleCount = <Option<u64>>::sse_decode(deserializer);
+        let mut var_openFileCount = <Option<u64>>::sse_decode(deserializer);
         let mut var_memoryTotalKib = <Option<u64>>::sse_decode(deserializer);
         let mut var_memoryAvailableKib = <Option<u64>>::sse_decode(deserializer);
         let mut var_fileCacheKib = <Option<u64>>::sse_decode(deserializer);
@@ -2292,16 +2704,22 @@ impl SseDecode for taskmgr_core::PerformanceData {
         let mut var_kernelTotalKib = <Option<u64>>::sse_decode(deserializer);
         let mut var_kernelPagedKib = <Option<u64>>::sse_decode(deserializer);
         let mut var_kernelNonPagedKib = <Option<u64>>::sse_decode(deserializer);
+        let mut var_swapUsedKib = <Option<u64>>::sse_decode(deserializer);
+        let mut var_slabKib = <Option<u64>>::sse_decode(deserializer);
+        let mut var_kernelStackKib = <Option<u64>>::sse_decode(deserializer);
+        let mut var_pageTablesKib = <Option<u64>>::sse_decode(deserializer);
         let mut var_cpuPercent = <Option<f64>>::sse_decode(deserializer);
         let mut var_memoryPercent = <Option<f64>>::sse_decode(deserializer);
         let mut var_cpuHistory = <Vec<f64>>::sse_decode(deserializer);
         let mut var_kernelHistory = <Vec<f64>>::sse_decode(deserializer);
         let mut var_memoryHistory = <Vec<f64>>::sse_decode(deserializer);
         let mut var_logicalCpuHistories = <Vec<Vec<f64>>>::sse_decode(deserializer);
+        let mut var_logicalKernelHistories = <Vec<Vec<f64>>>::sse_decode(deserializer);
         return taskmgr_core::PerformanceData {
             process_count: var_processCount,
             thread_count: var_threadCount,
             handle_count: var_handleCount,
+            open_file_count: var_openFileCount,
             memory_total_kib: var_memoryTotalKib,
             memory_available_kib: var_memoryAvailableKib,
             file_cache_kib: var_fileCacheKib,
@@ -2311,12 +2729,17 @@ impl SseDecode for taskmgr_core::PerformanceData {
             kernel_total_kib: var_kernelTotalKib,
             kernel_paged_kib: var_kernelPagedKib,
             kernel_non_paged_kib: var_kernelNonPagedKib,
+            swap_used_kib: var_swapUsedKib,
+            slab_kib: var_slabKib,
+            kernel_stack_kib: var_kernelStackKib,
+            page_tables_kib: var_pageTablesKib,
             cpu_percent: var_cpuPercent,
             memory_percent: var_memoryPercent,
             cpu_history: var_cpuHistory,
             kernel_history: var_kernelHistory,
             memory_history: var_memoryHistory,
             logical_cpu_histories: var_logicalCpuHistories,
+            logical_kernel_histories: var_logicalKernelHistories,
         };
     }
 }
@@ -2545,6 +2968,7 @@ impl SseDecode for taskmgr_core::UiSettings {
         let mut var_hideWhenMinimized = <bool>::sse_decode(deserializer);
         let mut var_showKernelTimes = <bool>::sse_decode(deserializer);
         let mut var_oneGraphPerCpu = <bool>::sse_decode(deserializer);
+        let mut var_tinyFootprint = <bool>::sse_decode(deserializer);
         let mut var_applicationViewMode =
             <taskmgr_core::ApplicationViewMode>::sse_decode(deserializer);
         let mut var_window = <taskmgr_core::WindowGeometry>::sse_decode(deserializer);
@@ -2560,6 +2984,7 @@ impl SseDecode for taskmgr_core::UiSettings {
             hide_when_minimized: var_hideWhenMinimized,
             show_kernel_times: var_showKernelTimes,
             one_graph_per_cpu: var_oneGraphPerCpu,
+            tiny_footprint: var_tinyFootprint,
             application_view_mode: var_applicationViewMode,
             window: var_window,
             process_columns: var_processColumns,
@@ -2720,28 +3145,40 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         7 => wire__taskmgr_core__architecture_current_impl(port, ptr, rust_vec_len, data_len),
         8 => wire__taskmgr_core__backend_options_default_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__execute_action_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__load_settings_impl(port, ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__open_privileged_session_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__request_refresh_impl(port, ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__save_settings_impl(port, ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__shutdown_backend_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__taskmgr_core__snapshot_meta_fresh_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__taskmgr_core__snapshot_meta_stale_with_error_impl(
+        9 => {
+            wire__taskmgr_core__cpu_current_metrics_default_impl(port, ptr, rust_vec_len, data_len)
+        }
+        10 => {
+            wire__taskmgr_core__cpu_hardware_metrics_default_impl(port, ptr, rust_vec_len, data_len)
+        }
+        11 => {
+            wire__taskmgr_core__cpu_system_metrics_default_impl(port, ptr, rust_vec_len, data_len)
+        }
+        12 => {
+            wire__taskmgr_core__cpu_topology_metrics_default_impl(port, ptr, rust_vec_len, data_len)
+        }
+        13 => wire__crate__api__execute_action_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__load_settings_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__open_privileged_session_impl(port, ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__request_refresh_impl(port, ptr, rust_vec_len, data_len),
+        18 => wire__crate__api__save_settings_impl(port, ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__shutdown_backend_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__taskmgr_core__snapshot_meta_fresh_impl(port, ptr, rust_vec_len, data_len),
+        21 => wire__taskmgr_core__snapshot_meta_stale_with_error_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        18 => wire__crate__api__start_backend_impl(port, ptr, rust_vec_len, data_len),
-        19 => wire__taskmgr_core__ui_settings_default_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__update_options_impl(port, ptr, rust_vec_len, data_len),
-        21 => {
+        22 => wire__crate__api__start_backend_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__taskmgr_core__ui_settings_default_impl(port, ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__update_options_impl(port, ptr, rust_vec_len, data_len),
+        25 => {
             wire__taskmgr_core__update_speed_interval_millis_impl(port, ptr, rust_vec_len, data_len)
         }
-        22 => wire__crate__api__watch_backend_impl(port, ptr, rust_vec_len, data_len),
-        23 => wire__taskmgr_core__window_geometry_default_impl(port, ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__watch_backend_impl(port, ptr, rust_vec_len, data_len),
+        27 => wire__taskmgr_core__window_geometry_default_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -3318,14 +3755,115 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::ColumnLayout>>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::CpuCache> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.level.into_into_dart().into_dart(),
+            self.0.kind.into_into_dart().into_dart(),
+            self.0.size_bytes.into_into_dart().into_dart(),
+            self.0.instance_count.into_into_dart().into_dart(),
+            self.0.associativity.into_into_dart().into_dart(),
+            self.0.line_size_bytes.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<taskmgr_core::CpuCache>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::CpuCache>>
+    for taskmgr_core::CpuCache
+{
+    fn into_into_dart(self) -> FrbWrapper<taskmgr_core::CpuCache> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::CpuCacheKind> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            taskmgr_core::CpuCacheKind::Data => 0.into_dart(),
+            taskmgr_core::CpuCacheKind::Instruction => 1.into_dart(),
+            taskmgr_core::CpuCacheKind::Unified => 2.into_dart(),
+            taskmgr_core::CpuCacheKind::Trace => 3.into_dart(),
+            taskmgr_core::CpuCacheKind::Other => 4.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<taskmgr_core::CpuCacheKind>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::CpuCacheKind>>
+    for taskmgr_core::CpuCacheKind
+{
+    fn into_into_dart(self) -> FrbWrapper<taskmgr_core::CpuCacheKind> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::CpuCoreClass> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.efficiency_class.into_into_dart().into_dart(),
+            self.0.core_count.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<taskmgr_core::CpuCoreClass>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::CpuCoreClass>>
+    for taskmgr_core::CpuCoreClass
+{
+    fn into_into_dart(self) -> FrbWrapper<taskmgr_core::CpuCoreClass> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::CpuCurrentMetrics> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.average_frequency_mhz.into_into_dart().into_dart(),
+            self.0.minimum_frequency_mhz.into_into_dart().into_dart(),
+            self.0.maximum_frequency_mhz.into_into_dart().into_dart(),
+            self.0.user_percent.into_into_dart().into_dart(),
+            self.0.kernel_percent.into_into_dart().into_dart(),
+            self.0.dpc_percent.into_into_dart().into_dart(),
+            self.0.interrupt_percent.into_into_dart().into_dart(),
+            self.0.interrupts_per_second.into_into_dart().into_dart(),
+            self.0.uptime_seconds.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<taskmgr_core::CpuCurrentMetrics>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::CpuCurrentMetrics>>
+    for taskmgr_core::CpuCurrentMetrics
+{
+    fn into_into_dart(self) -> FrbWrapper<taskmgr_core::CpuCurrentMetrics> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::CpuData> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.0.model.into_into_dart().into_dart(),
-            self.0.status.into_into_dart().into_dart(),
             self.0.utilization_percent.into_into_dart().into_dart(),
             self.0.history.into_into_dart().into_dart(),
-            self.0.groups.into_into_dart().into_dart(),
+            self.0.kernel_history.into_into_dart().into_dart(),
+            self.0.current.into_into_dart().into_dart(),
+            self.0.system.into_into_dart().into_dart(),
+            self.0.topology.into_into_dart().into_dart(),
+            self.0.hardware.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -3342,23 +3880,102 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::CpuData>>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::CpuMetricGroup> {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::CpuHardwareMetrics> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.0.title.into_into_dart().into_dart(),
-            self.0.metrics.into_into_dart().into_dart(),
+            self.0.manufacturer.into_into_dart().into_dart(),
+            self.0.socket.into_into_dart().into_dart(),
+            self.0.processor_id.into_into_dart().into_dart(),
+            self.0.architecture.into_into_dart().into_dart(),
+            self.0.address_width_bits.into_into_dart().into_dart(),
+            self.0.data_width_bits.into_into_dart().into_dart(),
+            self.0.family.into_into_dart().into_dart(),
+            self.0.level.into_into_dart().into_dart(),
+            self.0.revision.into_into_dart().into_dart(),
+            self.0.stepping.into_into_dart().into_dart(),
+            self.0
+                .firmware_max_frequency_mhz
+                .into_into_dart()
+                .into_dart(),
+            self.0.isa_features.into_into_dart().into_dart(),
+            self.0.caches.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<taskmgr_core::CpuMetricGroup>
+    for FrbWrapper<taskmgr_core::CpuHardwareMetrics>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::CpuMetricGroup>>
-    for taskmgr_core::CpuMetricGroup
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::CpuHardwareMetrics>>
+    for taskmgr_core::CpuHardwareMetrics
 {
-    fn into_into_dart(self) -> FrbWrapper<taskmgr_core::CpuMetricGroup> {
+    fn into_into_dart(self) -> FrbWrapper<taskmgr_core::CpuHardwareMetrics> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::CpuSystemMetrics> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.process_count.into_into_dart().into_dart(),
+            self.0.thread_count.into_into_dart().into_dart(),
+            self.0.handle_count.into_into_dart().into_dart(),
+            self.0.file_descriptor_count.into_into_dart().into_dart(),
+            self.0.open_file_count.into_into_dart().into_dart(),
+            self.0.processor_queue_length.into_into_dart().into_dart(),
+            self.0
+                .context_switches_per_second
+                .into_into_dart()
+                .into_dart(),
+            self.0.system_calls_per_second.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<taskmgr_core::CpuSystemMetrics>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::CpuSystemMetrics>>
+    for taskmgr_core::CpuSystemMetrics
+{
+    fn into_into_dart(self) -> FrbWrapper<taskmgr_core::CpuSystemMetrics> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::CpuTopologyMetrics> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.package_count.into_into_dart().into_dart(),
+            self.0.numa_node_count.into_into_dart().into_dart(),
+            self.0.processor_group_count.into_into_dart().into_dart(),
+            self.0.die_count.into_into_dart().into_dart(),
+            self.0.module_count.into_into_dart().into_dart(),
+            self.0.physical_core_count.into_into_dart().into_dart(),
+            self.0.logical_processor_count.into_into_dart().into_dart(),
+            self.0.core_classes.into_into_dart().into_dart(),
+            self.0.smt_core_count.into_into_dart().into_dart(),
+            self.0.minimum_threads_per_core.into_into_dart().into_dart(),
+            self.0.maximum_threads_per_core.into_into_dart().into_dart(),
+            self.0.virtualization.into_into_dart().into_dart(),
+            self.0
+                .second_level_address_translation
+                .into_into_dart()
+                .into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<taskmgr_core::CpuTopologyMetrics>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::CpuTopologyMetrics>>
+    for taskmgr_core::CpuTopologyMetrics
+{
+    fn into_into_dart(self) -> FrbWrapper<taskmgr_core::CpuTopologyMetrics> {
         self.into()
     }
 }
@@ -3374,14 +3991,21 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::GpuAdapter> {
             self.0.shared_used_bytes.into_into_dart().into_dart(),
             self.0.shared_total_bytes.into_into_dart().into_dart(),
             self.0.temperature_celsius.into_into_dart().into_dart(),
+            self.0.driver_name.into_into_dart().into_dart(),
             self.0.driver_version.into_into_dart().into_dart(),
             self.0.driver_date.into_into_dart().into_dart(),
             self.0.graphics_api.into_into_dart().into_dart(),
             self.0.physical_location.into_into_dart().into_dart(),
             self.0.hardware_reserved_bytes.into_into_dart().into_dart(),
             self.0.engines.into_into_dart().into_dart(),
-            self.0.dedicated_history.into_into_dart().into_dart(),
-            self.0.shared_history.into_into_dart().into_dart(),
+            self.0
+                .dedicated_usage_history_percent
+                .into_into_dart()
+                .into_dart(),
+            self.0
+                .shared_usage_history_percent
+                .into_into_dart()
+                .into_dart(),
             self.0.detail_error.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -3423,6 +4047,9 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::GpuData>>
 impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::GpuEngine> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.0.id.into_into_dart().into_dart(),
+            self.0.kind.into_into_dart().into_dart(),
+            self.0.ordinal.into_into_dart().into_dart(),
             self.0.name.into_into_dart().into_dart(),
             self.0.utilization_percent.into_into_dart().into_dart(),
             self.0.history.into_into_dart().into_dart(),
@@ -3442,23 +4069,29 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::GpuEngine>>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::MetricValue> {
+impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::GpuEngineKind> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.0.label.into_into_dart().into_dart(),
-            self.0.value.into_into_dart().into_dart(),
-        ]
-        .into_dart()
+        match self.0 {
+            taskmgr_core::GpuEngineKind::Overall => 0.into_dart(),
+            taskmgr_core::GpuEngineKind::ThreeD => 1.into_dart(),
+            taskmgr_core::GpuEngineKind::Copy => 2.into_dart(),
+            taskmgr_core::GpuEngineKind::VideoEncode => 3.into_dart(),
+            taskmgr_core::GpuEngineKind::VideoDecode => 4.into_dart(),
+            taskmgr_core::GpuEngineKind::Compute => 5.into_dart(),
+            taskmgr_core::GpuEngineKind::Security => 6.into_dart(),
+            taskmgr_core::GpuEngineKind::Other => 7.into_dart(),
+            _ => unreachable!(),
+        }
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<taskmgr_core::MetricValue>
+    for FrbWrapper<taskmgr_core::GpuEngineKind>
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::MetricValue>>
-    for taskmgr_core::MetricValue
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::GpuEngineKind>>
+    for taskmgr_core::GpuEngineKind
 {
-    fn into_into_dart(self) -> FrbWrapper<taskmgr_core::MetricValue> {
+    fn into_into_dart(self) -> FrbWrapper<taskmgr_core::GpuEngineKind> {
         self.into()
     }
 }
@@ -3570,6 +4203,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::PerformanceData>
             self.0.process_count.into_into_dart().into_dart(),
             self.0.thread_count.into_into_dart().into_dart(),
             self.0.handle_count.into_into_dart().into_dart(),
+            self.0.open_file_count.into_into_dart().into_dart(),
             self.0.memory_total_kib.into_into_dart().into_dart(),
             self.0.memory_available_kib.into_into_dart().into_dart(),
             self.0.file_cache_kib.into_into_dart().into_dart(),
@@ -3579,12 +4213,17 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::PerformanceData>
             self.0.kernel_total_kib.into_into_dart().into_dart(),
             self.0.kernel_paged_kib.into_into_dart().into_dart(),
             self.0.kernel_non_paged_kib.into_into_dart().into_dart(),
+            self.0.swap_used_kib.into_into_dart().into_dart(),
+            self.0.slab_kib.into_into_dart().into_dart(),
+            self.0.kernel_stack_kib.into_into_dart().into_dart(),
+            self.0.page_tables_kib.into_into_dart().into_dart(),
             self.0.cpu_percent.into_into_dart().into_dart(),
             self.0.memory_percent.into_into_dart().into_dart(),
             self.0.cpu_history.into_into_dart().into_dart(),
             self.0.kernel_history.into_into_dart().into_dart(),
             self.0.memory_history.into_into_dart().into_dart(),
             self.0.logical_cpu_histories.into_into_dart().into_dart(),
+            self.0.logical_kernel_histories.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -3857,6 +4496,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::UiSettings> {
             self.0.hide_when_minimized.into_into_dart().into_dart(),
             self.0.show_kernel_times.into_into_dart().into_dart(),
             self.0.one_graph_per_cpu.into_into_dart().into_dart(),
+            self.0.tiny_footprint.into_into_dart().into_dart(),
             self.0.application_view_mode.into_into_dart().into_dart(),
             self.0.window.into_into_dart().into_dart(),
             self.0.process_columns.into_into_dart().into_dart(),
@@ -4495,22 +5135,123 @@ impl SseEncode for taskmgr_core::ColumnLayout {
     }
 }
 
+impl SseEncode for taskmgr_core::CpuCache {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u8>::sse_encode(self.level, serializer);
+        <taskmgr_core::CpuCacheKind>::sse_encode(self.kind, serializer);
+        <u64>::sse_encode(self.size_bytes, serializer);
+        <u32>::sse_encode(self.instance_count, serializer);
+        <Option<u32>>::sse_encode(self.associativity, serializer);
+        <Option<u32>>::sse_encode(self.line_size_bytes, serializer);
+    }
+}
+
+impl SseEncode for taskmgr_core::CpuCacheKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                taskmgr_core::CpuCacheKind::Data => 0,
+                taskmgr_core::CpuCacheKind::Instruction => 1,
+                taskmgr_core::CpuCacheKind::Unified => 2,
+                taskmgr_core::CpuCacheKind::Trace => 3,
+                taskmgr_core::CpuCacheKind::Other => 4,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for taskmgr_core::CpuCoreClass {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<u32>>::sse_encode(self.efficiency_class, serializer);
+        <u32>::sse_encode(self.core_count, serializer);
+    }
+}
+
+impl SseEncode for taskmgr_core::CpuCurrentMetrics {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<f64>>::sse_encode(self.average_frequency_mhz, serializer);
+        <Option<f64>>::sse_encode(self.minimum_frequency_mhz, serializer);
+        <Option<f64>>::sse_encode(self.maximum_frequency_mhz, serializer);
+        <Option<f64>>::sse_encode(self.user_percent, serializer);
+        <Option<f64>>::sse_encode(self.kernel_percent, serializer);
+        <Option<f64>>::sse_encode(self.dpc_percent, serializer);
+        <Option<f64>>::sse_encode(self.interrupt_percent, serializer);
+        <Option<u64>>::sse_encode(self.interrupts_per_second, serializer);
+        <Option<u64>>::sse_encode(self.uptime_seconds, serializer);
+    }
+}
+
 impl SseEncode for taskmgr_core::CpuData {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Option<String>>::sse_encode(self.model, serializer);
-        <Option<String>>::sse_encode(self.status, serializer);
         <Option<f64>>::sse_encode(self.utilization_percent, serializer);
         <Vec<f64>>::sse_encode(self.history, serializer);
-        <Vec<taskmgr_core::CpuMetricGroup>>::sse_encode(self.groups, serializer);
+        <Vec<f64>>::sse_encode(self.kernel_history, serializer);
+        <taskmgr_core::CpuCurrentMetrics>::sse_encode(self.current, serializer);
+        <taskmgr_core::CpuSystemMetrics>::sse_encode(self.system, serializer);
+        <taskmgr_core::CpuTopologyMetrics>::sse_encode(self.topology, serializer);
+        <taskmgr_core::CpuHardwareMetrics>::sse_encode(self.hardware, serializer);
     }
 }
 
-impl SseEncode for taskmgr_core::CpuMetricGroup {
+impl SseEncode for taskmgr_core::CpuHardwareMetrics {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.title, serializer);
-        <Vec<taskmgr_core::MetricValue>>::sse_encode(self.metrics, serializer);
+        <Option<String>>::sse_encode(self.manufacturer, serializer);
+        <Option<String>>::sse_encode(self.socket, serializer);
+        <Option<String>>::sse_encode(self.processor_id, serializer);
+        <Option<String>>::sse_encode(self.architecture, serializer);
+        <Option<u16>>::sse_encode(self.address_width_bits, serializer);
+        <Option<u16>>::sse_encode(self.data_width_bits, serializer);
+        <Option<String>>::sse_encode(self.family, serializer);
+        <Option<String>>::sse_encode(self.level, serializer);
+        <Option<String>>::sse_encode(self.revision, serializer);
+        <Option<String>>::sse_encode(self.stepping, serializer);
+        <Option<f64>>::sse_encode(self.firmware_max_frequency_mhz, serializer);
+        <Vec<String>>::sse_encode(self.isa_features, serializer);
+        <Vec<taskmgr_core::CpuCache>>::sse_encode(self.caches, serializer);
+    }
+}
+
+impl SseEncode for taskmgr_core::CpuSystemMetrics {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<u64>>::sse_encode(self.process_count, serializer);
+        <Option<u64>>::sse_encode(self.thread_count, serializer);
+        <Option<u64>>::sse_encode(self.handle_count, serializer);
+        <Option<u64>>::sse_encode(self.file_descriptor_count, serializer);
+        <Option<u64>>::sse_encode(self.open_file_count, serializer);
+        <Option<u64>>::sse_encode(self.processor_queue_length, serializer);
+        <Option<u64>>::sse_encode(self.context_switches_per_second, serializer);
+        <Option<u64>>::sse_encode(self.system_calls_per_second, serializer);
+    }
+}
+
+impl SseEncode for taskmgr_core::CpuTopologyMetrics {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<u32>>::sse_encode(self.package_count, serializer);
+        <Option<u32>>::sse_encode(self.numa_node_count, serializer);
+        <Option<u32>>::sse_encode(self.processor_group_count, serializer);
+        <Option<u32>>::sse_encode(self.die_count, serializer);
+        <Option<u32>>::sse_encode(self.module_count, serializer);
+        <Option<u32>>::sse_encode(self.physical_core_count, serializer);
+        <Option<u32>>::sse_encode(self.logical_processor_count, serializer);
+        <Vec<taskmgr_core::CpuCoreClass>>::sse_encode(self.core_classes, serializer);
+        <Option<u32>>::sse_encode(self.smt_core_count, serializer);
+        <Option<u32>>::sse_encode(self.minimum_threads_per_core, serializer);
+        <Option<u32>>::sse_encode(self.maximum_threads_per_core, serializer);
+        <Option<bool>>::sse_encode(self.virtualization, serializer);
+        <Option<bool>>::sse_encode(self.second_level_address_translation, serializer);
     }
 }
 
@@ -4532,14 +5273,15 @@ impl SseEncode for taskmgr_core::GpuAdapter {
         <Option<u64>>::sse_encode(self.shared_used_bytes, serializer);
         <Option<u64>>::sse_encode(self.shared_total_bytes, serializer);
         <Option<f64>>::sse_encode(self.temperature_celsius, serializer);
+        <Option<String>>::sse_encode(self.driver_name, serializer);
         <Option<String>>::sse_encode(self.driver_version, serializer);
         <Option<String>>::sse_encode(self.driver_date, serializer);
         <Option<String>>::sse_encode(self.graphics_api, serializer);
         <Option<String>>::sse_encode(self.physical_location, serializer);
         <Option<u64>>::sse_encode(self.hardware_reserved_bytes, serializer);
         <Vec<taskmgr_core::GpuEngine>>::sse_encode(self.engines, serializer);
-        <Vec<f64>>::sse_encode(self.dedicated_history, serializer);
-        <Vec<f64>>::sse_encode(self.shared_history, serializer);
+        <Vec<f64>>::sse_encode(self.dedicated_usage_history_percent, serializer);
+        <Vec<f64>>::sse_encode(self.shared_usage_history_percent, serializer);
         <Option<taskmgr_core::BackendError>>::sse_encode(self.detail_error, serializer);
     }
 }
@@ -4555,9 +5297,34 @@ impl SseEncode for taskmgr_core::GpuData {
 impl SseEncode for taskmgr_core::GpuEngine {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.name, serializer);
+        <String>::sse_encode(self.id, serializer);
+        <taskmgr_core::GpuEngineKind>::sse_encode(self.kind, serializer);
+        <Option<u32>>::sse_encode(self.ordinal, serializer);
+        <Option<String>>::sse_encode(self.name, serializer);
         <Option<f64>>::sse_encode(self.utilization_percent, serializer);
         <Vec<f64>>::sse_encode(self.history, serializer);
+    }
+}
+
+impl SseEncode for taskmgr_core::GpuEngineKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                taskmgr_core::GpuEngineKind::Overall => 0,
+                taskmgr_core::GpuEngineKind::ThreeD => 1,
+                taskmgr_core::GpuEngineKind::Copy => 2,
+                taskmgr_core::GpuEngineKind::VideoEncode => 3,
+                taskmgr_core::GpuEngineKind::VideoDecode => 4,
+                taskmgr_core::GpuEngineKind::Compute => 5,
+                taskmgr_core::GpuEngineKind::Security => 6,
+                taskmgr_core::GpuEngineKind::Other => 7,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
     }
 }
 
@@ -4572,6 +5339,16 @@ impl SseEncode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_i64::<NativeEndian>(self).unwrap();
+    }
+}
+
+impl SseEncode for Vec<String> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <String>::sse_encode(item, serializer);
+        }
     }
 }
 
@@ -4625,12 +5402,22 @@ impl SseEncode for Vec<taskmgr_core::ColumnLayout> {
     }
 }
 
-impl SseEncode for Vec<taskmgr_core::CpuMetricGroup> {
+impl SseEncode for Vec<taskmgr_core::CpuCache> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <taskmgr_core::CpuMetricGroup>::sse_encode(item, serializer);
+            <taskmgr_core::CpuCache>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<taskmgr_core::CpuCoreClass> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <taskmgr_core::CpuCoreClass>::sse_encode(item, serializer);
         }
     }
 }
@@ -4661,16 +5448,6 @@ impl SseEncode for Vec<Vec<f64>> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <Vec<f64>>::sse_encode(item, serializer);
-        }
-    }
-}
-
-impl SseEncode for Vec<taskmgr_core::MetricValue> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <i32>::sse_encode(self.len() as _, serializer);
-        for item in self {
-            <taskmgr_core::MetricValue>::sse_encode(item, serializer);
         }
     }
 }
@@ -4745,14 +5522,6 @@ impl SseEncode for Vec<taskmgr_core::UserSession> {
     }
 }
 
-impl SseEncode for taskmgr_core::MetricValue {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.label, serializer);
-        <Option<String>>::sse_encode(self.value, serializer);
-    }
-}
-
 impl SseEncode for taskmgr_core::NetworkData {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4793,6 +5562,16 @@ impl SseEncode for Option<taskmgr_core::BackendError> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <taskmgr_core::BackendError>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<bool> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <bool>::sse_encode(value, serializer);
         }
     }
 }
@@ -4843,6 +5622,16 @@ impl SseEncode for Option<taskmgr_core::ProcessIdentity> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <taskmgr_core::ProcessIdentity>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<u16> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <u16>::sse_encode(value, serializer);
         }
     }
 }
@@ -4935,6 +5724,7 @@ impl SseEncode for taskmgr_core::PerformanceData {
         <Option<u64>>::sse_encode(self.process_count, serializer);
         <Option<u64>>::sse_encode(self.thread_count, serializer);
         <Option<u64>>::sse_encode(self.handle_count, serializer);
+        <Option<u64>>::sse_encode(self.open_file_count, serializer);
         <Option<u64>>::sse_encode(self.memory_total_kib, serializer);
         <Option<u64>>::sse_encode(self.memory_available_kib, serializer);
         <Option<u64>>::sse_encode(self.file_cache_kib, serializer);
@@ -4944,12 +5734,17 @@ impl SseEncode for taskmgr_core::PerformanceData {
         <Option<u64>>::sse_encode(self.kernel_total_kib, serializer);
         <Option<u64>>::sse_encode(self.kernel_paged_kib, serializer);
         <Option<u64>>::sse_encode(self.kernel_non_paged_kib, serializer);
+        <Option<u64>>::sse_encode(self.swap_used_kib, serializer);
+        <Option<u64>>::sse_encode(self.slab_kib, serializer);
+        <Option<u64>>::sse_encode(self.kernel_stack_kib, serializer);
+        <Option<u64>>::sse_encode(self.page_tables_kib, serializer);
         <Option<f64>>::sse_encode(self.cpu_percent, serializer);
         <Option<f64>>::sse_encode(self.memory_percent, serializer);
         <Vec<f64>>::sse_encode(self.cpu_history, serializer);
         <Vec<f64>>::sse_encode(self.kernel_history, serializer);
         <Vec<f64>>::sse_encode(self.memory_history, serializer);
         <Vec<Vec<f64>>>::sse_encode(self.logical_cpu_histories, serializer);
+        <Vec<Vec<f64>>>::sse_encode(self.logical_kernel_histories, serializer);
     }
 }
 
@@ -5134,6 +5929,7 @@ impl SseEncode for taskmgr_core::UiSettings {
         <bool>::sse_encode(self.hide_when_minimized, serializer);
         <bool>::sse_encode(self.show_kernel_times, serializer);
         <bool>::sse_encode(self.one_graph_per_cpu, serializer);
+        <bool>::sse_encode(self.tiny_footprint, serializer);
         <taskmgr_core::ApplicationViewMode>::sse_encode(self.application_view_mode, serializer);
         <taskmgr_core::WindowGeometry>::sse_encode(self.window, serializer);
         <Vec<taskmgr_core::ColumnLayout>>::sse_encode(self.process_columns, serializer);

@@ -77,10 +77,10 @@ impl From<taskmgr_core::BackendEvent> for BridgeBackendEvent {
                 let taskmgr_core::PageSnapshot { meta, data } = *value;
                 Self::Performance { meta, data }
             }
-            taskmgr_core::BackendEvent::Cpu(value) => Self::Cpu {
-                meta: value.meta,
-                data: value.data,
-            },
+            taskmgr_core::BackendEvent::Cpu(value) => {
+                let taskmgr_core::PageSnapshot { meta, data } = *value;
+                Self::Cpu { meta, data }
+            }
             taskmgr_core::BackendEvent::Gpu(value) => Self::Gpu {
                 meta: value.meta,
                 data: value.data,

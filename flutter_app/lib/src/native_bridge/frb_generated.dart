@@ -67,7 +67,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 162414445;
+  int get rustContentHash => -1733253857;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -99,6 +99,14 @@ abstract class RustLibApi extends BaseApi {
   Future<Architecture> taskmgrCoreArchitectureCurrent();
 
   Future<BackendOptions> taskmgrCoreBackendOptionsDefault();
+
+  Future<CpuCurrentMetrics> taskmgrCoreCpuCurrentMetricsDefault();
+
+  Future<CpuHardwareMetrics> taskmgrCoreCpuHardwareMetricsDefault();
+
+  Future<CpuSystemMetrics> taskmgrCoreCpuSystemMetricsDefault();
+
+  Future<CpuTopologyMetrics> taskmgrCoreCpuTopologyMetricsDefault();
 
   Future<ActionResult> crateApiExecuteAction({
     required BackendHandle handle,
@@ -430,6 +438,126 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "backend_options_default", argNames: []);
 
   @override
+  Future<CpuCurrentMetrics> taskmgrCoreCpuCurrentMetricsDefault() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 9,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_cpu_current_metrics,
+          decodeErrorData: null,
+        ),
+        constMeta: kTaskmgrCoreCpuCurrentMetricsDefaultConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kTaskmgrCoreCpuCurrentMetricsDefaultConstMeta =>
+      const TaskConstMeta(
+        debugName: "cpu_current_metrics_default",
+        argNames: [],
+      );
+
+  @override
+  Future<CpuHardwareMetrics> taskmgrCoreCpuHardwareMetricsDefault() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_cpu_hardware_metrics,
+          decodeErrorData: null,
+        ),
+        constMeta: kTaskmgrCoreCpuHardwareMetricsDefaultConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kTaskmgrCoreCpuHardwareMetricsDefaultConstMeta =>
+      const TaskConstMeta(
+        debugName: "cpu_hardware_metrics_default",
+        argNames: [],
+      );
+
+  @override
+  Future<CpuSystemMetrics> taskmgrCoreCpuSystemMetricsDefault() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 11,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_cpu_system_metrics,
+          decodeErrorData: null,
+        ),
+        constMeta: kTaskmgrCoreCpuSystemMetricsDefaultConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kTaskmgrCoreCpuSystemMetricsDefaultConstMeta =>
+      const TaskConstMeta(
+        debugName: "cpu_system_metrics_default",
+        argNames: [],
+      );
+
+  @override
+  Future<CpuTopologyMetrics> taskmgrCoreCpuTopologyMetricsDefault() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 12,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_cpu_topology_metrics,
+          decodeErrorData: null,
+        ),
+        constMeta: kTaskmgrCoreCpuTopologyMetricsDefaultConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kTaskmgrCoreCpuTopologyMetricsDefaultConstMeta =>
+      const TaskConstMeta(
+        debugName: "cpu_topology_metrics_default",
+        argNames: [],
+      );
+
+  @override
   Future<ActionResult> crateApiExecuteAction({
     required BackendHandle handle,
     required BridgeActionRequest request,
@@ -446,7 +574,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 13,
             port: port_,
           );
         },
@@ -475,7 +603,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 14,
             port: port_,
           );
         },
@@ -502,7 +630,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 15,
             port: port_,
           );
         },
@@ -535,7 +663,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 16,
             port: port_,
           );
         },
@@ -573,7 +701,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 17,
             port: port_,
           );
         },
@@ -603,7 +731,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 18,
             port: port_,
           );
         },
@@ -634,7 +762,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 19,
             port: port_,
           );
         },
@@ -664,7 +792,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 20,
             port: port_,
           );
         },
@@ -699,7 +827,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 21,
             port: port_,
           );
         },
@@ -732,7 +860,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 22,
             port: port_,
           );
         },
@@ -760,7 +888,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 23,
             port: port_,
           );
         },
@@ -795,7 +923,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 24,
             port: port_,
           );
         },
@@ -827,7 +955,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 25,
             port: port_,
           );
         },
@@ -866,7 +994,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 22,
+              funcId: 26,
               port: port_,
             );
           },
@@ -897,7 +1025,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 27,
             port: port_,
           );
         },
@@ -1185,6 +1313,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  bool dco_decode_box_autoadd_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as bool;
+  }
+
+  @protected
   BridgeActionRequest dco_decode_box_autoadd_bridge_action_request(
     dynamic raw,
   ) {
@@ -1270,6 +1404,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   SnapshotMeta dco_decode_box_autoadd_snapshot_meta(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_snapshot_meta(raw);
+  }
+
+  @protected
+  int dco_decode_box_autoadd_u_16(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
   }
 
   @protected
@@ -1441,29 +1581,137 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CpuData dco_decode_cpu_data(dynamic raw) {
+  CpuCache dco_decode_cpu_cache(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
-    return CpuData(
-      model: dco_decode_opt_String(arr[0]),
-      status: dco_decode_opt_String(arr[1]),
-      utilizationPercent: dco_decode_opt_box_autoadd_f_64(arr[2]),
-      history: dco_decode_list_prim_f_64_strict(arr[3]),
-      groups: dco_decode_list_cpu_metric_group(arr[4]),
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return CpuCache(
+      level: dco_decode_u_8(arr[0]),
+      kind: dco_decode_cpu_cache_kind(arr[1]),
+      sizeBytes: dco_decode_u_64(arr[2]),
+      instanceCount: dco_decode_u_32(arr[3]),
+      associativity: dco_decode_opt_box_autoadd_u_32(arr[4]),
+      lineSizeBytes: dco_decode_opt_box_autoadd_u_32(arr[5]),
     );
   }
 
   @protected
-  CpuMetricGroup dco_decode_cpu_metric_group(dynamic raw) {
+  CpuCacheKind dco_decode_cpu_cache_kind(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return CpuCacheKind.values[raw as int];
+  }
+
+  @protected
+  CpuCoreClass dco_decode_cpu_core_class(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
     if (arr.length != 2)
       throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
-    return CpuMetricGroup(
-      title: dco_decode_String(arr[0]),
-      metrics: dco_decode_list_metric_value(arr[1]),
+    return CpuCoreClass(
+      efficiencyClass: dco_decode_opt_box_autoadd_u_32(arr[0]),
+      coreCount: dco_decode_u_32(arr[1]),
+    );
+  }
+
+  @protected
+  CpuCurrentMetrics dco_decode_cpu_current_metrics(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return CpuCurrentMetrics(
+      averageFrequencyMhz: dco_decode_opt_box_autoadd_f_64(arr[0]),
+      minimumFrequencyMhz: dco_decode_opt_box_autoadd_f_64(arr[1]),
+      maximumFrequencyMhz: dco_decode_opt_box_autoadd_f_64(arr[2]),
+      userPercent: dco_decode_opt_box_autoadd_f_64(arr[3]),
+      kernelPercent: dco_decode_opt_box_autoadd_f_64(arr[4]),
+      dpcPercent: dco_decode_opt_box_autoadd_f_64(arr[5]),
+      interruptPercent: dco_decode_opt_box_autoadd_f_64(arr[6]),
+      interruptsPerSecond: dco_decode_opt_box_autoadd_u_64(arr[7]),
+      uptimeSeconds: dco_decode_opt_box_autoadd_u_64(arr[8]),
+    );
+  }
+
+  @protected
+  CpuData dco_decode_cpu_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return CpuData(
+      model: dco_decode_opt_String(arr[0]),
+      utilizationPercent: dco_decode_opt_box_autoadd_f_64(arr[1]),
+      history: dco_decode_list_prim_f_64_strict(arr[2]),
+      kernelHistory: dco_decode_list_prim_f_64_strict(arr[3]),
+      current: dco_decode_cpu_current_metrics(arr[4]),
+      system: dco_decode_cpu_system_metrics(arr[5]),
+      topology: dco_decode_cpu_topology_metrics(arr[6]),
+      hardware: dco_decode_cpu_hardware_metrics(arr[7]),
+    );
+  }
+
+  @protected
+  CpuHardwareMetrics dco_decode_cpu_hardware_metrics(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
+    return CpuHardwareMetrics(
+      manufacturer: dco_decode_opt_String(arr[0]),
+      socket: dco_decode_opt_String(arr[1]),
+      processorId: dco_decode_opt_String(arr[2]),
+      architecture: dco_decode_opt_String(arr[3]),
+      addressWidthBits: dco_decode_opt_box_autoadd_u_16(arr[4]),
+      dataWidthBits: dco_decode_opt_box_autoadd_u_16(arr[5]),
+      family: dco_decode_opt_String(arr[6]),
+      level: dco_decode_opt_String(arr[7]),
+      revision: dco_decode_opt_String(arr[8]),
+      stepping: dco_decode_opt_String(arr[9]),
+      firmwareMaxFrequencyMhz: dco_decode_opt_box_autoadd_f_64(arr[10]),
+      isaFeatures: dco_decode_list_String(arr[11]),
+      caches: dco_decode_list_cpu_cache(arr[12]),
+    );
+  }
+
+  @protected
+  CpuSystemMetrics dco_decode_cpu_system_metrics(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return CpuSystemMetrics(
+      processCount: dco_decode_opt_box_autoadd_u_64(arr[0]),
+      threadCount: dco_decode_opt_box_autoadd_u_64(arr[1]),
+      handleCount: dco_decode_opt_box_autoadd_u_64(arr[2]),
+      fileDescriptorCount: dco_decode_opt_box_autoadd_u_64(arr[3]),
+      openFileCount: dco_decode_opt_box_autoadd_u_64(arr[4]),
+      processorQueueLength: dco_decode_opt_box_autoadd_u_64(arr[5]),
+      contextSwitchesPerSecond: dco_decode_opt_box_autoadd_u_64(arr[6]),
+      systemCallsPerSecond: dco_decode_opt_box_autoadd_u_64(arr[7]),
+    );
+  }
+
+  @protected
+  CpuTopologyMetrics dco_decode_cpu_topology_metrics(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
+    return CpuTopologyMetrics(
+      packageCount: dco_decode_opt_box_autoadd_u_32(arr[0]),
+      numaNodeCount: dco_decode_opt_box_autoadd_u_32(arr[1]),
+      processorGroupCount: dco_decode_opt_box_autoadd_u_32(arr[2]),
+      dieCount: dco_decode_opt_box_autoadd_u_32(arr[3]),
+      moduleCount: dco_decode_opt_box_autoadd_u_32(arr[4]),
+      physicalCoreCount: dco_decode_opt_box_autoadd_u_32(arr[5]),
+      logicalProcessorCount: dco_decode_opt_box_autoadd_u_32(arr[6]),
+      coreClasses: dco_decode_list_cpu_core_class(arr[7]),
+      smtCoreCount: dco_decode_opt_box_autoadd_u_32(arr[8]),
+      minimumThreadsPerCore: dco_decode_opt_box_autoadd_u_32(arr[9]),
+      maximumThreadsPerCore: dco_decode_opt_box_autoadd_u_32(arr[10]),
+      virtualization: dco_decode_opt_box_autoadd_bool(arr[11]),
+      secondLevelAddressTranslation: dco_decode_opt_box_autoadd_bool(arr[12]),
     );
   }
 
@@ -1477,8 +1725,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   GpuAdapter dco_decode_gpu_adapter(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 17)
-      throw Exception('unexpected arr length: expect 17 but see ${arr.length}');
+    if (arr.length != 18)
+      throw Exception('unexpected arr length: expect 18 but see ${arr.length}');
     return GpuAdapter(
       id: dco_decode_String(arr[0]),
       name: dco_decode_String(arr[1]),
@@ -1488,15 +1736,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       sharedUsedBytes: dco_decode_opt_box_autoadd_u_64(arr[5]),
       sharedTotalBytes: dco_decode_opt_box_autoadd_u_64(arr[6]),
       temperatureCelsius: dco_decode_opt_box_autoadd_f_64(arr[7]),
-      driverVersion: dco_decode_opt_String(arr[8]),
-      driverDate: dco_decode_opt_String(arr[9]),
-      graphicsApi: dco_decode_opt_String(arr[10]),
-      physicalLocation: dco_decode_opt_String(arr[11]),
-      hardwareReservedBytes: dco_decode_opt_box_autoadd_u_64(arr[12]),
-      engines: dco_decode_list_gpu_engine(arr[13]),
-      dedicatedHistory: dco_decode_list_prim_f_64_strict(arr[14]),
-      sharedHistory: dco_decode_list_prim_f_64_strict(arr[15]),
-      detailError: dco_decode_opt_box_autoadd_backend_error(arr[16]),
+      driverName: dco_decode_opt_String(arr[8]),
+      driverVersion: dco_decode_opt_String(arr[9]),
+      driverDate: dco_decode_opt_String(arr[10]),
+      graphicsApi: dco_decode_opt_String(arr[11]),
+      physicalLocation: dco_decode_opt_String(arr[12]),
+      hardwareReservedBytes: dco_decode_opt_box_autoadd_u_64(arr[13]),
+      engines: dco_decode_list_gpu_engine(arr[14]),
+      dedicatedUsageHistoryPercent: dco_decode_list_prim_f_64_strict(arr[15]),
+      sharedUsageHistoryPercent: dco_decode_list_prim_f_64_strict(arr[16]),
+      detailError: dco_decode_opt_box_autoadd_backend_error(arr[17]),
     );
   }
 
@@ -1516,13 +1765,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   GpuEngine dco_decode_gpu_engine(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return GpuEngine(
-      name: dco_decode_String(arr[0]),
-      utilizationPercent: dco_decode_opt_box_autoadd_f_64(arr[1]),
-      history: dco_decode_list_prim_f_64_strict(arr[2]),
+      id: dco_decode_String(arr[0]),
+      kind: dco_decode_gpu_engine_kind(arr[1]),
+      ordinal: dco_decode_opt_box_autoadd_u_32(arr[2]),
+      name: dco_decode_opt_String(arr[3]),
+      utilizationPercent: dco_decode_opt_box_autoadd_f_64(arr[4]),
+      history: dco_decode_list_prim_f_64_strict(arr[5]),
     );
+  }
+
+  @protected
+  GpuEngineKind dco_decode_gpu_engine_kind(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return GpuEngineKind.values[raw as int];
   }
 
   @protected
@@ -1535,6 +1793,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PlatformInt64 dco_decode_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeI64(raw);
+  }
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_String).toList();
   }
 
   @protected
@@ -1568,9 +1832,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<CpuMetricGroup> dco_decode_list_cpu_metric_group(dynamic raw) {
+  List<CpuCache> dco_decode_list_cpu_cache(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_cpu_metric_group).toList();
+    return (raw as List<dynamic>).map(dco_decode_cpu_cache).toList();
+  }
+
+  @protected
+  List<CpuCoreClass> dco_decode_list_cpu_core_class(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_cpu_core_class).toList();
   }
 
   @protected
@@ -1591,12 +1861,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return (raw as List<dynamic>)
         .map(dco_decode_list_prim_f_64_strict)
         .toList();
-  }
-
-  @protected
-  List<MetricValue> dco_decode_list_metric_value(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_metric_value).toList();
   }
 
   @protected
@@ -1642,18 +1906,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  MetricValue dco_decode_metric_value(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
-    return MetricValue(
-      label: dco_decode_String(arr[0]),
-      value: dco_decode_opt_String(arr[1]),
-    );
-  }
-
-  @protected
   NetworkData dco_decode_network_data(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -1696,6 +1948,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  bool? dco_decode_opt_box_autoadd_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_bool(raw);
+  }
+
+  @protected
   double? dco_decode_opt_box_autoadd_f_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_f_64(raw);
@@ -1723,6 +1981,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ProcessIdentity? dco_decode_opt_box_autoadd_process_identity(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_process_identity(raw);
+  }
+
+  @protected
+  int? dco_decode_opt_box_autoadd_u_16(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_u_16(raw);
   }
 
   @protected
@@ -1780,27 +2044,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PerformanceData dco_decode_performance_data(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 18)
-      throw Exception('unexpected arr length: expect 18 but see ${arr.length}');
+    if (arr.length != 24)
+      throw Exception('unexpected arr length: expect 24 but see ${arr.length}');
     return PerformanceData(
       processCount: dco_decode_opt_box_autoadd_u_64(arr[0]),
       threadCount: dco_decode_opt_box_autoadd_u_64(arr[1]),
       handleCount: dco_decode_opt_box_autoadd_u_64(arr[2]),
-      memoryTotalKib: dco_decode_opt_box_autoadd_u_64(arr[3]),
-      memoryAvailableKib: dco_decode_opt_box_autoadd_u_64(arr[4]),
-      fileCacheKib: dco_decode_opt_box_autoadd_u_64(arr[5]),
-      commitTotalKib: dco_decode_opt_box_autoadd_u_64(arr[6]),
-      commitLimitKib: dco_decode_opt_box_autoadd_u_64(arr[7]),
-      commitPeakKib: dco_decode_opt_box_autoadd_u_64(arr[8]),
-      kernelTotalKib: dco_decode_opt_box_autoadd_u_64(arr[9]),
-      kernelPagedKib: dco_decode_opt_box_autoadd_u_64(arr[10]),
-      kernelNonPagedKib: dco_decode_opt_box_autoadd_u_64(arr[11]),
-      cpuPercent: dco_decode_opt_box_autoadd_f_64(arr[12]),
-      memoryPercent: dco_decode_opt_box_autoadd_f_64(arr[13]),
-      cpuHistory: dco_decode_list_prim_f_64_strict(arr[14]),
-      kernelHistory: dco_decode_list_prim_f_64_strict(arr[15]),
-      memoryHistory: dco_decode_list_prim_f_64_strict(arr[16]),
-      logicalCpuHistories: dco_decode_list_list_prim_f_64_strict(arr[17]),
+      openFileCount: dco_decode_opt_box_autoadd_u_64(arr[3]),
+      memoryTotalKib: dco_decode_opt_box_autoadd_u_64(arr[4]),
+      memoryAvailableKib: dco_decode_opt_box_autoadd_u_64(arr[5]),
+      fileCacheKib: dco_decode_opt_box_autoadd_u_64(arr[6]),
+      commitTotalKib: dco_decode_opt_box_autoadd_u_64(arr[7]),
+      commitLimitKib: dco_decode_opt_box_autoadd_u_64(arr[8]),
+      commitPeakKib: dco_decode_opt_box_autoadd_u_64(arr[9]),
+      kernelTotalKib: dco_decode_opt_box_autoadd_u_64(arr[10]),
+      kernelPagedKib: dco_decode_opt_box_autoadd_u_64(arr[11]),
+      kernelNonPagedKib: dco_decode_opt_box_autoadd_u_64(arr[12]),
+      swapUsedKib: dco_decode_opt_box_autoadd_u_64(arr[13]),
+      slabKib: dco_decode_opt_box_autoadd_u_64(arr[14]),
+      kernelStackKib: dco_decode_opt_box_autoadd_u_64(arr[15]),
+      pageTablesKib: dco_decode_opt_box_autoadd_u_64(arr[16]),
+      cpuPercent: dco_decode_opt_box_autoadd_f_64(arr[17]),
+      memoryPercent: dco_decode_opt_box_autoadd_f_64(arr[18]),
+      cpuHistory: dco_decode_list_prim_f_64_strict(arr[19]),
+      kernelHistory: dco_decode_list_prim_f_64_strict(arr[20]),
+      memoryHistory: dco_decode_list_prim_f_64_strict(arr[21]),
+      logicalCpuHistories: dco_decode_list_list_prim_f_64_strict(arr[22]),
+      logicalKernelHistories: dco_decode_list_list_prim_f_64_strict(arr[23]),
     );
   }
 
@@ -1961,8 +2231,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   UiSettings dco_decode_ui_settings(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 13)
-      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
+    if (arr.length != 14)
+      throw Exception('unexpected arr length: expect 14 but see ${arr.length}');
     return UiSettings(
       schemaVersion: dco_decode_u_16(arr[0]),
       locale: dco_decode_opt_String(arr[1]),
@@ -1974,9 +2244,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       hideWhenMinimized: dco_decode_bool(arr[7]),
       showKernelTimes: dco_decode_bool(arr[8]),
       oneGraphPerCpu: dco_decode_bool(arr[9]),
-      applicationViewMode: dco_decode_application_view_mode(arr[10]),
-      window: dco_decode_window_geometry(arr[11]),
-      processColumns: dco_decode_list_column_layout(arr[12]),
+      tinyFootprint: dco_decode_bool(arr[10]),
+      applicationViewMode: dco_decode_application_view_mode(arr[11]),
+      window: dco_decode_window_geometry(arr[12]),
+      processColumns: dco_decode_list_column_layout(arr[13]),
     );
   }
 
@@ -2362,6 +2633,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  bool sse_decode_box_autoadd_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bool(deserializer));
+  }
+
+  @protected
   BridgeActionRequest sse_decode_box_autoadd_bridge_action_request(
     SseDeserializer deserializer,
   ) {
@@ -2459,6 +2736,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_snapshot_meta(deserializer));
+  }
+
+  @protected
+  int sse_decode_box_autoadd_u_16(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_u_16(deserializer));
   }
 
   @protected
@@ -2664,28 +2947,199 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CpuData sse_decode_cpu_data(SseDeserializer deserializer) {
+  CpuCache sse_decode_cpu_cache(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_model = sse_decode_opt_String(deserializer);
-    var var_status = sse_decode_opt_String(deserializer);
-    var var_utilizationPercent = sse_decode_opt_box_autoadd_f_64(deserializer);
-    var var_history = sse_decode_list_prim_f_64_strict(deserializer);
-    var var_groups = sse_decode_list_cpu_metric_group(deserializer);
-    return CpuData(
-      model: var_model,
-      status: var_status,
-      utilizationPercent: var_utilizationPercent,
-      history: var_history,
-      groups: var_groups,
+    var var_level = sse_decode_u_8(deserializer);
+    var var_kind = sse_decode_cpu_cache_kind(deserializer);
+    var var_sizeBytes = sse_decode_u_64(deserializer);
+    var var_instanceCount = sse_decode_u_32(deserializer);
+    var var_associativity = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_lineSizeBytes = sse_decode_opt_box_autoadd_u_32(deserializer);
+    return CpuCache(
+      level: var_level,
+      kind: var_kind,
+      sizeBytes: var_sizeBytes,
+      instanceCount: var_instanceCount,
+      associativity: var_associativity,
+      lineSizeBytes: var_lineSizeBytes,
     );
   }
 
   @protected
-  CpuMetricGroup sse_decode_cpu_metric_group(SseDeserializer deserializer) {
+  CpuCacheKind sse_decode_cpu_cache_kind(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_title = sse_decode_String(deserializer);
-    var var_metrics = sse_decode_list_metric_value(deserializer);
-    return CpuMetricGroup(title: var_title, metrics: var_metrics);
+    var inner = sse_decode_i_32(deserializer);
+    return CpuCacheKind.values[inner];
+  }
+
+  @protected
+  CpuCoreClass sse_decode_cpu_core_class(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_efficiencyClass = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_coreCount = sse_decode_u_32(deserializer);
+    return CpuCoreClass(
+      efficiencyClass: var_efficiencyClass,
+      coreCount: var_coreCount,
+    );
+  }
+
+  @protected
+  CpuCurrentMetrics sse_decode_cpu_current_metrics(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_averageFrequencyMhz = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_minimumFrequencyMhz = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_maximumFrequencyMhz = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_userPercent = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_kernelPercent = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_dpcPercent = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_interruptPercent = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_interruptsPerSecond = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_uptimeSeconds = sse_decode_opt_box_autoadd_u_64(deserializer);
+    return CpuCurrentMetrics(
+      averageFrequencyMhz: var_averageFrequencyMhz,
+      minimumFrequencyMhz: var_minimumFrequencyMhz,
+      maximumFrequencyMhz: var_maximumFrequencyMhz,
+      userPercent: var_userPercent,
+      kernelPercent: var_kernelPercent,
+      dpcPercent: var_dpcPercent,
+      interruptPercent: var_interruptPercent,
+      interruptsPerSecond: var_interruptsPerSecond,
+      uptimeSeconds: var_uptimeSeconds,
+    );
+  }
+
+  @protected
+  CpuData sse_decode_cpu_data(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_model = sse_decode_opt_String(deserializer);
+    var var_utilizationPercent = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_history = sse_decode_list_prim_f_64_strict(deserializer);
+    var var_kernelHistory = sse_decode_list_prim_f_64_strict(deserializer);
+    var var_current = sse_decode_cpu_current_metrics(deserializer);
+    var var_system = sse_decode_cpu_system_metrics(deserializer);
+    var var_topology = sse_decode_cpu_topology_metrics(deserializer);
+    var var_hardware = sse_decode_cpu_hardware_metrics(deserializer);
+    return CpuData(
+      model: var_model,
+      utilizationPercent: var_utilizationPercent,
+      history: var_history,
+      kernelHistory: var_kernelHistory,
+      current: var_current,
+      system: var_system,
+      topology: var_topology,
+      hardware: var_hardware,
+    );
+  }
+
+  @protected
+  CpuHardwareMetrics sse_decode_cpu_hardware_metrics(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_manufacturer = sse_decode_opt_String(deserializer);
+    var var_socket = sse_decode_opt_String(deserializer);
+    var var_processorId = sse_decode_opt_String(deserializer);
+    var var_architecture = sse_decode_opt_String(deserializer);
+    var var_addressWidthBits = sse_decode_opt_box_autoadd_u_16(deserializer);
+    var var_dataWidthBits = sse_decode_opt_box_autoadd_u_16(deserializer);
+    var var_family = sse_decode_opt_String(deserializer);
+    var var_level = sse_decode_opt_String(deserializer);
+    var var_revision = sse_decode_opt_String(deserializer);
+    var var_stepping = sse_decode_opt_String(deserializer);
+    var var_firmwareMaxFrequencyMhz = sse_decode_opt_box_autoadd_f_64(
+      deserializer,
+    );
+    var var_isaFeatures = sse_decode_list_String(deserializer);
+    var var_caches = sse_decode_list_cpu_cache(deserializer);
+    return CpuHardwareMetrics(
+      manufacturer: var_manufacturer,
+      socket: var_socket,
+      processorId: var_processorId,
+      architecture: var_architecture,
+      addressWidthBits: var_addressWidthBits,
+      dataWidthBits: var_dataWidthBits,
+      family: var_family,
+      level: var_level,
+      revision: var_revision,
+      stepping: var_stepping,
+      firmwareMaxFrequencyMhz: var_firmwareMaxFrequencyMhz,
+      isaFeatures: var_isaFeatures,
+      caches: var_caches,
+    );
+  }
+
+  @protected
+  CpuSystemMetrics sse_decode_cpu_system_metrics(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_processCount = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_threadCount = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_handleCount = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_fileDescriptorCount = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_openFileCount = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_processorQueueLength = sse_decode_opt_box_autoadd_u_64(
+      deserializer,
+    );
+    var var_contextSwitchesPerSecond = sse_decode_opt_box_autoadd_u_64(
+      deserializer,
+    );
+    var var_systemCallsPerSecond = sse_decode_opt_box_autoadd_u_64(
+      deserializer,
+    );
+    return CpuSystemMetrics(
+      processCount: var_processCount,
+      threadCount: var_threadCount,
+      handleCount: var_handleCount,
+      fileDescriptorCount: var_fileDescriptorCount,
+      openFileCount: var_openFileCount,
+      processorQueueLength: var_processorQueueLength,
+      contextSwitchesPerSecond: var_contextSwitchesPerSecond,
+      systemCallsPerSecond: var_systemCallsPerSecond,
+    );
+  }
+
+  @protected
+  CpuTopologyMetrics sse_decode_cpu_topology_metrics(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_packageCount = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_numaNodeCount = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_processorGroupCount = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_dieCount = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_moduleCount = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_physicalCoreCount = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_logicalProcessorCount = sse_decode_opt_box_autoadd_u_32(
+      deserializer,
+    );
+    var var_coreClasses = sse_decode_list_cpu_core_class(deserializer);
+    var var_smtCoreCount = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_minimumThreadsPerCore = sse_decode_opt_box_autoadd_u_32(
+      deserializer,
+    );
+    var var_maximumThreadsPerCore = sse_decode_opt_box_autoadd_u_32(
+      deserializer,
+    );
+    var var_virtualization = sse_decode_opt_box_autoadd_bool(deserializer);
+    var var_secondLevelAddressTranslation = sse_decode_opt_box_autoadd_bool(
+      deserializer,
+    );
+    return CpuTopologyMetrics(
+      packageCount: var_packageCount,
+      numaNodeCount: var_numaNodeCount,
+      processorGroupCount: var_processorGroupCount,
+      dieCount: var_dieCount,
+      moduleCount: var_moduleCount,
+      physicalCoreCount: var_physicalCoreCount,
+      logicalProcessorCount: var_logicalProcessorCount,
+      coreClasses: var_coreClasses,
+      smtCoreCount: var_smtCoreCount,
+      minimumThreadsPerCore: var_minimumThreadsPerCore,
+      maximumThreadsPerCore: var_maximumThreadsPerCore,
+      virtualization: var_virtualization,
+      secondLevelAddressTranslation: var_secondLevelAddressTranslation,
+    );
   }
 
   @protected
@@ -2705,6 +3159,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_sharedUsedBytes = sse_decode_opt_box_autoadd_u_64(deserializer);
     var var_sharedTotalBytes = sse_decode_opt_box_autoadd_u_64(deserializer);
     var var_temperatureCelsius = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_driverName = sse_decode_opt_String(deserializer);
     var var_driverVersion = sse_decode_opt_String(deserializer);
     var var_driverDate = sse_decode_opt_String(deserializer);
     var var_graphicsApi = sse_decode_opt_String(deserializer);
@@ -2713,8 +3168,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       deserializer,
     );
     var var_engines = sse_decode_list_gpu_engine(deserializer);
-    var var_dedicatedHistory = sse_decode_list_prim_f_64_strict(deserializer);
-    var var_sharedHistory = sse_decode_list_prim_f_64_strict(deserializer);
+    var var_dedicatedUsageHistoryPercent = sse_decode_list_prim_f_64_strict(
+      deserializer,
+    );
+    var var_sharedUsageHistoryPercent = sse_decode_list_prim_f_64_strict(
+      deserializer,
+    );
     var var_detailError = sse_decode_opt_box_autoadd_backend_error(
       deserializer,
     );
@@ -2727,14 +3186,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       sharedUsedBytes: var_sharedUsedBytes,
       sharedTotalBytes: var_sharedTotalBytes,
       temperatureCelsius: var_temperatureCelsius,
+      driverName: var_driverName,
       driverVersion: var_driverVersion,
       driverDate: var_driverDate,
       graphicsApi: var_graphicsApi,
       physicalLocation: var_physicalLocation,
       hardwareReservedBytes: var_hardwareReservedBytes,
       engines: var_engines,
-      dedicatedHistory: var_dedicatedHistory,
-      sharedHistory: var_sharedHistory,
+      dedicatedUsageHistoryPercent: var_dedicatedUsageHistoryPercent,
+      sharedUsageHistoryPercent: var_sharedUsageHistoryPercent,
       detailError: var_detailError,
     );
   }
@@ -2753,14 +3213,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   GpuEngine sse_decode_gpu_engine(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_name = sse_decode_String(deserializer);
+    var var_id = sse_decode_String(deserializer);
+    var var_kind = sse_decode_gpu_engine_kind(deserializer);
+    var var_ordinal = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_name = sse_decode_opt_String(deserializer);
     var var_utilizationPercent = sse_decode_opt_box_autoadd_f_64(deserializer);
     var var_history = sse_decode_list_prim_f_64_strict(deserializer);
     return GpuEngine(
+      id: var_id,
+      kind: var_kind,
+      ordinal: var_ordinal,
       name: var_name,
       utilizationPercent: var_utilizationPercent,
       history: var_history,
     );
+  }
+
+  @protected
+  GpuEngineKind sse_decode_gpu_engine_kind(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return GpuEngineKind.values[inner];
   }
 
   @protected
@@ -2773,6 +3246,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <String>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
   }
 
   @protected
@@ -2842,15 +3327,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<CpuMetricGroup> sse_decode_list_cpu_metric_group(
+  List<CpuCache> sse_decode_list_cpu_cache(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <CpuCache>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_cpu_cache(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<CpuCoreClass> sse_decode_list_cpu_core_class(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <CpuMetricGroup>[];
+    var ans_ = <CpuCoreClass>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_cpu_metric_group(deserializer));
+      ans_.add(sse_decode_cpu_core_class(deserializer));
     }
     return ans_;
   }
@@ -2889,18 +3386,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <Float64List>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_list_prim_f_64_strict(deserializer));
-    }
-    return ans_;
-  }
-
-  @protected
-  List<MetricValue> sse_decode_list_metric_value(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <MetricValue>[];
-    for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_metric_value(deserializer));
     }
     return ans_;
   }
@@ -2979,14 +3464,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  MetricValue sse_decode_metric_value(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_label = sse_decode_String(deserializer);
-    var var_value = sse_decode_opt_String(deserializer);
-    return MetricValue(label: var_label, value: var_value);
-  }
-
-  @protected
   NetworkData sse_decode_network_data(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_interfaces = sse_decode_list_network_interface(deserializer);
@@ -3051,6 +3528,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bool(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3102,6 +3590,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_process_identity(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  int? sse_decode_opt_box_autoadd_u_16(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_u_16(deserializer));
     } else {
       return null;
     }
@@ -3194,6 +3693,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_processCount = sse_decode_opt_box_autoadd_u_64(deserializer);
     var var_threadCount = sse_decode_opt_box_autoadd_u_64(deserializer);
     var var_handleCount = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_openFileCount = sse_decode_opt_box_autoadd_u_64(deserializer);
     var var_memoryTotalKib = sse_decode_opt_box_autoadd_u_64(deserializer);
     var var_memoryAvailableKib = sse_decode_opt_box_autoadd_u_64(deserializer);
     var var_fileCacheKib = sse_decode_opt_box_autoadd_u_64(deserializer);
@@ -3203,6 +3703,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_kernelTotalKib = sse_decode_opt_box_autoadd_u_64(deserializer);
     var var_kernelPagedKib = sse_decode_opt_box_autoadd_u_64(deserializer);
     var var_kernelNonPagedKib = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_swapUsedKib = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_slabKib = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_kernelStackKib = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_pageTablesKib = sse_decode_opt_box_autoadd_u_64(deserializer);
     var var_cpuPercent = sse_decode_opt_box_autoadd_f_64(deserializer);
     var var_memoryPercent = sse_decode_opt_box_autoadd_f_64(deserializer);
     var var_cpuHistory = sse_decode_list_prim_f_64_strict(deserializer);
@@ -3211,10 +3715,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_logicalCpuHistories = sse_decode_list_list_prim_f_64_strict(
       deserializer,
     );
+    var var_logicalKernelHistories = sse_decode_list_list_prim_f_64_strict(
+      deserializer,
+    );
     return PerformanceData(
       processCount: var_processCount,
       threadCount: var_threadCount,
       handleCount: var_handleCount,
+      openFileCount: var_openFileCount,
       memoryTotalKib: var_memoryTotalKib,
       memoryAvailableKib: var_memoryAvailableKib,
       fileCacheKib: var_fileCacheKib,
@@ -3224,12 +3732,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       kernelTotalKib: var_kernelTotalKib,
       kernelPagedKib: var_kernelPagedKib,
       kernelNonPagedKib: var_kernelNonPagedKib,
+      swapUsedKib: var_swapUsedKib,
+      slabKib: var_slabKib,
+      kernelStackKib: var_kernelStackKib,
+      pageTablesKib: var_pageTablesKib,
       cpuPercent: var_cpuPercent,
       memoryPercent: var_memoryPercent,
       cpuHistory: var_cpuHistory,
       kernelHistory: var_kernelHistory,
       memoryHistory: var_memoryHistory,
       logicalCpuHistories: var_logicalCpuHistories,
+      logicalKernelHistories: var_logicalKernelHistories,
     );
   }
 
@@ -3422,6 +3935,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_hideWhenMinimized = sse_decode_bool(deserializer);
     var var_showKernelTimes = sse_decode_bool(deserializer);
     var var_oneGraphPerCpu = sse_decode_bool(deserializer);
+    var var_tinyFootprint = sse_decode_bool(deserializer);
     var var_applicationViewMode = sse_decode_application_view_mode(
       deserializer,
     );
@@ -3438,6 +3952,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       hideWhenMinimized: var_hideWhenMinimized,
       showKernelTimes: var_showKernelTimes,
       oneGraphPerCpu: var_oneGraphPerCpu,
+      tinyFootprint: var_tinyFootprint,
       applicationViewMode: var_applicationViewMode,
       window: var_window,
       processColumns: var_processColumns,
@@ -3839,6 +4354,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_bridge_action_request(
     BridgeActionRequest self,
     SseSerializer serializer,
@@ -3947,6 +4468,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_snapshot_meta(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_u_16(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_16(self, serializer);
   }
 
   @protected
@@ -4129,23 +4656,118 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_cpu_data(CpuData self, SseSerializer serializer) {
+  void sse_encode_cpu_cache(CpuCache self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_opt_String(self.model, serializer);
-    sse_encode_opt_String(self.status, serializer);
-    sse_encode_opt_box_autoadd_f_64(self.utilizationPercent, serializer);
-    sse_encode_list_prim_f_64_strict(self.history, serializer);
-    sse_encode_list_cpu_metric_group(self.groups, serializer);
+    sse_encode_u_8(self.level, serializer);
+    sse_encode_cpu_cache_kind(self.kind, serializer);
+    sse_encode_u_64(self.sizeBytes, serializer);
+    sse_encode_u_32(self.instanceCount, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.associativity, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.lineSizeBytes, serializer);
   }
 
   @protected
-  void sse_encode_cpu_metric_group(
-    CpuMetricGroup self,
+  void sse_encode_cpu_cache_kind(CpuCacheKind self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_cpu_core_class(CpuCoreClass self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_u_32(self.efficiencyClass, serializer);
+    sse_encode_u_32(self.coreCount, serializer);
+  }
+
+  @protected
+  void sse_encode_cpu_current_metrics(
+    CpuCurrentMetrics self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.title, serializer);
-    sse_encode_list_metric_value(self.metrics, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.averageFrequencyMhz, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.minimumFrequencyMhz, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.maximumFrequencyMhz, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.userPercent, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.kernelPercent, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.dpcPercent, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.interruptPercent, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.interruptsPerSecond, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.uptimeSeconds, serializer);
+  }
+
+  @protected
+  void sse_encode_cpu_data(CpuData self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.model, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.utilizationPercent, serializer);
+    sse_encode_list_prim_f_64_strict(self.history, serializer);
+    sse_encode_list_prim_f_64_strict(self.kernelHistory, serializer);
+    sse_encode_cpu_current_metrics(self.current, serializer);
+    sse_encode_cpu_system_metrics(self.system, serializer);
+    sse_encode_cpu_topology_metrics(self.topology, serializer);
+    sse_encode_cpu_hardware_metrics(self.hardware, serializer);
+  }
+
+  @protected
+  void sse_encode_cpu_hardware_metrics(
+    CpuHardwareMetrics self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.manufacturer, serializer);
+    sse_encode_opt_String(self.socket, serializer);
+    sse_encode_opt_String(self.processorId, serializer);
+    sse_encode_opt_String(self.architecture, serializer);
+    sse_encode_opt_box_autoadd_u_16(self.addressWidthBits, serializer);
+    sse_encode_opt_box_autoadd_u_16(self.dataWidthBits, serializer);
+    sse_encode_opt_String(self.family, serializer);
+    sse_encode_opt_String(self.level, serializer);
+    sse_encode_opt_String(self.revision, serializer);
+    sse_encode_opt_String(self.stepping, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.firmwareMaxFrequencyMhz, serializer);
+    sse_encode_list_String(self.isaFeatures, serializer);
+    sse_encode_list_cpu_cache(self.caches, serializer);
+  }
+
+  @protected
+  void sse_encode_cpu_system_metrics(
+    CpuSystemMetrics self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_u_64(self.processCount, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.threadCount, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.handleCount, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.fileDescriptorCount, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.openFileCount, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.processorQueueLength, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.contextSwitchesPerSecond, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.systemCallsPerSecond, serializer);
+  }
+
+  @protected
+  void sse_encode_cpu_topology_metrics(
+    CpuTopologyMetrics self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_u_32(self.packageCount, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.numaNodeCount, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.processorGroupCount, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.dieCount, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.moduleCount, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.physicalCoreCount, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.logicalProcessorCount, serializer);
+    sse_encode_list_cpu_core_class(self.coreClasses, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.smtCoreCount, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.minimumThreadsPerCore, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.maximumThreadsPerCore, serializer);
+    sse_encode_opt_box_autoadd_bool(self.virtualization, serializer);
+    sse_encode_opt_box_autoadd_bool(
+      self.secondLevelAddressTranslation,
+      serializer,
+    );
   }
 
   @protected
@@ -4165,14 +4787,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_box_autoadd_u_64(self.sharedUsedBytes, serializer);
     sse_encode_opt_box_autoadd_u_64(self.sharedTotalBytes, serializer);
     sse_encode_opt_box_autoadd_f_64(self.temperatureCelsius, serializer);
+    sse_encode_opt_String(self.driverName, serializer);
     sse_encode_opt_String(self.driverVersion, serializer);
     sse_encode_opt_String(self.driverDate, serializer);
     sse_encode_opt_String(self.graphicsApi, serializer);
     sse_encode_opt_String(self.physicalLocation, serializer);
     sse_encode_opt_box_autoadd_u_64(self.hardwareReservedBytes, serializer);
     sse_encode_list_gpu_engine(self.engines, serializer);
-    sse_encode_list_prim_f_64_strict(self.dedicatedHistory, serializer);
-    sse_encode_list_prim_f_64_strict(self.sharedHistory, serializer);
+    sse_encode_list_prim_f_64_strict(
+      self.dedicatedUsageHistoryPercent,
+      serializer,
+    );
+    sse_encode_list_prim_f_64_strict(
+      self.sharedUsageHistoryPercent,
+      serializer,
+    );
     sse_encode_opt_box_autoadd_backend_error(self.detailError, serializer);
   }
 
@@ -4186,9 +4815,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_gpu_engine(GpuEngine self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.id, serializer);
+    sse_encode_gpu_engine_kind(self.kind, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.ordinal, serializer);
+    sse_encode_opt_String(self.name, serializer);
     sse_encode_opt_box_autoadd_f_64(self.utilizationPercent, serializer);
     sse_encode_list_prim_f_64_strict(self.history, serializer);
+  }
+
+  @protected
+  void sse_encode_gpu_engine_kind(
+    GpuEngineKind self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected
@@ -4201,6 +4842,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_String(item, serializer);
+    }
   }
 
   @protected
@@ -4264,14 +4914,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_list_cpu_metric_group(
-    List<CpuMetricGroup> self,
+  void sse_encode_list_cpu_cache(
+    List<CpuCache> self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
-      sse_encode_cpu_metric_group(item, serializer);
+      sse_encode_cpu_cache(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_cpu_core_class(
+    List<CpuCoreClass> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_cpu_core_class(item, serializer);
     }
   }
 
@@ -4308,18 +4970,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_list_prim_f_64_strict(item, serializer);
-    }
-  }
-
-  @protected
-  void sse_encode_list_metric_value(
-    List<MetricValue> self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    for (final item in self) {
-      sse_encode_metric_value(item, serializer);
     }
   }
 
@@ -4402,13 +5052,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_metric_value(MetricValue self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.label, serializer);
-    sse_encode_opt_String(self.value, serializer);
-  }
-
-  @protected
   void sse_encode_network_data(NetworkData self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_network_interface(self.interfaces, serializer);
@@ -4453,6 +5096,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_backend_error(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bool(self, serializer);
     }
   }
 
@@ -4512,6 +5165,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_process_identity(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_16(int? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_u_16(self, serializer);
     }
   }
 
@@ -4602,6 +5265,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_box_autoadd_u_64(self.processCount, serializer);
     sse_encode_opt_box_autoadd_u_64(self.threadCount, serializer);
     sse_encode_opt_box_autoadd_u_64(self.handleCount, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.openFileCount, serializer);
     sse_encode_opt_box_autoadd_u_64(self.memoryTotalKib, serializer);
     sse_encode_opt_box_autoadd_u_64(self.memoryAvailableKib, serializer);
     sse_encode_opt_box_autoadd_u_64(self.fileCacheKib, serializer);
@@ -4611,12 +5275,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_box_autoadd_u_64(self.kernelTotalKib, serializer);
     sse_encode_opt_box_autoadd_u_64(self.kernelPagedKib, serializer);
     sse_encode_opt_box_autoadd_u_64(self.kernelNonPagedKib, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.swapUsedKib, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.slabKib, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.kernelStackKib, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.pageTablesKib, serializer);
     sse_encode_opt_box_autoadd_f_64(self.cpuPercent, serializer);
     sse_encode_opt_box_autoadd_f_64(self.memoryPercent, serializer);
     sse_encode_list_prim_f_64_strict(self.cpuHistory, serializer);
     sse_encode_list_prim_f_64_strict(self.kernelHistory, serializer);
     sse_encode_list_prim_f_64_strict(self.memoryHistory, serializer);
     sse_encode_list_list_prim_f_64_strict(self.logicalCpuHistories, serializer);
+    sse_encode_list_list_prim_f_64_strict(
+      self.logicalKernelHistories,
+      serializer,
+    );
   }
 
   @protected
@@ -4770,6 +5442,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self.hideWhenMinimized, serializer);
     sse_encode_bool(self.showKernelTimes, serializer);
     sse_encode_bool(self.oneGraphPerCpu, serializer);
+    sse_encode_bool(self.tinyFootprint, serializer);
     sse_encode_application_view_mode(self.applicationViewMode, serializer);
     sse_encode_window_geometry(self.window, serializer);
     sse_encode_list_column_layout(self.processColumns, serializer);

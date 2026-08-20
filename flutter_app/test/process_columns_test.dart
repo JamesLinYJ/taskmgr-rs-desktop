@@ -77,6 +77,7 @@ void main() {
         hideWhenMinimized: current.hideWhenMinimized,
         showKernelTimes: current.showKernelTimes,
         oneGraphPerCpu: current.oneGraphPerCpu,
+        tinyFootprint: current.tinyFootprint,
         applicationViewMode: current.applicationViewMode,
         window: current.window,
         processColumns: const <ColumnLayout>[

@@ -17,6 +17,7 @@ set -euo pipefail
 directory=${1:?usage: audit-linux-packages.sh <package-directory> [version] [arch]}
 version=${2:-0.3.0}
 arch=${3:-x64}
+application_id=org.taskmgr_rs.TaskManager
 directory=$(realpath -- "$directory")
 
 portable="$directory/taskmgr-rs-$version-linux-$arch.tar.gz"
@@ -54,7 +55,11 @@ if [[ ${#rpm_files[@]} -gt 0 ]]; then
   for package in "${rpm_files[@]}"; do
     listing=$(rpm -qlp "$package")
     grep -qx '/usr/libexec/taskmgr-rs/taskmgr-helper' <<<"$listing"
-    grep -qx '/usr/share/polkit-1/actions/io.github.jameslinyj.taskmgr_rs.policy' <<<"$listing"
+    grep -qx "/usr/share/applications/$application_id.desktop" <<<"$listing"
+    grep -qx "/usr/share/polkit-1/actions/$application_id.policy" <<<"$listing"
+    for edge in 16 32 48 64 256; do
+      grep -qx "/usr/share/icons/hicolor/${edge}x${edge}/apps/$application_id.png" <<<"$listing"
+    done
     if [[ $(grep -Ec '/libtaskmgr_native\.so$' <<<"$listing") -ne 1 ]]; then
       echo "RPM must contain exactly one Rust taskmgr shared library: $package" >&2
       exit 1
@@ -75,7 +80,11 @@ if [[ ${#deb_files[@]} -gt 0 ]]; then
   for package in "${deb_files[@]}"; do
     listing=$(dpkg-deb --contents "$package")
     grep -Eq '\./usr/libexec/taskmgr-rs/taskmgr-helper$' <<<"$listing"
-    grep -Eq '\./usr/share/polkit-1/actions/io.github.jameslinyj.taskmgr_rs.policy$' <<<"$listing"
+    grep -Eq "\./usr/share/applications/$application_id\.desktop$" <<<"$listing"
+    grep -Eq "\./usr/share/polkit-1/actions/$application_id\.policy$" <<<"$listing"
+    for edge in 16 32 48 64 256; do
+      grep -Eq "\./usr/share/icons/hicolor/${edge}x${edge}/apps/$application_id\.png$" <<<"$listing"
+    done
     if [[ $(grep -Ec '/libtaskmgr_native\.so$' <<<"$listing") -ne 1 ]]; then
       echo "DEB must contain exactly one Rust taskmgr shared library: $package" >&2
       exit 1

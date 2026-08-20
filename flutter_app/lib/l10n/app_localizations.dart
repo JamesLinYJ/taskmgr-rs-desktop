@@ -1321,6 +1321,12 @@ abstract class AppLocalizations {
   /// **'Handles'**
   String get handles;
 
+  /// No description provided for @openFileHandles.
+  ///
+  /// In en, this message translates to:
+  /// **'Open File Handles'**
+  String get openFileHandles;
+
   /// No description provided for @threads.
   ///
   /// In en, this message translates to:
@@ -1375,6 +1381,12 @@ abstract class AppLocalizations {
   /// **'Kernel Memory (K)'**
   String get kernelMemoryK;
 
+  /// No description provided for @virtualMemoryK.
+  ///
+  /// In en, this message translates to:
+  /// **'Virtual Memory (K)'**
+  String get virtualMemoryK;
+
   /// No description provided for @totals.
   ///
   /// In en, this message translates to:
@@ -1422,6 +1434,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Peak'**
   String get peak;
+
+  /// No description provided for @committed.
+  ///
+  /// In en, this message translates to:
+  /// **'Committed'**
+  String get committed;
+
+  /// No description provided for @commitLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Commit Limit'**
+  String get commitLimit;
+
+  /// No description provided for @swapUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap Used'**
+  String get swapUsed;
+
+  /// No description provided for @slab.
+  ///
+  /// In en, this message translates to:
+  /// **'Slab'**
+  String get slab;
+
+  /// No description provided for @kernelStack.
+  ///
+  /// In en, this message translates to:
+  /// **'Kernel Stack'**
+  String get kernelStack;
+
+  /// No description provided for @pageTables.
+  ///
+  /// In en, this message translates to:
+  /// **'Page Tables'**
+  String get pageTables;
 
   /// No description provided for @noActiveNetworkAdaptersFound.
   ///

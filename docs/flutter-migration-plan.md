@@ -145,9 +145,9 @@ shutdownBackend(BackendHandle)
 - 从现有代码中提取 Toolhelp/ProcessStatus、PDH、WMI、DXGI、SetupAPI、IP Helper、WTS 与窗口枚举，不把 HWND、ListView 或 GDI 类型暴露到共享模型。
 - 保留现有 processor-group、CPU Set、PID 创建时间、窗口线程/进程身份和 WTS 会话身份校验。
 - 采样器返回平台无关 DTO；所有格式化、本地化和绘制转移到 Flutter。
-- 当前已落地的真实 API 路径包括：`EnumWindows` 应用枚举与窗口动作、Tool Help/Process Status 进程指标、`GetSystemTimes`/`K32GetPerformanceInfo` 性能数据、IP Helper 网络计数、WTS 会话及会话动作，以及 WDDM GPU Engine/Adapter Memory 的持久 PDH 查询。
+- 当前已落地的真实 API 路径包括：`EnumWindows` 应用枚举与窗口动作、Tool Help/Process Status 进程指标、`NtQuerySystemInformation` 逐逻辑处理器计数、`GetLogicalProcessorInformationEx` 拓扑/缓存、`CallNtPowerInformation` 动态频率、`K32GetPerformanceInfo` 系统总量、IP Helper 网络计数、WTS 会话及会话动作，以及 WDDM GPU Engine/Adapter Memory 的持久 PDH 查询。
 - 进程、进程树、优先级、亲和性、窗口和 WTS 会话动作均在执行前重新验证创建时间或登录时间；进程树会在首次终止前先打开并验证全部目标。
-- GPU 当前按真实能力标为部分支持：DXGI 提供适配器名称和单物理适配器容量，PDH 提供利用率与已用显存；驱动元数据和温度仍待实现。CPU 的多 processor-group/CPU Set、逐逻辑处理器历史和高级 PDH 诊断也仍待迁移。
+- GPU 按真实能力标为部分支持：DXGI 提供适配器名称和单物理适配器容量，PDH 提供逐引擎利用率与已用显存，D3DKMT/SetupAPI 提供驱动、日期、位置、温度与硬件保留显存，D3D12 在运行时存在时提供真实 feature level；驱动未公开的单值保持空值。CPU 已覆盖全部 processor group 的逐逻辑处理器用户/内核历史、动态频率、拓扑和缓存；CPU Set 亲和性编辑仍是独立待办。
 
 ## 6. 权限与 helper
 
@@ -170,6 +170,7 @@ shutdownBackend(BackendHandle)
 
 - 固定 Rust `1.97.1`、Flutter `3.44.7`、Dart `3.12.2`、`flutter_rust_bridge`/codegen `2.12.0`、`tray_manager 0.5.3` 与 `png 0.18.1`。
 - FRB 使用 Cargokit；生成的 Rust/Dart glue 提交仓库，CI 重生成后必须 `git diff --exit-code`。
+- Linux 运行时 application ID 固定为中性的 `org.taskmgr_rs.TaskManager`，并作为 desktop 文件、hicolor 图标与 polkit action 的统一前缀；该 ID 不包含作者、协助者或代码托管账户名称。
 - Windows：x64/ARM64 的 Inno Setup 安装 EXE 与便携 ZIP，包含 Flutter bundle、Rust DLL 和 UAC helper。
 - Linux：x64/ARM64 的 DEB、RPM、tar.gz；DEB/RPM 含 helper/polkit，tar.gz 保持普通权限。
 - 发布资产包含 SHA-256；无密钥时保持未签名并明确标注，流水线为 Authenticode/DEB/RPM 签名预留独立阶段。
@@ -207,7 +208,7 @@ shutdownBackend(BackendHandle)
 - [x] 删除默认 Windows/x86 目标，固定四个 x64/ARM64 目标。
 - [x] 建立核心 DTO、能力模型、稳定身份、历史 ring buffer、设置存储和有界运行时。
 - [~] 实现 Linux procfs/sysfs/DRM/网络/会话/X11 数据源与动作。
-- [~] 已落地 Windows 七页真实 Win32/DXGI/PDH/IP Helper/WTS 采样、应用窗口图标和身份安全动作；驱动详情、CPU group/CPU Set 及 Windows 真机验证仍需完成。
+- [~] 已落地 Windows 七页真实 Win32/DXGI/PDH/D3DKMT/SetupAPI/IP Helper/WTS 采样、逐逻辑 CPU 历史、应用窗口图标和身份安全动作；CPU Set 亲和性及 Windows 真机验证仍需完成。
 - [x] 建立唯一 `taskmgr-bridge`、FRB 2.12 生成配置和提交式生成代码。
 - [~] 建立 helper 白名单协议；UAC/polkit 会话 IPC 与调用者验证尚未完成。
 - [x] 创建仅含 Windows/Linux 的 Flutter desktop scaffold。
@@ -220,8 +221,9 @@ shutdownBackend(BackendHandle)
 
 ### 10.1 当前已验证结果
 
-- Rust workspace 已通过 `cargo clippy --workspace --all-targets -- -D warnings` 与全部本机单元测试；当前包括 core 11 项、helper 3 项、Linux 15 项。GitHub-hosted Windows x64/ARM64 与 Linux x64/ARM64 runner 均已通过对应原生目标的严格 Clippy 和 workspace 测试。
-- Flutter 已通过 `flutter analyze` 和全部 68 项测试，包括九张现代桌面页面/应用视图真实 Noto 字体 golden、八语言 Windows NT 标题、140 ms 页面切换、窗口选项、窗口菜单、多选/平铺、“转到进程”的完整身份定位与 PID 复用防护、三种应用视图与 16/32px 图标 PNG/回退、12 级 CPU 托盘映射、托盘可用性门控、既有快捷键与快照换代后的选择同步行为，以及 8 个 locale × `396 × 401` 客户区 × 100%/125%/150%/200% × 7 页的无溢出测试。
+- Rust workspace 已通过 `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings` 与全部本机单元测试；当前包括 core 13 项、helper 3 项、Linux 20 项。Windows x64 目标还通过了包含逐逻辑处理器 NT 计数器、processor-group 拓扑与 GPU 元数据查询代码的交叉编译和测试链接。GitHub-hosted Windows x64/ARM64 与 Linux x64/ARM64 runner 均已通过对应原生目标的严格 Clippy 和 workspace 测试。
+- Flutter 已通过 `flutter analyze` 和全部 74 项测试，包括九张现代桌面页面/应用视图真实 Noto 字体 golden、性能页双击精简模式、原版尺寸下 32 逻辑核完整布局、Windows/Linux 性能字段语义分流、CPU 四组强类型详情、超过四个 GPU 引擎的可选展示、八语言 Windows NT 标题、140 ms 页面切换、窗口选项、窗口菜单、多选/平铺、“转到进程”的完整身份定位与 PID 复用防护、三种应用视图与 16/32px 图标 PNG/回退、12 级 CPU 托盘映射、托盘可用性门控、既有快捷键与快照换代后的选择同步行为，以及 8 个 locale × `396 × 401` 客户区 × 100%/125%/150%/200% × 7 页的无溢出测试。
+- 性能页保持原有仪表、历史图和四个统计框布局；Windows 使用 Handles、Commit Charge、Paged/Nonpaged 等原生语义，Linux 使用 `/proc/sys/fs/file-nr` 的在用文件句柄以及 `Committed_AS`、`CommitLimit`、Swap、Slab、KernelStack、PageTables。Linux 不再遍历并静默少算受权限限制的 `/proc/<pid>/fd`，也不再把文件描述符数伪装成 Windows handle 数。
 - Linux x64/ARM64 release bundle 均已完成实包构建与内容审计，每个平台只包含一个项目 Rust 动态库 `libtaskmgr_native.so`。
 - KWin 6.7.4 虚拟 Wayland 会话已验证 desktop entry 授权、KDE Plasma 后端选择、真实 Zenity 顶层窗口枚举、含 AppIndicator 插件的 Flutter 展示和后端有序关闭。
 - Wayland 后端选择固定为标准 ext → wlroots → KDE Plasma → X11；标准协议绑定失败时会继续尝试下一 Wayland 后端，而不是直接降到 X11。
@@ -238,7 +240,7 @@ shutdownBackend(BackendHandle)
 
 ### 10.2 剩余发布阻塞项
 
-- `taskmgr-windows` 已不再是占位实现，但尚未达到旧版功能等价：尽管 Windows x64/ARM64 原生 CI 已通过，仍需要可交互真机或虚拟机启动验证、GPU 驱动/温度详情、逐逻辑 CPU/processor-group 与 CPU Set 及受保护字段补全；应用窗口图标已实现但仍须验证 GDI alpha 与高 DPI 系统小图标。
+- `taskmgr-windows` 已补齐 GPU 驱动/日期/位置/温度、D3D feature level、逐逻辑 CPU/processor-group 历史和 CPU 详情；尽管 Windows x64/ARM64 原生 CI 已通过，仍需要可交互真机或虚拟机启动验证、CPU Set 亲和性及受保护字段补全。应用窗口图标已实现但仍须验证 GDI alpha 与高 DPI 系统小图标。
 - helper 目前只有带协议版本、256-bit nonce、大小限制和未知字段拒绝的单请求白名单协议，尚无 UAC/polkit 启动、受限 pipe/socket、peer credential 与会话退出联动。
 - Windows 托盘与“最小化时隐藏”已实现但尚待 Windows 真机验证；Linux AppIndicator 已构建并通过 KWin Wayland 启动冒烟，GNOME 无扩展与真实面板菜单仍需系统矩阵验证。
 - Linux x64/ARM64 的 tar.gz/DEB/RPM 与 Windows x64/ARM64 的 Inno/ZIP 已由 CI 实际产出并审计；签名阶段及全套安装、升级、卸载测试尚未完成。

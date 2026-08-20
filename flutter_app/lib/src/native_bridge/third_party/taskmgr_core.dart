@@ -281,28 +281,153 @@ class ColumnLayout {
           visible == other.visible;
 }
 
+class CpuCache {
+  final int level;
+  final CpuCacheKind kind;
+
+  /// Capacity of one cache instance.
+  final BigInt sizeBytes;
+  final int instanceCount;
+  final int? associativity;
+  final int? lineSizeBytes;
+
+  const CpuCache({
+    required this.level,
+    required this.kind,
+    required this.sizeBytes,
+    required this.instanceCount,
+    this.associativity,
+    this.lineSizeBytes,
+  });
+
+  @override
+  int get hashCode =>
+      level.hashCode ^
+      kind.hashCode ^
+      sizeBytes.hashCode ^
+      instanceCount.hashCode ^
+      associativity.hashCode ^
+      lineSizeBytes.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CpuCache &&
+          runtimeType == other.runtimeType &&
+          level == other.level &&
+          kind == other.kind &&
+          sizeBytes == other.sizeBytes &&
+          instanceCount == other.instanceCount &&
+          associativity == other.associativity &&
+          lineSizeBytes == other.lineSizeBytes;
+}
+
+enum CpuCacheKind { data, instruction, unified, trace, other }
+
+class CpuCoreClass {
+  /// Windows efficiency class or Linux scheduler capacity. `None` means a uniform topology.
+  final int? efficiencyClass;
+  final int coreCount;
+
+  const CpuCoreClass({this.efficiencyClass, required this.coreCount});
+
+  @override
+  int get hashCode => efficiencyClass.hashCode ^ coreCount.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CpuCoreClass &&
+          runtimeType == other.runtimeType &&
+          efficiencyClass == other.efficiencyClass &&
+          coreCount == other.coreCount;
+}
+
+class CpuCurrentMetrics {
+  final double? averageFrequencyMhz;
+  final double? minimumFrequencyMhz;
+  final double? maximumFrequencyMhz;
+  final double? userPercent;
+  final double? kernelPercent;
+  final double? dpcPercent;
+  final double? interruptPercent;
+  final BigInt? interruptsPerSecond;
+  final BigInt? uptimeSeconds;
+
+  const CpuCurrentMetrics({
+    this.averageFrequencyMhz,
+    this.minimumFrequencyMhz,
+    this.maximumFrequencyMhz,
+    this.userPercent,
+    this.kernelPercent,
+    this.dpcPercent,
+    this.interruptPercent,
+    this.interruptsPerSecond,
+    this.uptimeSeconds,
+  });
+
+  static Future<CpuCurrentMetrics> default_() =>
+      RustLib.instance.api.taskmgrCoreCpuCurrentMetricsDefault();
+
+  @override
+  int get hashCode =>
+      averageFrequencyMhz.hashCode ^
+      minimumFrequencyMhz.hashCode ^
+      maximumFrequencyMhz.hashCode ^
+      userPercent.hashCode ^
+      kernelPercent.hashCode ^
+      dpcPercent.hashCode ^
+      interruptPercent.hashCode ^
+      interruptsPerSecond.hashCode ^
+      uptimeSeconds.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CpuCurrentMetrics &&
+          runtimeType == other.runtimeType &&
+          averageFrequencyMhz == other.averageFrequencyMhz &&
+          minimumFrequencyMhz == other.minimumFrequencyMhz &&
+          maximumFrequencyMhz == other.maximumFrequencyMhz &&
+          userPercent == other.userPercent &&
+          kernelPercent == other.kernelPercent &&
+          dpcPercent == other.dpcPercent &&
+          interruptPercent == other.interruptPercent &&
+          interruptsPerSecond == other.interruptsPerSecond &&
+          uptimeSeconds == other.uptimeSeconds;
+}
+
 class CpuData {
   final String? model;
-  final String? status;
   final double? utilizationPercent;
   final Float64List history;
-  final List<CpuMetricGroup> groups;
+  final Float64List kernelHistory;
+  final CpuCurrentMetrics current;
+  final CpuSystemMetrics system;
+  final CpuTopologyMetrics topology;
+  final CpuHardwareMetrics hardware;
 
   const CpuData({
     this.model,
-    this.status,
     this.utilizationPercent,
     required this.history,
-    required this.groups,
+    required this.kernelHistory,
+    required this.current,
+    required this.system,
+    required this.topology,
+    required this.hardware,
   });
 
   @override
   int get hashCode =>
       model.hashCode ^
-      status.hashCode ^
       utilizationPercent.hashCode ^
       history.hashCode ^
-      groups.hashCode;
+      kernelHistory.hashCode ^
+      current.hashCode ^
+      system.hashCode ^
+      topology.hashCode ^
+      hardware.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -310,28 +435,203 @@ class CpuData {
       other is CpuData &&
           runtimeType == other.runtimeType &&
           model == other.model &&
-          status == other.status &&
           utilizationPercent == other.utilizationPercent &&
           history == other.history &&
-          groups == other.groups;
+          kernelHistory == other.kernelHistory &&
+          current == other.current &&
+          system == other.system &&
+          topology == other.topology &&
+          hardware == other.hardware;
 }
 
-class CpuMetricGroup {
-  final String title;
-  final List<MetricValue> metrics;
+class CpuHardwareMetrics {
+  final String? manufacturer;
+  final String? socket;
+  final String? processorId;
+  final String? architecture;
+  final int? addressWidthBits;
+  final int? dataWidthBits;
+  final String? family;
+  final String? level;
+  final String? revision;
+  final String? stepping;
+  final double? firmwareMaxFrequencyMhz;
+  final List<String> isaFeatures;
+  final List<CpuCache> caches;
 
-  const CpuMetricGroup({required this.title, required this.metrics});
+  const CpuHardwareMetrics({
+    this.manufacturer,
+    this.socket,
+    this.processorId,
+    this.architecture,
+    this.addressWidthBits,
+    this.dataWidthBits,
+    this.family,
+    this.level,
+    this.revision,
+    this.stepping,
+    this.firmwareMaxFrequencyMhz,
+    required this.isaFeatures,
+    required this.caches,
+  });
+
+  static Future<CpuHardwareMetrics> default_() =>
+      RustLib.instance.api.taskmgrCoreCpuHardwareMetricsDefault();
 
   @override
-  int get hashCode => title.hashCode ^ metrics.hashCode;
+  int get hashCode =>
+      manufacturer.hashCode ^
+      socket.hashCode ^
+      processorId.hashCode ^
+      architecture.hashCode ^
+      addressWidthBits.hashCode ^
+      dataWidthBits.hashCode ^
+      family.hashCode ^
+      level.hashCode ^
+      revision.hashCode ^
+      stepping.hashCode ^
+      firmwareMaxFrequencyMhz.hashCode ^
+      isaFeatures.hashCode ^
+      caches.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is CpuMetricGroup &&
+      other is CpuHardwareMetrics &&
           runtimeType == other.runtimeType &&
-          title == other.title &&
-          metrics == other.metrics;
+          manufacturer == other.manufacturer &&
+          socket == other.socket &&
+          processorId == other.processorId &&
+          architecture == other.architecture &&
+          addressWidthBits == other.addressWidthBits &&
+          dataWidthBits == other.dataWidthBits &&
+          family == other.family &&
+          level == other.level &&
+          revision == other.revision &&
+          stepping == other.stepping &&
+          firmwareMaxFrequencyMhz == other.firmwareMaxFrequencyMhz &&
+          isaFeatures == other.isaFeatures &&
+          caches == other.caches;
+}
+
+class CpuSystemMetrics {
+  final BigInt? processCount;
+  final BigInt? threadCount;
+  final BigInt? handleCount;
+  final BigInt? fileDescriptorCount;
+  final BigInt? openFileCount;
+  final BigInt? processorQueueLength;
+  final BigInt? contextSwitchesPerSecond;
+  final BigInt? systemCallsPerSecond;
+
+  const CpuSystemMetrics({
+    this.processCount,
+    this.threadCount,
+    this.handleCount,
+    this.fileDescriptorCount,
+    this.openFileCount,
+    this.processorQueueLength,
+    this.contextSwitchesPerSecond,
+    this.systemCallsPerSecond,
+  });
+
+  static Future<CpuSystemMetrics> default_() =>
+      RustLib.instance.api.taskmgrCoreCpuSystemMetricsDefault();
+
+  @override
+  int get hashCode =>
+      processCount.hashCode ^
+      threadCount.hashCode ^
+      handleCount.hashCode ^
+      fileDescriptorCount.hashCode ^
+      openFileCount.hashCode ^
+      processorQueueLength.hashCode ^
+      contextSwitchesPerSecond.hashCode ^
+      systemCallsPerSecond.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CpuSystemMetrics &&
+          runtimeType == other.runtimeType &&
+          processCount == other.processCount &&
+          threadCount == other.threadCount &&
+          handleCount == other.handleCount &&
+          fileDescriptorCount == other.fileDescriptorCount &&
+          openFileCount == other.openFileCount &&
+          processorQueueLength == other.processorQueueLength &&
+          contextSwitchesPerSecond == other.contextSwitchesPerSecond &&
+          systemCallsPerSecond == other.systemCallsPerSecond;
+}
+
+class CpuTopologyMetrics {
+  final int? packageCount;
+  final int? numaNodeCount;
+  final int? processorGroupCount;
+  final int? dieCount;
+  final int? moduleCount;
+  final int? physicalCoreCount;
+  final int? logicalProcessorCount;
+  final List<CpuCoreClass> coreClasses;
+  final int? smtCoreCount;
+  final int? minimumThreadsPerCore;
+  final int? maximumThreadsPerCore;
+  final bool? virtualization;
+  final bool? secondLevelAddressTranslation;
+
+  const CpuTopologyMetrics({
+    this.packageCount,
+    this.numaNodeCount,
+    this.processorGroupCount,
+    this.dieCount,
+    this.moduleCount,
+    this.physicalCoreCount,
+    this.logicalProcessorCount,
+    required this.coreClasses,
+    this.smtCoreCount,
+    this.minimumThreadsPerCore,
+    this.maximumThreadsPerCore,
+    this.virtualization,
+    this.secondLevelAddressTranslation,
+  });
+
+  static Future<CpuTopologyMetrics> default_() =>
+      RustLib.instance.api.taskmgrCoreCpuTopologyMetricsDefault();
+
+  @override
+  int get hashCode =>
+      packageCount.hashCode ^
+      numaNodeCount.hashCode ^
+      processorGroupCount.hashCode ^
+      dieCount.hashCode ^
+      moduleCount.hashCode ^
+      physicalCoreCount.hashCode ^
+      logicalProcessorCount.hashCode ^
+      coreClasses.hashCode ^
+      smtCoreCount.hashCode ^
+      minimumThreadsPerCore.hashCode ^
+      maximumThreadsPerCore.hashCode ^
+      virtualization.hashCode ^
+      secondLevelAddressTranslation.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CpuTopologyMetrics &&
+          runtimeType == other.runtimeType &&
+          packageCount == other.packageCount &&
+          numaNodeCount == other.numaNodeCount &&
+          processorGroupCount == other.processorGroupCount &&
+          dieCount == other.dieCount &&
+          moduleCount == other.moduleCount &&
+          physicalCoreCount == other.physicalCoreCount &&
+          logicalProcessorCount == other.logicalProcessorCount &&
+          coreClasses == other.coreClasses &&
+          smtCoreCount == other.smtCoreCount &&
+          minimumThreadsPerCore == other.minimumThreadsPerCore &&
+          maximumThreadsPerCore == other.maximumThreadsPerCore &&
+          virtualization == other.virtualization &&
+          secondLevelAddressTranslation == other.secondLevelAddressTranslation;
 }
 
 class GpuAdapter {
@@ -343,14 +643,19 @@ class GpuAdapter {
   final BigInt? sharedUsedBytes;
   final BigInt? sharedTotalBytes;
   final double? temperatureCelsius;
+  final String? driverName;
   final String? driverVersion;
   final String? driverDate;
   final String? graphicsApi;
   final String? physicalLocation;
   final BigInt? hardwareReservedBytes;
   final List<GpuEngine> engines;
-  final Float64List dedicatedHistory;
-  final Float64List sharedHistory;
+
+  /// Dedicated-memory utilization history normalized to 0–100 percent.
+  final Float64List dedicatedUsageHistoryPercent;
+
+  /// Shared-memory utilization history normalized to 0–100 percent.
+  final Float64List sharedUsageHistoryPercent;
   final BackendError? detailError;
 
   const GpuAdapter({
@@ -362,14 +667,15 @@ class GpuAdapter {
     this.sharedUsedBytes,
     this.sharedTotalBytes,
     this.temperatureCelsius,
+    this.driverName,
     this.driverVersion,
     this.driverDate,
     this.graphicsApi,
     this.physicalLocation,
     this.hardwareReservedBytes,
     required this.engines,
-    required this.dedicatedHistory,
-    required this.sharedHistory,
+    required this.dedicatedUsageHistoryPercent,
+    required this.sharedUsageHistoryPercent,
     this.detailError,
   });
 
@@ -383,14 +689,15 @@ class GpuAdapter {
       sharedUsedBytes.hashCode ^
       sharedTotalBytes.hashCode ^
       temperatureCelsius.hashCode ^
+      driverName.hashCode ^
       driverVersion.hashCode ^
       driverDate.hashCode ^
       graphicsApi.hashCode ^
       physicalLocation.hashCode ^
       hardwareReservedBytes.hashCode ^
       engines.hashCode ^
-      dedicatedHistory.hashCode ^
-      sharedHistory.hashCode ^
+      dedicatedUsageHistoryPercent.hashCode ^
+      sharedUsageHistoryPercent.hashCode ^
       detailError.hashCode;
 
   @override
@@ -406,14 +713,15 @@ class GpuAdapter {
           sharedUsedBytes == other.sharedUsedBytes &&
           sharedTotalBytes == other.sharedTotalBytes &&
           temperatureCelsius == other.temperatureCelsius &&
+          driverName == other.driverName &&
           driverVersion == other.driverVersion &&
           driverDate == other.driverDate &&
           graphicsApi == other.graphicsApi &&
           physicalLocation == other.physicalLocation &&
           hardwareReservedBytes == other.hardwareReservedBytes &&
           engines == other.engines &&
-          dedicatedHistory == other.dedicatedHistory &&
-          sharedHistory == other.sharedHistory &&
+          dedicatedUsageHistoryPercent == other.dedicatedUsageHistoryPercent &&
+          sharedUsageHistoryPercent == other.sharedUsageHistoryPercent &&
           detailError == other.detailError;
 }
 
@@ -436,46 +744,55 @@ class GpuData {
 }
 
 class GpuEngine {
-  final String name;
+  final String id;
+  final GpuEngineKind kind;
+  final int? ordinal;
+
+  /// Driver-defined engine name, used only when `kind` is `Other`.
+  final String? name;
   final double? utilizationPercent;
   final Float64List history;
 
   const GpuEngine({
-    required this.name,
+    required this.id,
+    required this.kind,
+    this.ordinal,
+    this.name,
     this.utilizationPercent,
     required this.history,
   });
 
   @override
   int get hashCode =>
-      name.hashCode ^ utilizationPercent.hashCode ^ history.hashCode;
+      id.hashCode ^
+      kind.hashCode ^
+      ordinal.hashCode ^
+      name.hashCode ^
+      utilizationPercent.hashCode ^
+      history.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is GpuEngine &&
           runtimeType == other.runtimeType &&
+          id == other.id &&
+          kind == other.kind &&
+          ordinal == other.ordinal &&
           name == other.name &&
           utilizationPercent == other.utilizationPercent &&
           history == other.history;
 }
 
-class MetricValue {
-  final String label;
-  final String? value;
-
-  const MetricValue({required this.label, this.value});
-
-  @override
-  int get hashCode => label.hashCode ^ value.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is MetricValue &&
-          runtimeType == other.runtimeType &&
-          label == other.label &&
-          value == other.value;
+enum GpuEngineKind {
+  overall,
+  threeD,
+  copy,
+  videoEncode,
+  videoDecode,
+  compute,
+  security,
+  other,
 }
 
 class NetworkData {
@@ -593,7 +910,12 @@ enum PageId { applications, processes, performance, cpu, gpu, network, users }
 class PerformanceData {
   final BigInt? processCount;
   final BigInt? threadCount;
+
+  /// Windows system handle count; `None` on Linux.
   final BigInt? handleCount;
+
+  /// Linux in-use file-handle count from `/proc/sys/fs/file-nr`; `None` on Windows.
+  final BigInt? openFileCount;
   final BigInt? memoryTotalKib;
   final BigInt? memoryAvailableKib;
   final BigInt? fileCacheKib;
@@ -603,17 +925,25 @@ class PerformanceData {
   final BigInt? kernelTotalKib;
   final BigInt? kernelPagedKib;
   final BigInt? kernelNonPagedKib;
+
+  /// Linux-native memory details. Windows leaves these fields unavailable.
+  final BigInt? swapUsedKib;
+  final BigInt? slabKib;
+  final BigInt? kernelStackKib;
+  final BigInt? pageTablesKib;
   final double? cpuPercent;
   final double? memoryPercent;
   final Float64List cpuHistory;
   final Float64List kernelHistory;
   final Float64List memoryHistory;
   final List<Float64List> logicalCpuHistories;
+  final List<Float64List> logicalKernelHistories;
 
   const PerformanceData({
     this.processCount,
     this.threadCount,
     this.handleCount,
+    this.openFileCount,
     this.memoryTotalKib,
     this.memoryAvailableKib,
     this.fileCacheKib,
@@ -623,12 +953,17 @@ class PerformanceData {
     this.kernelTotalKib,
     this.kernelPagedKib,
     this.kernelNonPagedKib,
+    this.swapUsedKib,
+    this.slabKib,
+    this.kernelStackKib,
+    this.pageTablesKib,
     this.cpuPercent,
     this.memoryPercent,
     required this.cpuHistory,
     required this.kernelHistory,
     required this.memoryHistory,
     required this.logicalCpuHistories,
+    required this.logicalKernelHistories,
   });
 
   @override
@@ -636,6 +971,7 @@ class PerformanceData {
       processCount.hashCode ^
       threadCount.hashCode ^
       handleCount.hashCode ^
+      openFileCount.hashCode ^
       memoryTotalKib.hashCode ^
       memoryAvailableKib.hashCode ^
       fileCacheKib.hashCode ^
@@ -645,12 +981,17 @@ class PerformanceData {
       kernelTotalKib.hashCode ^
       kernelPagedKib.hashCode ^
       kernelNonPagedKib.hashCode ^
+      swapUsedKib.hashCode ^
+      slabKib.hashCode ^
+      kernelStackKib.hashCode ^
+      pageTablesKib.hashCode ^
       cpuPercent.hashCode ^
       memoryPercent.hashCode ^
       cpuHistory.hashCode ^
       kernelHistory.hashCode ^
       memoryHistory.hashCode ^
-      logicalCpuHistories.hashCode;
+      logicalCpuHistories.hashCode ^
+      logicalKernelHistories.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -660,6 +1001,7 @@ class PerformanceData {
           processCount == other.processCount &&
           threadCount == other.threadCount &&
           handleCount == other.handleCount &&
+          openFileCount == other.openFileCount &&
           memoryTotalKib == other.memoryTotalKib &&
           memoryAvailableKib == other.memoryAvailableKib &&
           fileCacheKib == other.fileCacheKib &&
@@ -669,12 +1011,17 @@ class PerformanceData {
           kernelTotalKib == other.kernelTotalKib &&
           kernelPagedKib == other.kernelPagedKib &&
           kernelNonPagedKib == other.kernelNonPagedKib &&
+          swapUsedKib == other.swapUsedKib &&
+          slabKib == other.slabKib &&
+          kernelStackKib == other.kernelStackKib &&
+          pageTablesKib == other.pageTablesKib &&
           cpuPercent == other.cpuPercent &&
           memoryPercent == other.memoryPercent &&
           cpuHistory == other.cpuHistory &&
           kernelHistory == other.kernelHistory &&
           memoryHistory == other.memoryHistory &&
-          logicalCpuHistories == other.logicalCpuHistories;
+          logicalCpuHistories == other.logicalCpuHistories &&
+          logicalKernelHistories == other.logicalKernelHistories;
 }
 
 class PlatformCapabilities {
@@ -971,6 +1318,7 @@ class UiSettings {
   final bool hideWhenMinimized;
   final bool showKernelTimes;
   final bool oneGraphPerCpu;
+  final bool tinyFootprint;
   final ApplicationViewMode applicationViewMode;
   final WindowGeometry window;
   final List<ColumnLayout> processColumns;
@@ -986,6 +1334,7 @@ class UiSettings {
     required this.hideWhenMinimized,
     required this.showKernelTimes,
     required this.oneGraphPerCpu,
+    required this.tinyFootprint,
     required this.applicationViewMode,
     required this.window,
     required this.processColumns,
@@ -1006,6 +1355,7 @@ class UiSettings {
       hideWhenMinimized.hashCode ^
       showKernelTimes.hashCode ^
       oneGraphPerCpu.hashCode ^
+      tinyFootprint.hashCode ^
       applicationViewMode.hashCode ^
       window.hashCode ^
       processColumns.hashCode;
@@ -1025,6 +1375,7 @@ class UiSettings {
           hideWhenMinimized == other.hideWhenMinimized &&
           showKernelTimes == other.showKernelTimes &&
           oneGraphPerCpu == other.oneGraphPerCpu &&
+          tinyFootprint == other.tinyFootprint &&
           applicationViewMode == other.applicationViewMode &&
           window == other.window &&
           processColumns == other.processColumns;

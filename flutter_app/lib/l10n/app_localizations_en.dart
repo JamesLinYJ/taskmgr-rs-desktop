@@ -636,6 +636,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get handles => 'Handles';
 
   @override
+  String get openFileHandles => 'Open File Handles';
+
+  @override
   String get threads => 'Threads';
 
   @override
@@ -663,6 +666,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get kernelMemoryK => 'Kernel Memory (K)';
 
   @override
+  String get virtualMemoryK => 'Virtual Memory (K)';
+
+  @override
   String get totals => 'Totals';
 
   @override
@@ -685,6 +691,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get peak => 'Peak';
+
+  @override
+  String get committed => 'Committed';
+
+  @override
+  String get commitLimit => 'Commit Limit';
+
+  @override
+  String get swapUsed => 'Swap Used';
+
+  @override
+  String get slab => 'Slab';
+
+  @override
+  String get kernelStack => 'Kernel Stack';
+
+  @override
+  String get pageTables => 'Page Tables';
 
   @override
   String get noActiveNetworkAdaptersFound =>

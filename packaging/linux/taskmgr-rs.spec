@@ -12,6 +12,7 @@
 # --------------------------------------------------------------------------
 
 %global debug_package %{nil}
+%global application_id org.taskmgr_rs.TaskManager
 
 Name:           taskmgr-rs
 Version:        %{package_version}
@@ -36,8 +37,8 @@ install -d %{buildroot}/usr/lib/taskmgr-rs
 cp -a %{bundle_dir}/. %{buildroot}/usr/lib/taskmgr-rs/
 install -Dpm0755 %{helper_path} %{buildroot}/usr/libexec/taskmgr-rs/taskmgr-helper
 install -Dpm0755 %{launcher_path} %{buildroot}/usr/bin/taskmgr_rs
-install -Dpm0644 %{desktop_path} %{buildroot}/usr/share/applications/io.github.jameslinyj.taskmgr_rs.desktop
-install -Dpm0644 %{policy_path} %{buildroot}/usr/share/polkit-1/actions/io.github.jameslinyj.taskmgr_rs.policy
+install -Dpm0644 %{desktop_path} %{buildroot}/usr/share/applications/%{application_id}.desktop
+install -Dpm0644 %{policy_path} %{buildroot}/usr/share/polkit-1/actions/%{application_id}.policy
 install -d %{buildroot}/usr/share/icons/hicolor
 cp -a %{icons_path}/. %{buildroot}/usr/share/icons/hicolor/
 install -Dpm0644 %{license_path} %{buildroot}/usr/share/licenses/taskmgr-rs/LICENSE
@@ -55,9 +56,9 @@ gtk-update-icon-cache -q /usr/share/icons/hicolor >/dev/null 2>&1 || :
 /usr/bin/taskmgr_rs
 /usr/lib/taskmgr-rs/
 /usr/libexec/taskmgr-rs/taskmgr-helper
-/usr/share/applications/io.github.jameslinyj.taskmgr_rs.desktop
-/usr/share/icons/hicolor/*/apps/io.github.jameslinyj.taskmgr_rs.png
-/usr/share/polkit-1/actions/io.github.jameslinyj.taskmgr_rs.policy
+/usr/share/applications/%{application_id}.desktop
+/usr/share/icons/hicolor/*/apps/%{application_id}.png
+/usr/share/polkit-1/actions/%{application_id}.policy
 
 %changelog
 * Thu Aug 20 2026 JamesLinYJ - 0.3.0-1

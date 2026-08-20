@@ -619,6 +619,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get handles => '句柄';
 
   @override
+  String get openFileHandles => '打开的文件句柄';
+
+  @override
   String get threads => '线程';
 
   @override
@@ -646,6 +649,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get kernelMemoryK => '内核内存 (K)';
 
   @override
+  String get virtualMemoryK => '虚拟内存 (K)';
+
+  @override
   String get totals => '总计';
 
   @override
@@ -668,6 +674,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get peak => '峰值';
+
+  @override
+  String get committed => '已提交';
+
+  @override
+  String get commitLimit => '提交限制';
+
+  @override
+  String get swapUsed => '交换区已用';
+
+  @override
+  String get slab => 'Slab';
+
+  @override
+  String get kernelStack => '内核栈';
+
+  @override
+  String get pageTables => '页表';
 
   @override
   String get noActiveNetworkAdaptersFound => '未找到活动的网络适配器。';
@@ -1508,6 +1532,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get handles => '控制代碼';
 
   @override
+  String get openFileHandles => '開啟的檔案控制代碼';
+
+  @override
   String get threads => '執行緒';
 
   @override
@@ -1535,6 +1562,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get kernelMemoryK => '核心記憶體 (K)';
 
   @override
+  String get virtualMemoryK => '虛擬記憶體 (K)';
+
+  @override
   String get totals => '總計';
 
   @override
@@ -1557,6 +1587,24 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get peak => '峰值';
+
+  @override
+  String get committed => '已認可';
+
+  @override
+  String get commitLimit => '認可上限';
+
+  @override
+  String get swapUsed => '交換空間已用';
+
+  @override
+  String get slab => 'Slab';
+
+  @override
+  String get kernelStack => '核心堆疊';
+
+  @override
+  String get pageTables => '頁表';
 
   @override
   String get noActiveNetworkAdaptersFound => '找不到作用中的網路介面卡。';
