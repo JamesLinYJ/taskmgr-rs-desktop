@@ -211,15 +211,15 @@ shutdownBackend(BackendHandle)
 - [x] 已转换八种 ARB、内置 Noto Sans，并迁移应用图标、默认应用窗口图标及原版 12 级 CPU 托盘图标。
 - [x] 已实现现代桌面主题、菜单、标签、状态栏、虚拟表格、图表、七页，以及运行、选列、优先级、nice、亲和性和消息等对话框；总在最前、切换后最小化、窗口几何持久化、应用页三种持久化视图、应用多选、批量窗口动作、Windows 平铺/层叠、“转到进程”、既有快捷键及托盘交互已连接真实动作。
 - [x] 接入七页控制器、真实 Rust 事件流、设置读写和有界刷新。
-- [~] 已添加 Linux desktop entry、KDE Wayland 权限声明、polkit policy、Inno Setup 定义及 DEB/RPM/tar.gz/ZIP 构建审计脚本；Linux x64 的 tar.gz 与 RPM 已实际生成并审计，DEB、Inno 安装包及其他架构仍待对应环境验证。
+- [~] 已添加 Linux desktop entry、KDE Wayland 权限声明、polkit policy、Inno Setup 定义及 DEB/RPM/tar.gz/ZIP 构建审计脚本；GitHub-hosted x64/ARM64 runner 已生成并审计四个平台的全部计划包，实际安装、升级、卸载与签名验收仍待完成。
 - [x] 建立 Windows/Linux × x64/ARM64 CI、生成漂移检查及 bundle 内容审计。
 - [~] 已完成 Rust 单元测试、Flutter widget/golden、八语言四档缩放和 KWin Wayland 真实窗口枚举；Windows、GNOME、安装包及 ARM64 真机冒烟尚待完成。
 
 ### 10.1 当前已验证结果
 
-- Rust workspace 已通过 `cargo clippy --workspace --all-targets --all-features -- -D warnings` 与全部本机单元测试；当前包括 core 10 项、helper 3 项、Linux 15 项，Windows 图标测试已在 Windows 目标的严格交叉 Clippy 中编译。
+- Rust workspace 已通过 `cargo clippy --workspace --all-targets --all-features -- -D warnings` 与全部本机单元测试；当前包括 core 10 项、helper 3 项、Linux 15 项。GitHub-hosted Windows x64/ARM64 与 Linux x64/ARM64 runner 均已通过对应原生目标的严格 Clippy 和 workspace 测试。
 - Flutter 已通过 `flutter analyze` 和全部 66 项测试，包括九张现代桌面页面/应用视图真实 Noto 字体 golden、窗口选项、窗口菜单、多选/平铺、“转到进程”的完整身份定位与 PID 复用防护、三种应用视图与 16/32px 图标 PNG/回退、12 级 CPU 托盘映射、托盘可用性门控、既有快捷键与快照换代后的选择同步行为，以及 8 个 locale × 100%/125%/150%/200% × 7 页的无溢出测试。
-- Linux debug bundle 已完成实包构建与内容审计，只包含一个项目 Rust 动态库 `libtaskmgr_native.so`。
+- Linux x64/ARM64 release bundle 均已完成实包构建与内容审计，每个平台只包含一个项目 Rust 动态库 `libtaskmgr_native.so`。
 - KWin 6.7.4 虚拟 Wayland 会话已验证 desktop entry 授权、KDE Plasma 后端选择、真实 Zenity 顶层窗口枚举、含 AppIndicator 插件的 Flutter 展示和后端有序关闭。
 - Wayland 后端选择固定为标准 ext → wlroots → KDE Plasma → X11；标准协议绑定失败时会继续尝试下一 Wayland 后端，而不是直接降到 X11。
 - “运行/新建任务”已贯通 Flutter、FRB 与两平台后端：Linux 直接按参数启动可执行文件或以 `xdg-open` 打开文档/目录/URI，Windows 使用 `ShellExecuteW`；两端都不把输入交给命令 shell，helper 也明确拒绝此非提权动作。
@@ -229,16 +229,16 @@ shutdownBackend(BackendHandle)
 - 托盘复用归档基线中的 12 级 CPU 图标和本地化菜单：Windows 支持双击恢复、右键还原/退出/总在最前及受运行时注册门控的“最小化时隐藏”；Linux 通过 AppIndicator 提供 CPU 图标与菜单，但因 `tray_manager` 无法证明 GNOME 等桌面存在 StatusNotifier host，只报告部分支持并保守禁用隐藏，避免窗口失联。隐藏前必须先成功发布“还原任务管理器”菜单项。
 - 系统标题栏仍由平台绘制；`window_manager 0.5.2` 只负责恢复尺寸/合法屏幕位置/最大化状态、总在最前和最小化。Wayland 不存在全局窗口坐标，因此只保存尺寸和最大化状态，不持久化伪造的 `(0, 0)`。
 - Linux 原生插件已强制使用相对 `$ORIGIN` RUNPATH，bundle 审计会拒绝泄漏构建机绝对路径的 ELF；加入窗口及托盘插件后的 release bundle、tar.gz 与 RPM 已重新生成并通过审计。
-- Linux x64 release bundle、便携 tar.gz 与未签名 RPM 已实际生成并通过内容/权限审计；本机缺少 `dpkg-deb`，因此 DEB 只具备构建定义，尚未在本机产出。
-- Windows provider 与 FRB 动态库已通过 `x86_64-pc-windows-gnu` 整个 workspace 的严格 Clippy；release 交叉链接生成了真实 PE32+ `taskmgr_native.dll`，导入表包含新增图标渲染所需 `gdi32.dll`，以及 `pdh.dll`、`iphlpapi.dll`、`shell32.dll` 与 `wtsapi32.dll`。这证明编译/链接闭合，不替代 Windows 真机运行验收。
+- Linux x64/ARM64 release bundle、便携 tar.gz、DEB 与未签名 RPM 已在对应 GitHub-hosted 原生 runner 上实际生成并通过内容、权限与架构审计；本机另外完成了 Linux x64 tar.gz/RPM 复验。
+- Windows x64/ARM64 provider、FRB 动态库和 helper 已在对应 GitHub-hosted 原生 runner 上通过严格 Clippy、测试、release 构建与 bundle 审计，并实际生成便携 ZIP、未签名 Inno Setup EXE 及校验和。x64 交叉复验生成的 PE32+ `taskmgr_native.dll` 导入表包含图标渲染所需 `gdi32.dll`，以及 `pdh.dll`、`iphlpapi.dll`、`shell32.dll` 与 `wtsapi32.dll`；这些结果证明编译、链接和封装闭合，不替代 Windows 真机运行与安装验收。
 - Linux 原生依赖已限制在 `cfg(target_os = "linux")`，Windows CI 不再错误编译 `wayland-sys`；Windows 平台 crate 同样保持可在 Linux CI 做类型面交叉检查。
 
 ### 10.2 剩余发布阻塞项
 
-- `taskmgr-windows` 已不再是占位实现，但尚未达到旧版功能等价：需要 Windows x64/ARM64 真机验证、GPU 驱动/温度详情、逐逻辑 CPU/processor-group 与 CPU Set 及受保护字段补全；应用窗口图标已实现但仍须在真机验证 GDI alpha 与高 DPI 系统小图标。
+- `taskmgr-windows` 已不再是占位实现，但尚未达到旧版功能等价：尽管 Windows x64/ARM64 原生 CI 已通过，仍需要可交互真机或虚拟机启动验证、GPU 驱动/温度详情、逐逻辑 CPU/processor-group 与 CPU Set 及受保护字段补全；应用窗口图标已实现但仍须验证 GDI alpha 与高 DPI 系统小图标。
 - helper 目前只有带协议版本、256-bit nonce、大小限制和未知字段拒绝的单请求白名单协议，尚无 UAC/polkit 启动、受限 pipe/socket、peer credential 与会话退出联动。
 - Windows 托盘与“最小化时隐藏”已实现但尚待 Windows 真机验证；Linux AppIndicator 已构建并通过 KWin Wayland 启动冒烟，GNOME 无扩展与真实面板菜单仍需系统矩阵验证。
-- Linux x64 的 tar.gz/RPM 已产出；DEB、Windows Inno/ZIP 的实际产出、签名阶段及全套升级/卸载测试尚未完成。
+- Linux x64/ARM64 的 tar.gz/DEB/RPM 与 Windows x64/ARM64 的 Inno/ZIP 已由 CI 实际产出并审计；签名阶段及全套安装、升级、卸载测试尚未完成。
 - GNOME Wayland、Windows x64/ARM64 与 Linux ARM64 的真实系统冒烟尚未执行；CI 定义不等同于真机验收。
 
 ## 11. 明确不做
