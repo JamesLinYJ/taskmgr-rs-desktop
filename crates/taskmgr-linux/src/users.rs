@@ -62,7 +62,7 @@ pub fn sample() -> Result<SnapshotData, taskmgr_core::BackendError> {
 fn c_field<const N: usize>(field: &[libc::c_char; N]) -> String {
     let bytes = field
         .iter()
-        .map(|value| *value as u8)
+        .map(|value| value.to_ne_bytes()[0])
         .take_while(|value| *value != 0)
         .collect::<Vec<_>>();
     String::from_utf8_lossy(&bytes).trim().to_string()

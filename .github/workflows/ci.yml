@@ -51,6 +51,8 @@ jobs:
         run: |
           cargo fmt --all
           dart format flutter_app/lib flutter_app/test flutter_app/integration_test
+          find flutter_app/lib flutter_app/test flutter_app/integration_test \
+            -type f -name '*.dart' -exec sed -i 's/[[:space:]]\+$//' {} +
       - name: Verify Cargokit lockfile mirror
         run: cmp Cargo.lock crates/taskmgr-bridge/Cargo.lock
       - name: Reject generated drift
@@ -148,6 +150,8 @@ jobs:
           test/message_dialog_test.dart
           test/run_task_dialog_test.dart
           test/window_options_test.dart
+          test/application_icons_test.dart
+          test/application_view_modes_test.dart
       - name: Build Linux release bundle
         if: runner.os == 'Linux'
         working-directory: flutter_app
