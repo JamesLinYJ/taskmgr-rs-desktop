@@ -177,6 +177,7 @@ shutdownBackend(BackendHandle)
 - Windows：x64/ARM64 的 Inno Setup 安装 EXE 与便携 ZIP，包含 Flutter bundle、Rust DLL 和 UAC helper。
 - Linux：x64/ARM64 的 DEB、RPM、tar.gz；DEB/RPM 含 helper/polkit，三种包都携带 GNOME 只读扩展，tar.gz 保持普通权限且不携带 helper。
 - 发布资产包含 SHA-256；无密钥时保持未签名并明确标注，流水线为 Authenticode/DEB/RPM 签名预留独立阶段。
+- `v<版本>-alpha.<序号>` 标签通过 `.github/workflows/release.yml` 复用四平台 CI 与 KWin Wayland 集成测试；只有全部门禁通过后才汇总十个安装/便携包、重新生成统一 `SHA256SUMS`，并创建 GitHub prerelease。
 
 ## 9. 测试矩阵与验收
 

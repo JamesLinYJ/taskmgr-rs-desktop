@@ -1,0 +1,111 @@
+# +-------------------------------------------------------------------------
+#
+#   taskmgr-rs - Alpha 预发布流水线
+#
+#   文件:       .github/workflows/release.yml
+#
+#   日期:       2026年08月21日
+#   环境:       GitHub-hosted Windows/Linux x64/ARM64；GitHub Actions
+#   作者:       JamesLinYJ
+#   协助:       OpenAI Codex:gpt-5.6-sol
+#   参考标准:   GitHub Actions reusable workflows；GitHub Releases
+# --------------------------------------------------------------------------
+
+name: Alpha release
+
+on:
+  push:
+    tags:
+      - 'v*-alpha.*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  quality:
+    name: Four-platform quality gate
+    uses: ./.github/workflows/ci.yml
+
+  wayland:
+    name: KWin Wayland quality gate
+    uses: ./.github/workflows/wayland.yml
+
+  publish:
+    name: Publish GitHub prerelease
+    needs:
+      - quality
+      - wayland
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validate alpha tag and project version
+        shell: bash
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)-alpha\.([1-9][0-9]*)$ ]]; then
+            echo "Invalid alpha release tag: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          package_version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+          cargo_version="$(sed -n \
+            '/^\[workspace\.package\]$/,/^\[/ s/^version = "\([^"]*\)"$/\1/p' \
+            Cargo.toml)"
+          flutter_version="$(sed -n \
+            's/^version: \([0-9][0-9.]*\)+[0-9][0-9]*$/\1/p' \
+            flutter_app/pubspec.yaml)"
+          if [[ "$package_version" != "$cargo_version" ||
+                "$package_version" != "$flutter_version" ]]; then
+            echo "Release tag version $package_version does not match Cargo ($cargo_version) and Flutter ($flutter_version)." >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" != "$GITHUB_SHA" ]]; then
+            echo "Tag $RELEASE_TAG does not resolve to the workflow commit $GITHUB_SHA." >&2
+            exit 1
+          fi
+          echo "PACKAGE_VERSION=$package_version" >> "$GITHUB_ENV"
+      - name: Download audited platform packages
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: taskmgr-rs-*-packages
+          path: release-input
+          merge-multiple: false
+      - name: Assemble release assets
+        run: scripts/prepare-release-assets.sh release-input release-assets "$PACKAGE_VERSION"
+      - name: Publish prerelease
+        env:
+          RELEASE_NOTES: |-
+            Flutter + Rust 跨平台重构的首个 Alpha 预览版。
+
+            包含 Windows 与 Linux 的 x64、ARM64 构建。当前仍有部分提权操作和桌面环境集成待完善；Windows 安装器尚未进行 Authenticode 签名。此版本用于测试，请在使用前核对随附的 SHA256SUMS。
+        shell: bash
+        run: |
+          mapfile -d '' release_assets < <(
+            find release-assets -maxdepth 1 -type f -print0 | sort -z
+          )
+          gh release create "$RELEASE_TAG" "${release_assets[@]}" \
+            --verify-tag \
+            --prerelease \
+            --latest=false \
+            --title "taskmgr-rs $RELEASE_TAG" \
+            --notes "$RELEASE_NOTES" \
+            --generate-notes
+      - name: Verify published release
+        shell: bash
+        run: |
+          release_state="$(gh release view "$RELEASE_TAG" \
+            --json tagName,isDraft,isPrerelease \
+            --jq '[.tagName, (.isDraft | tostring), (.isPrerelease | tostring)] | @tsv')"
+          if [[ "$release_state" != "$RELEASE_TAG"$'\tfalse\ttrue' ]]; then
+            echo "Unexpected published release state: $release_state" >&2
+            exit 1
+          fi
