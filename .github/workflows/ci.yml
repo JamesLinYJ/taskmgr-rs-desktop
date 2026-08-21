@@ -15,8 +15,11 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -30,6 +33,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Audit immutable CI dependencies
         run: scripts/audit-ci-pins.sh
+      - name: Test release asset assembly
+        run: scripts/test-prepare-release-assets.sh
       - name: Validate GNOME window provider metadata and syntax
         run: |
           python3 -m json.tool \
