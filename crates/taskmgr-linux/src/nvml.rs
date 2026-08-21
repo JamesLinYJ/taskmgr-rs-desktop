@@ -207,12 +207,15 @@ fn query_codec(device: NvmlDevice, function: CodecUtilizationFn) -> Option<f64> 
 }
 
 fn c_buffer_to_string(buffer: &[c_char]) -> Option<String> {
-    // Convert the complete fixed-size array first, then search for NUL inside that bound. This
-    // deliberately avoids an unbounded `CStr::from_ptr` read even if a defective driver violates
-    // NVML's termination guarantee.
-    let bytes = buffer.iter().map(|value| *value as u8).collect::<Vec<_>>();
-    let end = bytes.iter().position(|byte| *byte == 0)?;
-    let text = String::from_utf8_lossy(&bytes[..end]).trim().to_string();
+    // Search for NUL inside the supplied bound before decoding. `c_char` is signed on some
+    // targets and unsigned on others; `to_ne_bytes` preserves its single-byte representation on
+    // both without an architecture-dependent numeric cast.
+    let end = buffer.iter().position(|value| *value == 0)?;
+    let bytes = buffer[..end]
+        .iter()
+        .map(|value| value.to_ne_bytes()[0])
+        .collect::<Vec<_>>();
+    let text = String::from_utf8_lossy(&bytes).trim().to_string();
     (!text.is_empty()).then_some(text)
 }
 
@@ -225,5 +228,26 @@ fn check(operation: &str, result: c_int) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!("{operation} failed with NVML status {result}"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ffi::c_char;
+
+    use super::c_buffer_to_string;
+
+    #[test]
+    fn bounded_c_text_stops_at_the_first_nul() {
+        let buffer: [c_char; 16] = [
+            32, 32, 78, 86, 73, 68, 73, 65, 32, 71, 80, 85, 32, 32, 0, 88,
+        ];
+        assert_eq!(c_buffer_to_string(&buffer), Some("NVIDIA GPU".to_string()));
+    }
+
+    #[test]
+    fn unterminated_c_text_is_rejected() {
+        let buffer: [c_char; 4] = [78, 86, 77, 76];
+        assert_eq!(c_buffer_to_string(&buffer), None);
     }
 }
