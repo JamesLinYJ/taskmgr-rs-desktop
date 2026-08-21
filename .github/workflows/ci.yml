@@ -128,6 +128,7 @@ jobs:
         shell: bash
         env:
           FLUTTER_GIT_REVISION: 84fc5cbb223bc12f83d65b647ff8a56caf779ffd
+          FLUTTER_GIT_TAG: 3.44.7
         run: |
           git init "$RUNNER_TEMP/flutter"
           git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
@@ -135,6 +136,14 @@ jobs:
           actual_revision="$(git -C "$RUNNER_TEMP/flutter" rev-parse FETCH_HEAD)"
           if [[ "$actual_revision" != "$FLUTTER_GIT_REVISION" ]]; then
             echo "Flutter revision mismatch: expected $FLUTTER_GIT_REVISION, received $actual_revision" >&2
+            exit 1
+          fi
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 --no-tags origin \
+            "refs/tags/$FLUTTER_GIT_TAG:refs/tags/$FLUTTER_GIT_TAG"
+          tagged_revision="$(git -C "$RUNNER_TEMP/flutter" rev-parse \
+            "refs/tags/$FLUTTER_GIT_TAG^{commit}")"
+          if [[ "$tagged_revision" != "$FLUTTER_GIT_REVISION" ]]; then
+            echo "Flutter tag mismatch: $FLUTTER_GIT_TAG resolves to $tagged_revision" >&2
             exit 1
           fi
           git -C "$RUNNER_TEMP/flutter" checkout --detach "$actual_revision"
@@ -146,6 +155,7 @@ jobs:
         shell: pwsh
         env:
           FLUTTER_GIT_REVISION: 84fc5cbb223bc12f83d65b647ff8a56caf779ffd
+          FLUTTER_GIT_TAG: 3.44.7
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
@@ -156,6 +166,12 @@ jobs:
           $actualRevision = (git -C $flutterRoot rev-parse FETCH_HEAD).Trim()
           if ($actualRevision -ne $env:FLUTTER_GIT_REVISION) {
             throw "Flutter revision mismatch: expected $env:FLUTTER_GIT_REVISION, received $actualRevision"
+          }
+          $tagRef = "refs/tags/$($env:FLUTTER_GIT_TAG)"
+          git -C $flutterRoot fetch --depth 1 --no-tags origin "$($tagRef):$($tagRef)"
+          $taggedRevision = (git -C $flutterRoot rev-parse "$($tagRef)^{commit}").Trim()
+          if ($taggedRevision -ne $env:FLUTTER_GIT_REVISION) {
+            throw "Flutter tag mismatch: $env:FLUTTER_GIT_TAG resolves to $taggedRevision"
           }
           git -C $flutterRoot checkout --detach $actualRevision
           git -C $flutterRoot diff --quiet --no-ext-diff $env:FLUTTER_GIT_REVISION --
