@@ -36,15 +36,12 @@ if [[ -z "$sycoca_command" ]]; then
   exit 1
 fi
 
-(cd "$repo_root/flutter_app" && "$flutter_bin" build linux --debug)
 architecture=$(uname -m)
 case "$architecture" in
   x86_64) flutter_arch=x64 ;;
   aarch64|arm64) flutter_arch=arm64 ;;
   *) echo "unsupported test architecture: $architecture" >&2; exit 1 ;;
 esac
-bundle="$repo_root/flutter_app/build/linux/$flutter_arch/debug/bundle"
-executable=$(realpath "$bundle/taskmgr_rs")
 
 test_root=$(mktemp -d /tmp/taskmgr-rs-wayland.XXXXXX)
 runtime_dir="$test_root/runtime"
@@ -53,6 +50,7 @@ cache_home="$test_root/cache"
 config_home="$test_root/config"
 test_build_dir="build/wayland-integration-${BASHPID}"
 test_build_path="$repo_root/flutter_app/$test_build_dir"
+test_executable="$test_build_path/linux/$flutter_arch/debug/bundle/taskmgr_rs"
 mkdir -p \
   "$runtime_dir" \
   "$data_home/applications" \
@@ -90,11 +88,6 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-desktop_file="$data_home/applications/$application_id.desktop"
-sed "s|^Exec=/usr/bin/taskmgr_rs$|Exec=$executable|" \
-  "$repo_root/packaging/linux/$application_id.desktop" \
-  > "$desktop_file"
-
 export XDG_RUNTIME_DIR="$runtime_dir"
 export XDG_DATA_HOME="$data_home"
 export XDG_DATA_DIRS=${XDG_DATA_DIRS:-/usr/local/share:/usr/share}
@@ -110,6 +103,14 @@ export GDK_BACKEND=wayland
 # build directory with a flutter_test entrypoint. Keep that output separate so
 # running this test never turns the normal debug bundle into a test harness.
 "$flutter_bin" config --build-dir="$test_build_dir" >/dev/null
+
+# KWin grants its restricted window-management global by matching the client
+# executable to a desktop entry. Declare the exact integration-test executable
+# that Flutter will build and launch, rather than an unrelated regular bundle.
+desktop_file="$data_home/applications/$application_id.desktop"
+sed "s|^Exec=/usr/bin/taskmgr_rs$|Exec=$test_executable|" \
+  "$repo_root/packaging/linux/$application_id.desktop" \
+  > "$desktop_file"
 
 "$sycoca_command" --noincremental
 QT_QPA_PLATFORM=offscreen kwin_wayland \
