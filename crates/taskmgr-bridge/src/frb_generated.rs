@@ -1232,6 +1232,7 @@ const _: fn() = || {
         let GpuAdapter = None::<taskmgr_core::GpuAdapter>.unwrap();
         let _: String = GpuAdapter.id;
         let _: String = GpuAdapter.name;
+        let _: taskmgr_core::GpuDriverModel = GpuAdapter.driver_model;
         let _: Option<f64> = GpuAdapter.utilization_percent;
         let _: Option<u64> = GpuAdapter.dedicated_used_bytes;
         let _: Option<u64> = GpuAdapter.dedicated_total_bytes;
@@ -1243,6 +1244,8 @@ const _: fn() = || {
         let _: Option<String> = GpuAdapter.driver_date;
         let _: Option<String> = GpuAdapter.graphics_api;
         let _: Option<String> = GpuAdapter.physical_location;
+        let _: Option<String> = GpuAdapter.primary_device_node;
+        let _: Option<String> = GpuAdapter.render_device_node;
         let _: Option<u64> = GpuAdapter.hardware_reserved_bytes;
         let _: Vec<taskmgr_core::GpuEngine> = GpuAdapter.engines;
         let _: Vec<f64> = GpuAdapter.dedicated_usage_history_percent;
@@ -2138,6 +2141,7 @@ impl SseDecode for taskmgr_core::GpuAdapter {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_id = <String>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_driverModel = <taskmgr_core::GpuDriverModel>::sse_decode(deserializer);
         let mut var_utilizationPercent = <Option<f64>>::sse_decode(deserializer);
         let mut var_dedicatedUsedBytes = <Option<u64>>::sse_decode(deserializer);
         let mut var_dedicatedTotalBytes = <Option<u64>>::sse_decode(deserializer);
@@ -2149,6 +2153,8 @@ impl SseDecode for taskmgr_core::GpuAdapter {
         let mut var_driverDate = <Option<String>>::sse_decode(deserializer);
         let mut var_graphicsApi = <Option<String>>::sse_decode(deserializer);
         let mut var_physicalLocation = <Option<String>>::sse_decode(deserializer);
+        let mut var_primaryDeviceNode = <Option<String>>::sse_decode(deserializer);
+        let mut var_renderDeviceNode = <Option<String>>::sse_decode(deserializer);
         let mut var_hardwareReservedBytes = <Option<u64>>::sse_decode(deserializer);
         let mut var_engines = <Vec<taskmgr_core::GpuEngine>>::sse_decode(deserializer);
         let mut var_dedicatedUsageHistoryPercent = <Vec<f64>>::sse_decode(deserializer);
@@ -2157,6 +2163,7 @@ impl SseDecode for taskmgr_core::GpuAdapter {
         return taskmgr_core::GpuAdapter {
             id: var_id,
             name: var_name,
+            driver_model: var_driverModel,
             utilization_percent: var_utilizationPercent,
             dedicated_used_bytes: var_dedicatedUsedBytes,
             dedicated_total_bytes: var_dedicatedTotalBytes,
@@ -2168,6 +2175,8 @@ impl SseDecode for taskmgr_core::GpuAdapter {
             driver_date: var_driverDate,
             graphics_api: var_graphicsApi,
             physical_location: var_physicalLocation,
+            primary_device_node: var_primaryDeviceNode,
+            render_device_node: var_renderDeviceNode,
             hardware_reserved_bytes: var_hardwareReservedBytes,
             engines: var_engines,
             dedicated_usage_history_percent: var_dedicatedUsageHistoryPercent,
@@ -2185,6 +2194,18 @@ impl SseDecode for taskmgr_core::GpuData {
         return taskmgr_core::GpuData {
             adapters: var_adapters,
             selected_adapter: var_selectedAdapter,
+        };
+    }
+}
+
+impl SseDecode for taskmgr_core::GpuDriverModel {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => taskmgr_core::GpuDriverModel::WindowsWddm,
+            1 => taskmgr_core::GpuDriverModel::LinuxDrm,
+            _ => unreachable!("Invalid variant for GpuDriverModel: {}", inner),
         };
     }
 }
@@ -2215,13 +2236,14 @@ impl SseDecode for taskmgr_core::GpuEngineKind {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
             0 => taskmgr_core::GpuEngineKind::Overall,
-            1 => taskmgr_core::GpuEngineKind::ThreeD,
-            2 => taskmgr_core::GpuEngineKind::Copy,
-            3 => taskmgr_core::GpuEngineKind::VideoEncode,
-            4 => taskmgr_core::GpuEngineKind::VideoDecode,
-            5 => taskmgr_core::GpuEngineKind::Compute,
-            6 => taskmgr_core::GpuEngineKind::Security,
-            7 => taskmgr_core::GpuEngineKind::Other,
+            1 => taskmgr_core::GpuEngineKind::Memory,
+            2 => taskmgr_core::GpuEngineKind::ThreeD,
+            3 => taskmgr_core::GpuEngineKind::Copy,
+            4 => taskmgr_core::GpuEngineKind::VideoEncode,
+            5 => taskmgr_core::GpuEngineKind::VideoDecode,
+            6 => taskmgr_core::GpuEngineKind::Compute,
+            7 => taskmgr_core::GpuEngineKind::Security,
+            8 => taskmgr_core::GpuEngineKind::Other,
             _ => unreachable!("Invalid variant for GpuEngineKind: {}", inner),
         };
     }
@@ -3985,6 +4007,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::GpuAdapter> {
         [
             self.0.id.into_into_dart().into_dart(),
             self.0.name.into_into_dart().into_dart(),
+            self.0.driver_model.into_into_dart().into_dart(),
             self.0.utilization_percent.into_into_dart().into_dart(),
             self.0.dedicated_used_bytes.into_into_dart().into_dart(),
             self.0.dedicated_total_bytes.into_into_dart().into_dart(),
@@ -3996,6 +4019,8 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::GpuAdapter> {
             self.0.driver_date.into_into_dart().into_dart(),
             self.0.graphics_api.into_into_dart().into_dart(),
             self.0.physical_location.into_into_dart().into_dart(),
+            self.0.primary_device_node.into_into_dart().into_dart(),
+            self.0.render_device_node.into_into_dart().into_dart(),
             self.0.hardware_reserved_bytes.into_into_dart().into_dart(),
             self.0.engines.into_into_dart().into_dart(),
             self.0
@@ -4044,6 +4069,27 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::GpuData>>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::GpuDriverModel> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            taskmgr_core::GpuDriverModel::WindowsWddm => 0.into_dart(),
+            taskmgr_core::GpuDriverModel::LinuxDrm => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<taskmgr_core::GpuDriverModel>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::GpuDriverModel>>
+    for taskmgr_core::GpuDriverModel
+{
+    fn into_into_dart(self) -> FrbWrapper<taskmgr_core::GpuDriverModel> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::GpuEngine> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -4073,13 +4119,14 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::GpuEngineKind> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self.0 {
             taskmgr_core::GpuEngineKind::Overall => 0.into_dart(),
-            taskmgr_core::GpuEngineKind::ThreeD => 1.into_dart(),
-            taskmgr_core::GpuEngineKind::Copy => 2.into_dart(),
-            taskmgr_core::GpuEngineKind::VideoEncode => 3.into_dart(),
-            taskmgr_core::GpuEngineKind::VideoDecode => 4.into_dart(),
-            taskmgr_core::GpuEngineKind::Compute => 5.into_dart(),
-            taskmgr_core::GpuEngineKind::Security => 6.into_dart(),
-            taskmgr_core::GpuEngineKind::Other => 7.into_dart(),
+            taskmgr_core::GpuEngineKind::Memory => 1.into_dart(),
+            taskmgr_core::GpuEngineKind::ThreeD => 2.into_dart(),
+            taskmgr_core::GpuEngineKind::Copy => 3.into_dart(),
+            taskmgr_core::GpuEngineKind::VideoEncode => 4.into_dart(),
+            taskmgr_core::GpuEngineKind::VideoDecode => 5.into_dart(),
+            taskmgr_core::GpuEngineKind::Compute => 6.into_dart(),
+            taskmgr_core::GpuEngineKind::Security => 7.into_dart(),
+            taskmgr_core::GpuEngineKind::Other => 8.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -5267,6 +5314,7 @@ impl SseEncode for taskmgr_core::GpuAdapter {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.id, serializer);
         <String>::sse_encode(self.name, serializer);
+        <taskmgr_core::GpuDriverModel>::sse_encode(self.driver_model, serializer);
         <Option<f64>>::sse_encode(self.utilization_percent, serializer);
         <Option<u64>>::sse_encode(self.dedicated_used_bytes, serializer);
         <Option<u64>>::sse_encode(self.dedicated_total_bytes, serializer);
@@ -5278,6 +5326,8 @@ impl SseEncode for taskmgr_core::GpuAdapter {
         <Option<String>>::sse_encode(self.driver_date, serializer);
         <Option<String>>::sse_encode(self.graphics_api, serializer);
         <Option<String>>::sse_encode(self.physical_location, serializer);
+        <Option<String>>::sse_encode(self.primary_device_node, serializer);
+        <Option<String>>::sse_encode(self.render_device_node, serializer);
         <Option<u64>>::sse_encode(self.hardware_reserved_bytes, serializer);
         <Vec<taskmgr_core::GpuEngine>>::sse_encode(self.engines, serializer);
         <Vec<f64>>::sse_encode(self.dedicated_usage_history_percent, serializer);
@@ -5291,6 +5341,22 @@ impl SseEncode for taskmgr_core::GpuData {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Vec<taskmgr_core::GpuAdapter>>::sse_encode(self.adapters, serializer);
         <Option<usize>>::sse_encode(self.selected_adapter, serializer);
+    }
+}
+
+impl SseEncode for taskmgr_core::GpuDriverModel {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                taskmgr_core::GpuDriverModel::WindowsWddm => 0,
+                taskmgr_core::GpuDriverModel::LinuxDrm => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
     }
 }
 
@@ -5312,13 +5378,14 @@ impl SseEncode for taskmgr_core::GpuEngineKind {
         <i32>::sse_encode(
             match self {
                 taskmgr_core::GpuEngineKind::Overall => 0,
-                taskmgr_core::GpuEngineKind::ThreeD => 1,
-                taskmgr_core::GpuEngineKind::Copy => 2,
-                taskmgr_core::GpuEngineKind::VideoEncode => 3,
-                taskmgr_core::GpuEngineKind::VideoDecode => 4,
-                taskmgr_core::GpuEngineKind::Compute => 5,
-                taskmgr_core::GpuEngineKind::Security => 6,
-                taskmgr_core::GpuEngineKind::Other => 7,
+                taskmgr_core::GpuEngineKind::Memory => 1,
+                taskmgr_core::GpuEngineKind::ThreeD => 2,
+                taskmgr_core::GpuEngineKind::Copy => 3,
+                taskmgr_core::GpuEngineKind::VideoEncode => 4,
+                taskmgr_core::GpuEngineKind::VideoDecode => 5,
+                taskmgr_core::GpuEngineKind::Compute => 6,
+                taskmgr_core::GpuEngineKind::Security => 7,
+                taskmgr_core::GpuEngineKind::Other => 8,
                 _ => {
                     unimplemented!("");
                 }

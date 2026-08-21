@@ -19,8 +19,10 @@ helper=${2:?usage: build-linux-packages.sh <bundle> <helper> [output] [version]}
 output=${3:-dist}
 version=${4:-0.3.0}
 application_id=org.taskmgr_rs.TaskManager
+extension_uuid=window-provider@org.taskmgr_rs.TaskManager
 
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+extension_source="$repo_root/packaging/linux/gnome-shell-extension/$extension_uuid"
 bundle=$(realpath -- "$bundle")
 helper=$(realpath -- "$helper")
 mkdir -p -- "$output"
@@ -32,6 +34,10 @@ if [[ ! -d "$bundle" || ! -x "$bundle/taskmgr_rs" ]]; then
 fi
 if [[ ! -x "$helper" ]]; then
   echo "taskmgr-helper is missing or not executable: $helper" >&2
+  exit 1
+fi
+if [[ ! -f "$extension_source/metadata.json" || ! -f "$extension_source/extension.js" ]]; then
+  echo "GNOME Shell extension source is incomplete: $extension_source" >&2
   exit 1
 fi
 "$repo_root/scripts/audit-linux-bundle.sh" "$bundle"
@@ -55,6 +61,11 @@ portable_root="$stage_root/$portable_name"
 mkdir -p -- "$portable_root"
 cp -a -- "$bundle/." "$portable_root/"
 cp -a -- "$repo_root/LICENSE" "$portable_root/LICENSE"
+install -d "$portable_root/share/gnome-shell/extensions/$extension_uuid"
+install -m 0644 \
+  "$extension_source/metadata.json" \
+  "$extension_source/extension.js" \
+  "$portable_root/share/gnome-shell/extensions/$extension_uuid"
 tar \
   --sort=name \
   --mtime="@${SOURCE_DATE_EPOCH:-0}" \
@@ -83,6 +94,11 @@ install_tree() {
   install -Dpm0644 \
     "$repo_root/packaging/linux/$application_id.policy" \
     "$root/usr/share/polkit-1/actions/$application_id.policy"
+  install -d "$root/usr/share/gnome-shell/extensions/$extension_uuid"
+  install -m 0644 \
+    "$extension_source/metadata.json" \
+    "$extension_source/extension.js" \
+    "$root/usr/share/gnome-shell/extensions/$extension_uuid"
   install -d "$root/usr/share/icons/hicolor"
   cp -a -- \
     "$repo_root/packaging/linux/icons/hicolor/." \
@@ -121,6 +137,7 @@ if command -v rpmbuild >/dev/null 2>&1; then
     --define "launcher_path $repo_root/packaging/linux/taskmgr_rs-launcher" \
     --define "desktop_path $repo_root/packaging/linux/$application_id.desktop" \
     --define "policy_path $repo_root/packaging/linux/$application_id.policy" \
+    --define "extension_path $extension_source" \
     --define "icons_path $repo_root/packaging/linux/icons/hicolor" \
     --define "license_path $repo_root/LICENSE"
   while IFS= read -r -d '' rpm; do

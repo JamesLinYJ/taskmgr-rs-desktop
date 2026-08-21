@@ -5,6 +5,7 @@ Priority: optional
 Architecture: @ARCHITECTURE@
 Maintainer: JamesLinYJ
 Depends: libgtk-3-0 | libgtk-3-0t64, libayatana-appindicator3-1 | libappindicator3-1, libblkid1, liblzma5, policykit-1
+Suggests: gnome-shell
 Homepage: https://github.com/JamesLinYJ/taskmgr-rs-desktop
 Description: Classic cross-platform task manager
  Flutter desktop interface backed by native Rust system collectors for

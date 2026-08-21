@@ -12,6 +12,7 @@
 // --------------------------------------------------------------------------
 
 import 'dart:async';
+import 'dart:ui' show AppExitType;
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -32,8 +33,11 @@ Future<void> main() async {
     onAlwaysOnTopChanged: (enabled) =>
         controller.setUiPreferences(alwaysOnTop: enabled),
     onExitRequested: () async {
-      await controller.close();
-      await SystemNavigator.pop();
+      try {
+        await controller.close();
+      } finally {
+        await ServicesBinding.instance.exitApplication(AppExitType.required);
+      }
     },
   );
   final settings = controller.value.settings;

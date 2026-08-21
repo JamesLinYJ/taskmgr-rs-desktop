@@ -64,6 +64,12 @@ class _GpuPageState extends State<GpuPage> {
         _engineSelections[adapter.id] ??
         List<String?>.filled(_engineSlotCount, null);
     final fallback = l10n.notAvailable;
+    final dedicatedMemoryLabel = adapter.driverModel == GpuDriverModel.linuxDrm
+        ? l10n.gpuDeviceLocalMemory
+        : l10n.gpuDedicatedMemory;
+    final sharedMemoryLabel = adapter.driverModel == GpuDriverModel.linuxDrm
+        ? l10n.gpuSharedSystemMemory
+        : l10n.gpuSharedMemory;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
@@ -162,7 +168,7 @@ class _GpuPageState extends State<GpuPage> {
               ),
             ),
             const SizedBox(height: 5),
-            Text(l10n.gpuDedicatedMemory),
+            Text(dedicatedMemoryLabel),
             const SizedBox(height: 2),
             SizedBox(
               height: 52,
@@ -171,7 +177,7 @@ class _GpuPageState extends State<GpuPage> {
               ),
             ),
             const SizedBox(height: 5),
-            Text(l10n.gpuSharedMemory),
+            Text(sharedMemoryLabel),
             const SizedBox(height: 2),
             SizedBox(
               height: 52,
@@ -196,7 +202,7 @@ class _GpuPageState extends State<GpuPage> {
                         ),
                         (l10n.gpuMemory, _combinedMemory(adapter, fallback)),
                         (
-                          l10n.gpuDedicatedMemory,
+                          dedicatedMemoryLabel,
                           _memoryPair(
                             adapter.dedicatedUsedBytes,
                             adapter.dedicatedTotalBytes,
@@ -204,7 +210,7 @@ class _GpuPageState extends State<GpuPage> {
                           ),
                         ),
                         (
-                          l10n.gpuSharedMemory,
+                          sharedMemoryLabel,
                           _memoryPair(
                             adapter.sharedUsedBytes,
                             adapter.sharedTotalBytes,
@@ -224,28 +230,7 @@ class _GpuPageState extends State<GpuPage> {
                   Expanded(
                     child: _GpuDetails(
                       title: l10n.gpuAdapterDetails,
-                      rows: <(String, String)>[
-                        (l10n.gpuDriverVersion, _driver(adapter, fallback)),
-                        (
-                          l10n.gpuDriverDate,
-                          textOrUnavailable(adapter.driverDate, fallback),
-                        ),
-                        (
-                          l10n.gpuDirectXVersion,
-                          textOrUnavailable(adapter.graphicsApi, fallback),
-                        ),
-                        (
-                          l10n.gpuPhysicalLocation,
-                          textOrUnavailable(adapter.physicalLocation, fallback),
-                        ),
-                        (
-                          l10n.gpuHardwareReservedMemory,
-                          bytesOrUnavailable(
-                            adapter.hardwareReservedBytes,
-                            fallback,
-                          ),
-                        ),
-                      ],
+                      rows: _adapterDetails(l10n, adapter, fallback),
                     ),
                   ),
                 ],
@@ -310,13 +295,16 @@ class _GpuPageState extends State<GpuPage> {
         adapter.driverName != null ||
         adapter.driverVersion != null ||
         adapter.graphicsApi != null ||
-        adapter.physicalLocation != null;
+        adapter.physicalLocation != null ||
+        adapter.primaryDeviceNode != null ||
+        adapter.renderDeviceNode != null;
     return hasDetails ? l10n.gpuCurrentMetrics : l10n.gpuPartialDetails;
   }
 
   String _engineLabel(AppLocalizations l10n, GpuEngine engine) {
     final base = switch (engine.kind) {
       GpuEngineKind.overall => l10n.gpuUtilization,
+      GpuEngineKind.memory => l10n.gpuEngineMemory,
       GpuEngineKind.threeD => l10n.gpuEngine3D,
       GpuEngineKind.copy => l10n.gpuEngineCopy,
       GpuEngineKind.videoEncode => l10n.gpuEngineVideoEncode,
@@ -340,22 +328,67 @@ class _GpuPageState extends State<GpuPage> {
     return '$name $version';
   }
 
+  List<(String, String)> _adapterDetails(
+    AppLocalizations l10n,
+    GpuAdapter adapter,
+    String fallback,
+  ) {
+    if (adapter.driverModel == GpuDriverModel.linuxDrm) {
+      return <(String, String)>[
+        (l10n.gpuKernelDriver, textOrUnavailable(adapter.driverName, fallback)),
+        (
+          l10n.gpuKernelModuleVersion,
+          textOrUnavailable(adapter.driverVersion, fallback),
+        ),
+        (l10n.gpuGraphicsApi, textOrUnavailable(adapter.graphicsApi, fallback)),
+        (
+          l10n.gpuDrmPrimaryNode,
+          textOrUnavailable(adapter.primaryDeviceNode, fallback),
+        ),
+        (
+          l10n.gpuDrmRenderNode,
+          textOrUnavailable(adapter.renderDeviceNode, fallback),
+        ),
+        (
+          l10n.gpuPciAddress,
+          textOrUnavailable(adapter.physicalLocation, fallback),
+        ),
+      ];
+    }
+    return <(String, String)>[
+      (l10n.gpuDriverVersion, _driver(adapter, fallback)),
+      (l10n.gpuDriverDate, textOrUnavailable(adapter.driverDate, fallback)),
+      (
+        l10n.gpuDirectXVersion,
+        textOrUnavailable(adapter.graphicsApi, fallback),
+      ),
+      (
+        l10n.gpuPhysicalLocation,
+        textOrUnavailable(adapter.physicalLocation, fallback),
+      ),
+      (
+        l10n.gpuHardwareReservedMemory,
+        bytesOrUnavailable(adapter.hardwareReservedBytes, fallback),
+      ),
+    ];
+  }
+
   String _combinedMemory(GpuAdapter adapter, String fallback) {
     final dedicatedUsed = adapter.dedicatedUsedBytes;
     final dedicatedTotal = adapter.dedicatedTotalBytes;
     final sharedUsed = adapter.sharedUsedBytes;
     final sharedTotal = adapter.sharedTotalBytes;
-    if (dedicatedUsed == null ||
-        dedicatedTotal == null ||
-        sharedUsed == null ||
-        sharedTotal == null) {
-      return fallback;
+    if (dedicatedUsed != null && dedicatedTotal != null) {
+      if (sharedUsed != null && sharedTotal != null) {
+        return _memoryPair(
+          dedicatedUsed + sharedUsed,
+          dedicatedTotal + sharedTotal,
+          fallback,
+        );
+      }
+      return _memoryPair(dedicatedUsed, dedicatedTotal, fallback);
     }
-    return _memoryPair(
-      dedicatedUsed + sharedUsed,
-      dedicatedTotal + sharedTotal,
-      fallback,
-    );
+    return _memoryPair(sharedUsed, sharedTotal, fallback);
   }
 
   String _memoryPair(BigInt? used, BigInt? total, String fallback) {

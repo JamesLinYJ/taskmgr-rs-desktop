@@ -119,6 +119,7 @@ class _ApplicationsPageState extends State<ApplicationsPage> {
       return _ApplicationIconView(
         rows: rows,
         large: widget.viewMode == ApplicationViewMode.largeIcons,
+        titleFor: (row) => _title(l10n, row),
         initiallySelectedIdentities: _selectedIdentities,
         iconBuilder: (row, large) => _applicationIcon(row, large: large),
         onSelectionsChanged: selectionsChanged,
@@ -132,7 +133,7 @@ class _ApplicationsPageState extends State<ApplicationsPage> {
         DesktopColumn(
           label: l10n.taskColumnTask,
           width: 250,
-          value: (row) => row.title,
+          value: (row) => _title(l10n, row),
           leading: (row) => _applicationIcon(row),
         ),
         DesktopColumn(
@@ -347,6 +348,11 @@ class _ApplicationsPageState extends State<ApplicationsPage> {
     };
   }
 
+  String _title(AppLocalizations l10n, ApplicationRow row) {
+    final title = row.title.trim();
+    return title.isEmpty ? l10n.untitledWindow : title;
+  }
+
   Widget _applicationIcon(ApplicationRow row, {bool large = false}) {
     final bytes = large ? row.largeIconPng ?? row.iconPng : row.iconPng;
     final edge = large ? 32.0 : 16.0;
@@ -380,6 +386,7 @@ class _ApplicationIconView extends StatefulWidget {
   const _ApplicationIconView({
     required this.rows,
     required this.large,
+    required this.titleFor,
     required this.initiallySelectedIdentities,
     required this.iconBuilder,
     required this.onSelectionsChanged,
@@ -390,6 +397,7 @@ class _ApplicationIconView extends StatefulWidget {
 
   final List<ApplicationRow> rows;
   final bool large;
+  final String Function(ApplicationRow row) titleFor;
   final List<ApplicationIdentity> initiallySelectedIdentities;
   final Widget Function(ApplicationRow row, bool large) iconBuilder;
   final ValueChanged<List<ApplicationRow>> onSelectionsChanged;
@@ -486,6 +494,7 @@ class _ApplicationIconViewState extends State<_ApplicationIconView> {
 
   Widget _buildItem(int index) {
     final row = widget.rows[index];
+    final title = widget.titleFor(row);
     final selected = _selected.contains(row.identity);
     final color = selected ? DesktopTheme.selectionText : DesktopTheme.text;
     final contents = widget.large
@@ -499,7 +508,7 @@ class _ApplicationIconViewState extends State<_ApplicationIconView> {
               const SizedBox(height: 2),
               Flexible(
                 child: Text(
-                  row.title,
+                  title,
                   maxLines: 2,
                   textAlign: TextAlign.center,
                   overflow: TextOverflow.ellipsis,
@@ -517,7 +526,7 @@ class _ApplicationIconViewState extends State<_ApplicationIconView> {
               const SizedBox(width: 2),
               Expanded(
                 child: Text(
-                  row.title,
+                  title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: color),
@@ -527,7 +536,7 @@ class _ApplicationIconViewState extends State<_ApplicationIconView> {
           );
     return Semantics(
       selected: selected,
-      label: row.title,
+      label: title,
       child: Listener(
         onPointerDown: (event) {
           if ((event.buttons & kPrimaryMouseButton) != 0) {

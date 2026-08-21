@@ -25,6 +25,8 @@ class BackendController extends ValueNotifier<BackendState> {
 
   native.BackendHandle? _handle;
   StreamSubscription<native.BridgeBackendEvent>? _subscription;
+  Completer<void>? _eventStreamDone;
+  Future<void>? _closeFuture;
   bool _isPreview = false;
   Future<ActionResult?> Function(native.BridgeActionRequest request)?
   _previewAction;
@@ -58,9 +60,19 @@ class BackendController extends ValueNotifier<BackendState> {
         ),
       );
       controller._handle = handle;
+      final eventStreamDone = Completer<void>();
+      controller._eventStreamDone = eventStreamDone;
       controller._subscription = native
           .watchBackend(handle: handle)
-          .listen(controller._acceptEvent, onError: controller._acceptError);
+          .listen(
+            controller._acceptEvent,
+            onError: controller._acceptError,
+            onDone: () {
+              if (!eventStreamDone.isCompleted) {
+                eventStreamDone.complete();
+              }
+            },
+          );
     } catch (error) {
       controller.value = controller.value.copyWith(
         loading: false,
@@ -266,12 +278,27 @@ class BackendController extends ValueNotifier<BackendState> {
     );
   }
 
-  Future<void> close() async {
-    await _subscription?.cancel();
+  Future<void> close() => _closeFuture ??= _close();
+
+  Future<void> _close() async {
     final handle = _handle;
     _handle = null;
-    if (handle != null) {
-      await native.shutdownBackend(handle: handle);
+    final subscription = _subscription;
+    _subscription = null;
+    final eventStreamDone = _eventStreamDone;
+    _eventStreamDone = null;
+    try {
+      if (handle != null) {
+        // Stopping the Rust producer closes its FRB StreamSink. Keep Dart's
+        // receive port alive until that close marker arrives so the forwarding
+        // thread never posts into a canceled port during process teardown.
+        await native.shutdownBackend(handle: handle);
+      }
+      if (subscription != null && eventStreamDone != null) {
+        await eventStreamDone.future;
+      }
+    } finally {
+      await subscription?.cancel();
     }
   }
 

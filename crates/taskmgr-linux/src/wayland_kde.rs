@@ -33,13 +33,15 @@ use wayland_protocols_plasma::plasma_window_management::client::{
     },
 };
 
-use crate::wayland::wayland_error;
+use crate::desktop_icons::DesktopIconResolver;
+use crate::wayland::{release_terminal_entry, wayland_error};
 
 pub(crate) struct KdeSession {
     connection: Connection,
     event_queue: EventQueue<KdeState>,
     _manager: OrgKdePlasmaWindowManagement,
     state: KdeState,
+    icons: DesktopIconResolver,
 }
 
 #[derive(Default)]
@@ -51,11 +53,11 @@ struct KdeWindow {
     proxy: OrgKdePlasmaWindow,
     title: Option<String>,
     app_id: Option<String>,
+    themed_icon_name: Option<String>,
     pid: Option<u32>,
     flags: u32,
     desktops: Vec<String>,
     ready: bool,
-    closed: bool,
 }
 
 impl KdeSession {
@@ -77,6 +79,7 @@ impl KdeSession {
             event_queue,
             _manager: manager,
             state,
+            icons: DesktopIconResolver::discover(),
         })
     }
 
@@ -95,17 +98,19 @@ impl KdeSession {
             .roundtrip(&mut self.state)
             .map_err(|error| wayland_error("refresh KDE Plasma windows", error))?;
         let current_pid = std::process::id();
+        let icons = &mut self.icons;
         let mut rows = self
             .state
             .windows
             .iter()
             .filter(|(_, window)| {
                 window.ready
-                    && !window.closed
                     && window.pid != Some(current_pid)
                     && !has_flag(window.flags, PlasmaWindowState::Skiptaskbar)
             })
             .map(|(native_id, window)| {
+                let resolved_icons =
+                    icons.resolve(window.themed_icon_name.as_deref(), window.app_id.as_deref());
                 let process = window.pid.and_then(process_identity);
                 let row_error = window.pid.filter(|_| process.is_none()).map(|pid| {
                     BackendError::internal(
@@ -123,12 +128,12 @@ impl KdeSession {
                         .clone()
                         .or_else(|| window.app_id.clone())
                         .filter(|value| !value.is_empty())
-                        .unwrap_or_else(|| "Untitled KDE Wayland window".to_string()),
+                        .unwrap_or_default(),
                     status: ApplicationStatus::Running,
                     window_station: None,
                     desktop: (!window.desktops.is_empty()).then(|| window.desktops.join(", ")),
-                    icon_png: None,
-                    large_icon_png: None,
+                    icon_png: resolved_icons.small,
+                    large_icon_png: resolved_icons.large,
                     allowed_actions: actions_for_flags(window.flags),
                     row_error,
                 }
@@ -146,12 +151,7 @@ impl KdeSession {
         else {
             return ActionResult::unsupported("the requested operation is not a window action");
         };
-        let Some(window) = self
-            .state
-            .windows
-            .get(&identity.native_id)
-            .filter(|window| !window.closed)
-        else {
+        let Some(window) = self.state.windows.get(&identity.native_id) else {
             return ActionResult::failed(BackendError::internal(
                 "KDE Plasma window action",
                 "the selected window no longer exists",
@@ -216,11 +216,11 @@ impl Dispatch<OrgKdePlasmaWindowManagement, ()> for KdeState {
                     proxy,
                     title: None,
                     app_id: None,
+                    themed_icon_name: None,
                     pid: None,
                     flags: 0,
                     desktops: Vec::new(),
                     ready: false,
-                    closed: false,
                 },
             );
         }
@@ -236,6 +236,12 @@ impl Dispatch<OrgKdePlasmaWindow, u64> for KdeState {
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
+        if matches!(&event, org_kde_plasma_window::Event::Unmapped) {
+            let _ = release_terminal_entry(&mut state.windows, native_id, |window| {
+                window.proxy.destroy();
+            });
+            return;
+        }
         let Some(window) = state.windows.get_mut(native_id) else {
             return;
         };
@@ -245,6 +251,9 @@ impl Dispatch<OrgKdePlasmaWindow, u64> for KdeState {
             }
             org_kde_plasma_window::Event::AppIdChanged { app_id } => {
                 window.app_id = Some(app_id);
+            }
+            org_kde_plasma_window::Event::ThemedIconNameChanged { name } => {
+                window.themed_icon_name = Some(name);
             }
             org_kde_plasma_window::Event::StateChanged { flags } => window.flags = flags,
             org_kde_plasma_window::Event::PidChanged { pid } => window.pid = Some(pid),
@@ -257,7 +266,6 @@ impl Dispatch<OrgKdePlasmaWindow, u64> for KdeState {
                 window.desktops.retain(|desktop| desktop != &id);
             }
             org_kde_plasma_window::Event::InitialState => window.ready = true,
-            org_kde_plasma_window::Event::Unmapped => window.closed = true,
             _ => {}
         }
     }

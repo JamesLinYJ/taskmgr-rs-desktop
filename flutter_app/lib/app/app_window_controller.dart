@@ -95,11 +95,13 @@ final class DesktopAppWindowController
   late WindowGeometry _lastNormalGeometry;
   bool _initialized = false;
   bool _disposed = false;
+  bool _exitInProgress = false;
   bool _trayListenerRegistered = false;
   bool _trayRegistered = false;
   bool _hideWhenMinimized = false;
   bool _alwaysOnTop = false;
   bool _windowVisible = true;
+  int? _lastTrayIconLevel;
   String _restoreLabel = '';
   String _exitLabel = '';
   String _alwaysOnTopLabel = '';
@@ -140,6 +142,15 @@ final class DesktopAppWindowController
       await windowManager.maximize();
     }
     windowManager.addListener(this);
+    try {
+      // window_manager replaces Flutter's native Linux close handler. Keep the
+      // GtkWindow alive until Rust has shut down, then let Flutter's required
+      // application-exit request terminate through the embedder lifecycle.
+      await windowManager.setPreventClose(true);
+    } catch (_) {
+      windowManager.removeListener(this);
+      rethrow;
+    }
     _initialized = true;
   }
 
@@ -196,6 +207,7 @@ final class DesktopAppWindowController
       trayManager.addListener(this);
       _trayListenerRegistered = true;
       await trayManager.setIcon(_trayIconPath(0));
+      _lastTrayIconLevel = 0;
       _trayRegistered = true;
       if (_disposed) {
         await _destroyTray();
@@ -222,7 +234,10 @@ final class DesktopAppWindowController
       return;
     }
     final level = trayIconLevelForCpu(cpuPercent);
-    await trayManager.setIcon(_trayIconPath(level));
+    if (_lastTrayIconLevel != level) {
+      await trayManager.setIcon(_trayIconPath(level));
+      _lastTrayIconLevel = level;
+    }
     if (Platform.isWindows) {
       await trayManager.setToolTip(tooltip);
     }
@@ -270,6 +285,23 @@ final class DesktopAppWindowController
     _scheduleGeometryCapture();
     if (_trayRegistered) {
       unawaited(_refreshTrayMenu());
+    }
+  }
+
+  @override
+  void onWindowClose() {
+    unawaited(_requestExit());
+  }
+
+  Future<void> _requestExit() async {
+    if (_disposed || _exitInProgress) {
+      return;
+    }
+    _exitInProgress = true;
+    try {
+      await onExitRequested();
+    } finally {
+      _exitInProgress = false;
     }
   }
 
@@ -454,7 +486,7 @@ final class DesktopAppWindowController
       case 'restore':
         unawaited(_restoreFromTray());
       case 'exit':
-        unawaited(onExitRequested());
+        unawaited(_requestExit());
       case 'always_on_top':
         unawaited(_toggleAlwaysOnTopFromTray());
     }
@@ -488,6 +520,7 @@ final class DesktopAppWindowController
         // The desktop plugin may already be shutting down.
       }
       _trayRegistered = false;
+      _lastTrayIconLevel = null;
     }
   }
 

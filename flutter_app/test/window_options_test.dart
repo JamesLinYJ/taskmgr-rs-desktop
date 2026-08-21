@@ -333,6 +333,25 @@ void main() {
     expect(controller.value.settings?.hideWhenMinimized, isFalse);
   });
 
+  testWidgets('missing StatusNotifier host skips native tray initialization', (
+    tester,
+  ) async {
+    final appWindow = _FakeAppWindowController(
+      trayAvailability: Availability.partial,
+    );
+    final controller = BackendController.preview(
+      sampleState(PageId.applications, tray: Availability.unsupported),
+    );
+    await tester.pumpWidget(
+      TaskManagerApp(controller: controller, windowController: appWindow),
+    );
+    await tester.pumpAndSettle();
+
+    expect(appWindow.trayInitializationCalls, 0);
+    expect(appWindow.hideWhenMinimizedValues, <bool>[false]);
+    expect(appWindow.trayUpdates, isEmpty);
+  });
+
   testWidgets('verified tray enables hiding and receives the CPU indicator', (
     tester,
   ) async {

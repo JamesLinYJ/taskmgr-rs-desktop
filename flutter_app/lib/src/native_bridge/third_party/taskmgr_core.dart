@@ -637,6 +637,7 @@ class CpuTopologyMetrics {
 class GpuAdapter {
   final String id;
   final String name;
+  final GpuDriverModel driverModel;
   final double? utilizationPercent;
   final BigInt? dedicatedUsedBytes;
   final BigInt? dedicatedTotalBytes;
@@ -648,6 +649,8 @@ class GpuAdapter {
   final String? driverDate;
   final String? graphicsApi;
   final String? physicalLocation;
+  final String? primaryDeviceNode;
+  final String? renderDeviceNode;
   final BigInt? hardwareReservedBytes;
   final List<GpuEngine> engines;
 
@@ -661,6 +664,7 @@ class GpuAdapter {
   const GpuAdapter({
     required this.id,
     required this.name,
+    required this.driverModel,
     this.utilizationPercent,
     this.dedicatedUsedBytes,
     this.dedicatedTotalBytes,
@@ -672,6 +676,8 @@ class GpuAdapter {
     this.driverDate,
     this.graphicsApi,
     this.physicalLocation,
+    this.primaryDeviceNode,
+    this.renderDeviceNode,
     this.hardwareReservedBytes,
     required this.engines,
     required this.dedicatedUsageHistoryPercent,
@@ -683,6 +689,7 @@ class GpuAdapter {
   int get hashCode =>
       id.hashCode ^
       name.hashCode ^
+      driverModel.hashCode ^
       utilizationPercent.hashCode ^
       dedicatedUsedBytes.hashCode ^
       dedicatedTotalBytes.hashCode ^
@@ -694,6 +701,8 @@ class GpuAdapter {
       driverDate.hashCode ^
       graphicsApi.hashCode ^
       physicalLocation.hashCode ^
+      primaryDeviceNode.hashCode ^
+      renderDeviceNode.hashCode ^
       hardwareReservedBytes.hashCode ^
       engines.hashCode ^
       dedicatedUsageHistoryPercent.hashCode ^
@@ -707,6 +716,7 @@ class GpuAdapter {
           runtimeType == other.runtimeType &&
           id == other.id &&
           name == other.name &&
+          driverModel == other.driverModel &&
           utilizationPercent == other.utilizationPercent &&
           dedicatedUsedBytes == other.dedicatedUsedBytes &&
           dedicatedTotalBytes == other.dedicatedTotalBytes &&
@@ -718,6 +728,8 @@ class GpuAdapter {
           driverDate == other.driverDate &&
           graphicsApi == other.graphicsApi &&
           physicalLocation == other.physicalLocation &&
+          primaryDeviceNode == other.primaryDeviceNode &&
+          renderDeviceNode == other.renderDeviceNode &&
           hardwareReservedBytes == other.hardwareReservedBytes &&
           engines == other.engines &&
           dedicatedUsageHistoryPercent == other.dedicatedUsageHistoryPercent &&
@@ -742,6 +754,8 @@ class GpuData {
           adapters == other.adapters &&
           selectedAdapter == other.selectedAdapter;
 }
+
+enum GpuDriverModel { windowsWddm, linuxDrm }
 
 class GpuEngine {
   final String id;
@@ -786,6 +800,7 @@ class GpuEngine {
 
 enum GpuEngineKind {
   overall,
+  memory,
   threeD,
   copy,
   videoEncode,

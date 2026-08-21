@@ -107,11 +107,11 @@ static void my_application_activate(GApplication* application) {
     gtk_widget_show(GTK_WIDGET(header_bar));
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     configure_compact_header_bar(header_bar);
-    GBinding* title_binding =
-        g_object_bind_property(window, "title", header_bar, "title",
-                               G_BINDING_SYNC_CREATE);
-    g_object_set_data_full(G_OBJECT(window), "taskmgr-title-binding",
-                           title_binding, g_object_unref);
+    // g_object_bind_property returns a transfer-none GBinding. The binding is
+    // removed when either endpoint is finalized; unrefing the borrowed pointer
+    // separately would release it twice during window teardown.
+    g_object_bind_property(window, "title", header_bar, "title",
+                           G_BINDING_SYNC_CREATE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   }
   gtk_window_set_title(window, kDefaultWindowTitle);

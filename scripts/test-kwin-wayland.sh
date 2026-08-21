@@ -50,7 +50,14 @@ test_root=$(mktemp -d /tmp/taskmgr-rs-wayland.XXXXXX)
 runtime_dir="$test_root/runtime"
 data_home="$test_root/data"
 cache_home="$test_root/cache"
-mkdir -p "$runtime_dir" "$data_home/applications" "$cache_home"
+config_home="$test_root/config"
+test_build_dir="build/wayland-integration-${BASHPID}"
+test_build_path="$repo_root/flutter_app/$test_build_dir"
+mkdir -p \
+  "$runtime_dir" \
+  "$data_home/applications" \
+  "$cache_home" \
+  "$config_home"
 chmod 0700 "$runtime_dir"
 
 kwin_pid=
@@ -72,6 +79,10 @@ cleanup() {
     kill "$kwin_pid" 2>/dev/null || true
   fi
   wait "$fixture_pid" "$kwin_pid" 2>/dev/null || true
+  if [[ "$test_build_path" == \
+    "$repo_root/flutter_app/build/wayland-integration-"* ]]; then
+    rm -rf -- "$test_build_path"
+  fi
   if [[ "$test_root" == /tmp/taskmgr-rs-wayland.* ]]; then
     rm -rf -- "$test_root"
   fi
@@ -88,11 +99,17 @@ export XDG_RUNTIME_DIR="$runtime_dir"
 export XDG_DATA_HOME="$data_home"
 export XDG_DATA_DIRS=${XDG_DATA_DIRS:-/usr/local/share:/usr/share}
 export XDG_CACHE_HOME="$cache_home"
+export XDG_CONFIG_HOME="$config_home"
 export XDG_SESSION_TYPE=wayland
 export XDG_CURRENT_DESKTOP=KDE
 export XDG_SESSION_DESKTOP=KDE
 export WAYLAND_DISPLAY=taskmgr-wayland
 export GDK_BACKEND=wayland
+
+# Flutter desktop integration tests replace the executable assets in their
+# build directory with a flutter_test entrypoint. Keep that output separate so
+# running this test never turns the normal debug bundle into a test harness.
+"$flutter_bin" config --build-dir="$test_build_dir" >/dev/null
 
 "$sycoca_command" --noincremental
 QT_QPA_PLATFORM=offscreen kwin_wayland \

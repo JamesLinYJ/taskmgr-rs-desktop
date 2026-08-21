@@ -18,6 +18,7 @@ directory=${1:?usage: audit-linux-packages.sh <package-directory> [version] [arc
 version=${2:-0.3.0}
 arch=${3:-x64}
 application_id=org.taskmgr_rs.TaskManager
+extension_uuid=window-provider@org.taskmgr_rs.TaskManager
 directory=$(realpath -- "$directory")
 
 portable="$directory/taskmgr-rs-$version-linux-$arch.tar.gz"
@@ -45,6 +46,12 @@ for edge in 16 32; do
     exit 1
   fi
 done
+for extension_file in metadata.json extension.js; do
+  if [[ $(printf '%s\n' "${portable_files[@]}" | grep -Ec "/share/gnome-shell/extensions/$extension_uuid/$extension_file$") -ne 1 ]]; then
+    echo "portable archive must contain GNOME provider file: $extension_file" >&2
+    exit 1
+  fi
+done
 
 mapfile -t rpm_files < <(find "$directory" -maxdepth 1 -type f -name 'taskmgr-rs-*.rpm' -print)
 if [[ ${#rpm_files[@]} -gt 0 ]]; then
@@ -57,6 +64,8 @@ if [[ ${#rpm_files[@]} -gt 0 ]]; then
     grep -qx '/usr/libexec/taskmgr-rs/taskmgr-helper' <<<"$listing"
     grep -qx "/usr/share/applications/$application_id.desktop" <<<"$listing"
     grep -qx "/usr/share/polkit-1/actions/$application_id.policy" <<<"$listing"
+    grep -qx "/usr/share/gnome-shell/extensions/$extension_uuid/metadata.json" <<<"$listing"
+    grep -qx "/usr/share/gnome-shell/extensions/$extension_uuid/extension.js" <<<"$listing"
     for edge in 16 32 48 64 256; do
       grep -qx "/usr/share/icons/hicolor/${edge}x${edge}/apps/$application_id.png" <<<"$listing"
     done
@@ -82,6 +91,8 @@ if [[ ${#deb_files[@]} -gt 0 ]]; then
     grep -Eq '\./usr/libexec/taskmgr-rs/taskmgr-helper$' <<<"$listing"
     grep -Eq "\./usr/share/applications/$application_id\.desktop$" <<<"$listing"
     grep -Eq "\./usr/share/polkit-1/actions/$application_id\.policy$" <<<"$listing"
+    grep -Eq "\./usr/share/gnome-shell/extensions/$extension_uuid/metadata\.json$" <<<"$listing"
+    grep -Eq "\./usr/share/gnome-shell/extensions/$extension_uuid/extension\.js$" <<<"$listing"
     for edge in 16 32 48 64 256; do
       grep -Eq "\./usr/share/icons/hicolor/${edge}x${edge}/apps/$application_id\.png$" <<<"$listing"
     done

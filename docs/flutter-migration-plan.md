@@ -4,10 +4,10 @@
 | --- | --- |
 | 文档类型 | 架构迁移实施规格与执行清单 |
 | 版本目标 | `v0.3.0` |
-| 日期 | 2026-08-20 |
+| 日期 | 2026-08-21 |
 | 作者 | JamesLinYJ |
 | 协助 | OpenAI Codex:gpt-5.6-sol |
-| 参考标准 | Linux kernel UAPI、procfs、sysfs、DRM sysfs ABI、Wayland/EWMH、Win32/PDH/WTS/IP Helper、Flutter desktop、FRB 2.12 |
+| 参考标准 | Linux kernel UAPI、procfs、sysfs、DRM/NVML/Vulkan、Wayland/EWMH、GNOME Shell Extension API、Win32/PDH/WTS/IP Helper、Flutter desktop、FRB 2.12 |
 | 状态 | 实施中 |
 
 ## 1. 决策摘要
@@ -50,7 +50,9 @@ Rust 内部 crate 使用 `rlib` 连接。Flutter 只加载一个动态库：Wind
 - 固定直接依赖 `screen_retriever 0.2.2`（MIT），仅用于确认保存的位置仍与某个显示器工作区相交。虽然它也是 `window_manager` 的传递依赖，但直接导入其 API 时必须显式声明，避免依赖偶然的传递导出。
 - 固定使用 `tray_manager 0.5.3`（MIT）接入 Windows 通知区域与 Linux AppIndicator。Flutter SDK 与现有 `window_manager` 都不提供托盘图标、托盘菜单或通知区域鼠标事件；Linux 构建依赖 `ayatana-appindicator3-0.1` 或 `appindicator3-0.1`，GNOME 缺少 AppIndicator 扩展时只报告部分支持，不能启用“最小化时隐藏”。
 - 固定使用纯 Rust `png 0.18.1`（MIT OR Apache-2.0）把 Windows GDI 小图标和 X11 `_NET_WM_ICON` 像素编码为现有 `icon_png` 协议字段。标准库、Win32 GDI、X11RB 与 FRB 都不提供 PNG 编码器；依赖只在对应平台 crate 中编译，不进入 UI 或增加部署动态库。
-- 三项许可证随 Flutter 生成的 `data/flutter_assets/NOTICES.Z` 进入发布 bundle；Linux 插件 `.so` 必须使用相对 `$ORIGIN` RUNPATH，禁止携带构建机路径。
+- Linux 固定使用 `zbus 5.14.0`（MIT）连接用户会话 D-Bus，调用版本化 GNOME 只读窗口提供器；不解析 `gdbus`、`gnome-extensions` 或 Shell 命令输出。
+- Linux 固定使用 `ash 0.38.0`（MIT OR Apache-2.0）运行时加载 Vulkan Loader，并且只通过 `VK_EXT_pci_bus_info` 的完整 PCI 地址关联 DRM 设备；固定使用 `libloading 0.8.9`（ISC）封装 NVML 动态 ABI。两者都不增加项目自有动态库，Loader/NVML 不存在时保留空值。
+- Flutter 插件许可证随生成的 `data/flutter_assets/NOTICES.Z` 进入发布 bundle；Rust 依赖许可证纳入发布审计。Linux 插件 `.so` 必须使用相对 `$ORIGIN` RUNPATH，禁止携带构建机路径。
 
 ### 2.3 数据流
 
@@ -124,7 +126,7 @@ shutdownBackend(BackendHandle)
 | 进程 | 虚拟列表、选列、结束/结束树、优先级、亲和性 | 使用 nice、FD、RSS、cgroup 等真实字段 |
 | 性能 | CPU/内存仪表、历史图、Totals/Memory/Commit/Kernel 分组 | 无严格等价项显示不可用，不伪造分页池 |
 | CPU | 型号、总图、当前状态、拓扑、功能、缓存 | 数据来自 procfs/sysfs/架构能力 |
-| GPU | 适配器、四引擎、显存图、当前值和详情 | DRM 驱动提供多少展示多少，明确部分支持 |
+| GPU | 适配器、四引擎、显存图、当前值和详情 | DRM 清单；驱动 sysfs/NVML 指标；按 PCI 精确关联 Vulkan；使用 Linux 字段名 |
 | 网络 | 网卡表、每接口吞吐和历史 | 数据来自 sysfs/rtnetlink 语义 |
 | 用户 | 会话表、断开、注销、发消息 | utmpx/logind 能力分层，动作需要 helper |
 
@@ -135,9 +137,10 @@ shutdownBackend(BackendHandle)
 - 进程与系统：`/proc/<pid>/stat`、`status`、`fd`、`cgroup`、`/proc/stat`、`meminfo`、`cpuinfo`。
 - CPU：sysfs cpufreq/topology/cache；不依赖 CPU 型号硬编码表。
 - 网络：rtnetlink 枚举，sysfs 计数器与链路速度；累计计数处理首次样本、回退和接口重建。
-- GPU：`/sys/class/drm` 和已文档化的驱动 sysfs 属性；没有的指标保持空值。
+- GPU：`/sys/class/drm` 是设备清单真源；AMD/Intel 使用已文档化的驱动 sysfs，NVIDIA 使用正式 NVML ABI 补足利用率、显存、温度与编解码引擎，图形 API 仅在 Vulkan PCI 信息精确匹配时显示。Linux 页面展示内核驱动、模块版本、DRM 节点、PCI 地址与 Vulkan，不显示 DirectX/WDDM 字段。
 - 用户：utmpx 用于基础登录会话，systemd-logind D-Bus 用于可用时的完整会话与控制。
-- 应用程序优先 Wayland：依次尝试 `ext-foreign-toplevel-list-v1`、wlroots、KDE Plasma 兼容协议，全部不可用才回退 X11/EWMH。标准 ext 协议只提供枚举时禁用控制动作；KDE 受限接口只在已安装 desktop entry 明确声明后使用，并明确视为非标准兼容后端。
+- 应用程序优先 Wayland：依次尝试 `ext-foreign-toplevel-list-v1`、wlroots、KDE Plasma 兼容协议；三者均不可用的 GNOME 会话连接用户显式启用、版本化、只读且有资源上限的 Shell 扩展，最后才回退 X11/EWMH。标准协议始终优先；KDE/GNOME 都明确标为桌面适配器，禁止 `Eval`、`unsafe_mode` 和私有调试接口。
+- 应用图标统一按 Wayland app ID、GNOME/KDE themed icon、XDG desktop ID 与 `StartupWMClass` 解析 hicolor/主题图标；所有路径、PNG 尺寸、目录项与缓存均有界，无法准确解析时才使用中性默认图标。
 - 进程终止使用 pidfd；优先级、亲和性操作执行前后校验 starttime，并将无法原子证明的情况返回失败。
 
 ### 5.2 Windows
@@ -163,16 +166,16 @@ shutdownBackend(BackendHandle)
 - 新设置格式是 `schema_version = 1` 的 JSON，保存活动页面、应用页视图模式、刷新速度、窗口几何、列布局和现有选项；缺少新视图字段的早期配置默认恢复为 `Details`。
 - Windows 路径位于用户 AppData；Linux 遵循 XDG Base Directory。写入采用同目录临时文件、`fsync` 和原子替换。
 - 损坏设置改名为带时间戳的 `.corrupt` 文件，并向 UI 返回可观察 warning 后使用默认值。
-- 现有八个 locale TOML 转换为 Flutter ARB；Rust 返回语义值和错误码，不返回已格式化 UI 字符串。
+- 九个 locale 使用完整 Flutter ARB，其中 `zh_HK` 是独立香港繁体资源而非 `zh_CN` 回退；Rust 返回语义值和错误码，不返回已格式化 UI 字符串。
 - 复用现有 PNG/BMP；Flutter asset 清单显式包含应用图标、16/32px 默认应用窗口图标和十二级托盘图标。
 
 ## 8. 构建与发布
 
-- 固定 Rust `1.97.1`、Flutter `3.44.7`、Dart `3.12.2`、`flutter_rust_bridge`/codegen `2.12.0`、`tray_manager 0.5.3` 与 `png 0.18.1`。
+- 固定 Rust `1.97.1`、Flutter `3.44.7`、Dart `3.12.2`、`flutter_rust_bridge`/codegen `2.12.0`、`tray_manager 0.5.3`、`png 0.18.1`、`zbus 5.14.0`、`ash 0.38.0` 与 `libloading 0.8.9`。
 - FRB 使用 Cargokit；生成的 Rust/Dart glue 提交仓库，CI 重生成后必须 `git diff --exit-code`。
 - Linux 运行时 application ID 固定为中性的 `org.taskmgr_rs.TaskManager`，并作为 desktop 文件、hicolor 图标与 polkit action 的统一前缀；该 ID 不包含作者、协助者或代码托管账户名称。
 - Windows：x64/ARM64 的 Inno Setup 安装 EXE 与便携 ZIP，包含 Flutter bundle、Rust DLL 和 UAC helper。
-- Linux：x64/ARM64 的 DEB、RPM、tar.gz；DEB/RPM 含 helper/polkit，tar.gz 保持普通权限。
+- Linux：x64/ARM64 的 DEB、RPM、tar.gz；DEB/RPM 含 helper/polkit，三种包都携带 GNOME 只读扩展，tar.gz 保持普通权限且不携带 helper。
 - 发布资产包含 SHA-256；无密钥时保持未签名并明确标注，流水线为 Authenticode/DEB/RPM 签名预留独立阶段。
 
 ## 9. 测试矩阵与验收
@@ -187,10 +190,10 @@ shutdownBackend(BackendHandle)
 ### 9.2 运行时矩阵
 
 - Windows x64/ARM64，100%、125%、150%、200% DPI。
-- Linux GNOME Wayland、KDE Wayland 与一个 X11 桌面（优先 Xfce），x64/ARM64；逐项核对 `396 × 401` 默认客户区、系统/CSD 标题栏、八语言标题及 100%/125%/150%/200% 缩放。
+- Linux GNOME Wayland、KDE Wayland 与一个 X11 桌面（优先 Xfce），x64/ARM64；逐项核对 `396 × 401` 默认客户区、系统/CSD 标题栏、九语言标题及 100%/125%/150%/200% 缩放。
 - 矩阵外桌面环境为尽力支持；启动和七页主体不得依赖托盘或 foreign-toplevel 协议，缺失能力只禁用对应集成功能。
 - 无 GPU、多个 GPU、多网卡、64+ CPU、隐藏 `/proc`、无托盘扩展、无 polkit、用户取消提权。
-- 八种语言全部做溢出检查；中文、英文做全页视觉基线。
+- 九种语言全部做溢出检查；中文、英文做全页视觉基线。
 
 ### 9.3 发布门槛
 
@@ -212,27 +215,28 @@ shutdownBackend(BackendHandle)
 - [x] 建立唯一 `taskmgr-bridge`、FRB 2.12 生成配置和提交式生成代码。
 - [~] 建立 helper 白名单协议；UAC/polkit 会话 IPC 与调用者验证尚未完成。
 - [x] 创建仅含 Windows/Linux 的 Flutter desktop scaffold。
-- [x] 已转换八种 ARB、内置 Noto Sans，并迁移应用图标、默认应用窗口图标及原版 12 级 CPU 托盘图标。
+- [x] 已建立九种完整 ARB（含独立 `zh_HK`）、内置 Noto Sans，并迁移应用图标、默认应用窗口图标及原版 12 级 CPU 托盘图标。
 - [x] 已实现现代桌面主题、菜单、标签、状态栏、虚拟表格、图表、七页，以及运行、选列、优先级、nice、亲和性和消息等对话框；总在最前、切换后最小化、窗口几何持久化、应用页三种持久化视图、应用多选、批量窗口动作、Windows 平铺/层叠、“转到进程”、既有快捷键及托盘交互已连接真实动作。
 - [x] 接入七页控制器、真实 Rust 事件流、设置读写和有界刷新。
 - [~] 已添加 Linux desktop entry、KDE Wayland 权限声明、polkit policy、Inno Setup 定义及 DEB/RPM/tar.gz/ZIP 构建审计脚本；GitHub-hosted x64/ARM64 runner 已生成并审计四个平台的全部计划包，实际安装、升级、卸载与签名验收仍待完成。
 - [x] 建立 Windows/Linux × x64/ARM64 CI、生成漂移检查及 bundle 内容审计。
-- [~] 已完成 Rust 单元测试、Flutter widget/golden、八语言四档缩放和 KWin Wayland 真实窗口枚举；Windows、GNOME、安装包及 ARM64 真机冒烟尚待完成。
+- [~] 已完成 Rust 单元测试、Flutter widget/golden、九语言四档缩放，以及 KWin/GNOME Wayland 真实窗口枚举；Windows、安装包及 ARM64 真机冒烟尚待完成。
 
 ### 10.1 当前已验证结果
 
-- Rust workspace 已通过 `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings` 与全部本机单元测试；当前包括 core 13 项、helper 3 项、Linux 20 项。Windows x64 目标还通过了包含逐逻辑处理器 NT 计数器、processor-group 拓扑与 GPU 元数据查询代码的交叉编译和测试链接。GitHub-hosted Windows x64/ARM64 与 Linux x64/ARM64 runner 均已通过对应原生目标的严格 Clippy 和 workspace 测试。
-- Flutter 已通过 `flutter analyze` 和全部 74 项测试，包括九张现代桌面页面/应用视图真实 Noto 字体 golden、性能页双击精简模式、原版尺寸下 32 逻辑核完整布局、Windows/Linux 性能字段语义分流、CPU 四组强类型详情、超过四个 GPU 引擎的可选展示、八语言 Windows NT 标题、140 ms 页面切换、窗口选项、窗口菜单、多选/平铺、“转到进程”的完整身份定位与 PID 复用防护、三种应用视图与 16/32px 图标 PNG/回退、12 级 CPU 托盘映射、托盘可用性门控、既有快捷键与快照换代后的选择同步行为，以及 8 个 locale × `396 × 401` 客户区 × 100%/125%/150%/200% × 7 页的无溢出测试。
+- Rust workspace 已通过 `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings` 与全部 52 项本机单元测试；当前包括 core 13 项、helper 3 项、Linux 36 项。Windows x64 目标还通过了包含逐逻辑处理器 NT 计数器、processor-group 拓扑与 GPU 元数据查询代码的交叉编译和测试链接。GitHub-hosted Windows x64/ARM64 与 Linux x64/ARM64 runner 均已通过对应原生目标的严格 Clippy 和 workspace 测试。
+- Flutter 已通过 `flutter analyze` 和全部 81 项测试，包括九张现代桌面页面/应用视图真实 Noto 字体 golden、性能页双击精简模式、原版尺寸下 32 逻辑核完整布局、Windows/Linux 性能字段语义分流、CPU 四组强类型详情、超过四个 GPU 引擎的可选展示、九语言 Windows NT 标题、140 ms 页面切换、窗口选项、窗口菜单、多选/平铺、“转到进程”的完整身份定位与 PID 复用防护、三种应用视图与 16/32px 图标 PNG/回退、12 级 CPU 托盘映射、托盘可用性门控、既有快捷键与快照换代后的选择同步行为，以及 9 个 locale × `396 × 401` 客户区 × 100%/125%/150%/200% × 7 页的无溢出测试。
 - 性能页保持原有仪表、历史图和四个统计框布局；Windows 使用 Handles、Commit Charge、Paged/Nonpaged 等原生语义，Linux 使用 `/proc/sys/fs/file-nr` 的在用文件句柄以及 `Committed_AS`、`CommitLimit`、Swap、Slab、KernelStack、PageTables。Linux 不再遍历并静默少算受权限限制的 `/proc/<pid>/fd`，也不再把文件描述符数伪装成 Windows handle 数。
 - Linux x64/ARM64 release bundle 均已完成实包构建与内容审计，每个平台只包含一个项目 Rust 动态库 `libtaskmgr_native.so`。
 - KWin 6.7.4 虚拟 Wayland 会话已验证 desktop entry 授权、KDE Plasma 后端选择、真实 Zenity 顶层窗口枚举、含 AppIndicator 插件的 Flutter 展示和后端有序关闭。
-- Wayland 后端选择固定为标准 ext → wlroots → KDE Plasma → X11；标准协议绑定失败时会继续尝试下一 Wayland 后端，而不是直接降到 X11。
+- GNOME Shell 51.beta Wayland 真实会话已验证用户扩展处于 `ACTIVE`、`WindowProvider1.GetVersion` 返回协议 1、`GetWindows` 返回原生 Wayland/XWayland 混合窗口；Flutter 应用页实际展示 7 个其他应用窗口并排除自身，ChatGPT 等应用通过 XDG 图标映射显示真实图标。当前会话没有 StatusNotifierWatcher 时应用也会跳过 AppIndicator，不再触发 `GtkStatusIcon` 回退。
+- GNOME Wayland 的系统关闭按钮已完成真实生命周期验证：`window_manager` 先保留原生窗口，Flutter 等待 Rust 采样线程停止及 FRB 事件流自然关闭后再发出跨桌面的 `System.exitApplication(required)`；重复关闭请求会合并，退出过程不再发生 GTK 对象二次释放、隐式 Flutter view 移除或向已取消 Dart port 发送事件的竞态。
+- Wayland 后端选择固定为标准 ext → wlroots → KDE Plasma → GNOME 用户授权只读提供器 → X11；标准协议绑定失败时会继续尝试下一 Wayland 后端，而不是直接降到 X11。
 - “运行/新建任务”已贯通 Flutter、FRB 与两平台后端：Linux 直接按参数启动可执行文件或以 `xdg-open` 打开文档/目录/URI，Windows 使用 `ShellExecuteW`；两端都不把输入交给命令 shell，helper 也明确拒绝此非提权动作。
 - 应用程序列表已复刻 Ctrl/Shift 多选和原版窗口菜单的“有选择则作用于选中项、无选择则作用于全部项”语义。Windows 平铺与层叠分别调用微软 [`TileWindows`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-tilewindows) / [`CascadeWindows`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-cascadewindows)，调用前逐项验证窗口句柄与进程创建身份；Wayland 不提供可信全局窗口摆放协议，因此能力模型保持禁用。
-- 应用程序页已复刻 `Large Icons`、`Small Icons`、`Details` 三种单选视图、视图设置持久化及空白区右键视图菜单，切换视图保持完整多选身份。详细/小图标视图使用 16×16、小图标与文本相距 2px，大图标视图使用独立 32×32 数据；Windows 以 100ms 有界 `WM_GETICON`/类图标查询后在 GDI DIB 上恢复 alpha 并缓存两种 PNG，X11 解析有界 `_NET_WM_ICON` 并分别选择最接近 16/32px 的图像；标准 Wayland foreign-toplevel 协议不传图标时使用对应归档默认图标，不伪造应用专属图标。
+- 应用程序页已复刻 `Large Icons`、`Small Icons`、`Details` 三种单选视图、视图设置持久化及空白区右键视图菜单，切换视图保持完整多选身份。详细/小图标视图使用 16×16、小图标与文本相距 2px，大图标视图使用独立 32×32 数据；Windows 以 100ms 有界 `WM_GETICON`/类图标查询后在 GDI DIB 上恢复 alpha 并缓存两种 PNG，X11 优先解析有界 `_NET_WM_ICON`，缺失时按 ICCCM `WM_CLASS` 匹配 XDG desktop entry；Wayland/GNOME/KDE 统一通过 XDG desktop ID、`StartupWMClass` 和 themed icon 解析有界 16/32px PNG，只有无法准确关联时才使用中性默认图标。
 - 应用程序右键菜单的“转到进程”使用完整 `ProcessIdentity { pid, startTime }` 切换进程页、选择并滚动到目标行；若下一份快照仍找不到完全相同的身份则保持未选择，绝不因 PID 复用而误选。
-- 托盘复用归档基线中的 12 级 CPU 图标和本地化菜单：Windows 支持双击恢复、右键还原/退出/总在最前及受运行时注册门控的“最小化时隐藏”；Linux 通过 AppIndicator 提供 CPU 图标与菜单，但因 `tray_manager` 无法证明 GNOME 等桌面存在 StatusNotifier host，只报告部分支持并保守禁用隐藏，避免窗口失联。隐藏前必须先成功发布“还原任务管理器”菜单项。
-- 系统标题栏仍由平台绘制；`window_manager 0.5.2` 只负责恢复尺寸/合法屏幕位置/最大化状态、总在最前和最小化。Wayland 不存在全局窗口坐标，因此只保存尺寸和最大化状态，不持久化伪造的 `(0, 0)`。
+- 托盘复用归档基线中的 12 级 CPU 图标和本地化菜单：Windows 支持双击恢复、右键还原/退出/总在最前及受运行时注册门控的“最小化时隐藏”；Linux 仅在会话 D-Bus 上确认 `org.kde.StatusNotifierWatcher` 确有所有者后才初始化 AppIndicator，否则报告不支持并跳过插件，避免 GNOME Wayland 触发废弃的 `GtkStatusIcon` 回退。即使宿主存在也只报告部分支持并保守禁用隐藏，避免宿主退出后窗口失联。
 - Linux 原生插件已强制使用相对 `$ORIGIN` RUNPATH，bundle 审计会拒绝泄漏构建机绝对路径的 ELF；加入窗口及托盘插件后的 release bundle、tar.gz 与 RPM 已重新生成并通过审计。
 - Linux x64/ARM64 release bundle、便携 tar.gz、DEB 与未签名 RPM 已在对应 GitHub-hosted 原生 runner 上实际生成并通过内容、权限与架构审计；本机另外完成了 Linux x64 tar.gz/RPM 复验。
 - Windows x64/ARM64 provider、FRB 动态库和 helper 已在对应 GitHub-hosted 原生 runner 上通过严格 Clippy、测试、release 构建与 bundle 审计，并实际生成便携 ZIP、未签名 Inno Setup EXE 及校验和。x64 交叉复验生成的 PE32+ `taskmgr_native.dll` 导入表包含图标渲染所需 `gdi32.dll`，以及 `pdh.dll`、`iphlpapi.dll`、`shell32.dll` 与 `wtsapi32.dll`；这些结果证明编译、链接和封装闭合，不替代 Windows 真机运行与安装验收。
@@ -242,9 +246,9 @@ shutdownBackend(BackendHandle)
 
 - `taskmgr-windows` 已补齐 GPU 驱动/日期/位置/温度、D3D feature level、逐逻辑 CPU/processor-group 历史和 CPU 详情；尽管 Windows x64/ARM64 原生 CI 已通过，仍需要可交互真机或虚拟机启动验证、CPU Set 亲和性及受保护字段补全。应用窗口图标已实现但仍须验证 GDI alpha 与高 DPI 系统小图标。
 - helper 目前只有带协议版本、256-bit nonce、大小限制和未知字段拒绝的单请求白名单协议，尚无 UAC/polkit 启动、受限 pipe/socket、peer credential 与会话退出联动。
-- Windows 托盘与“最小化时隐藏”已实现但尚待 Windows 真机验证；Linux AppIndicator 已构建并通过 KWin Wayland 启动冒烟，GNOME 无扩展与真实面板菜单仍需系统矩阵验证。
+- Windows 托盘与“最小化时隐藏”已实现但尚待 Windows 真机验证；Linux AppIndicator 已构建并通过 KWin Wayland 启动冒烟，GNOME 无 StatusNotifierWatcher 路径已实测；GNOME 安装 AppIndicator 宿主后的真实面板菜单仍需系统矩阵验证。
 - Linux x64/ARM64 的 tar.gz/DEB/RPM 与 Windows x64/ARM64 的 Inno/ZIP 已由 CI 实际产出并审计；签名阶段及全套安装、升级、卸载测试尚未完成。
-- GNOME Wayland、Windows x64/ARM64 与 Linux ARM64 的真实系统冒烟尚未执行；CI 定义不等同于真机验收。
+- Windows x64/ARM64 与 Linux ARM64 的完整真实系统冒烟尚未执行；GNOME Wayland 已完成窗口枚举、图标和无托盘宿主路径验证，但只读提供器不提供窗口控制动作。CI 定义不等同于真机验收。
 
 ## 11. 明确不做
 

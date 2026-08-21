@@ -99,13 +99,14 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
-    Locale('de'),
     Locale('en'),
+    Locale('de'),
     Locale('es'),
     Locale('fr'),
     Locale('pt'),
     Locale('ru'),
     Locale('zh'),
+    Locale('zh', 'HK'),
     Locale('zh', 'TW'),
   ];
 
@@ -661,6 +662,18 @@ abstract class AppLocalizations {
   /// **'Shared GPU Memory'**
   String get gpuSharedMemory;
 
+  /// No description provided for @gpuDeviceLocalMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'Device-local GPU Memory'**
+  String get gpuDeviceLocalMemory;
+
+  /// No description provided for @gpuSharedSystemMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared System Memory'**
+  String get gpuSharedSystemMemory;
+
   /// No description provided for @gpuTemperature.
   ///
   /// In en, this message translates to:
@@ -696,6 +709,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hardware Reserved Memory'**
   String get gpuHardwareReservedMemory;
+
+  /// No description provided for @gpuKernelDriver.
+  ///
+  /// In en, this message translates to:
+  /// **'Kernel Driver'**
+  String get gpuKernelDriver;
+
+  /// No description provided for @gpuKernelModuleVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Kernel Module Version'**
+  String get gpuKernelModuleVersion;
+
+  /// No description provided for @gpuGraphicsApi.
+  ///
+  /// In en, this message translates to:
+  /// **'Graphics API'**
+  String get gpuGraphicsApi;
+
+  /// No description provided for @gpuDrmPrimaryNode.
+  ///
+  /// In en, this message translates to:
+  /// **'DRM Primary Node'**
+  String get gpuDrmPrimaryNode;
+
+  /// No description provided for @gpuDrmRenderNode.
+  ///
+  /// In en, this message translates to:
+  /// **'DRM Render Node'**
+  String get gpuDrmRenderNode;
+
+  /// No description provided for @gpuPciAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'PCI Address'**
+  String get gpuPciAddress;
+
+  /// No description provided for @gpuEngineMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'Memory'**
+  String get gpuEngineMemory;
 
   /// No description provided for @gpuEngine3D.
   ///
@@ -738,6 +793,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not available'**
   String get notAvailable;
+
+  /// No description provided for @untitledWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled window'**
+  String get untitledWindow;
 
   /// No description provided for @taskColumnTask.
   ///
@@ -1946,6 +2007,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
     case 'zh':
       {
         switch (locale.countryCode) {
+          case 'HK':
+            return AppLocalizationsZhHk();
           case 'TW':
             return AppLocalizationsZhTw();
         }

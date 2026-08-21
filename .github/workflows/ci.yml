@@ -27,16 +27,34 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@master
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Audit immutable CI dependencies
+        run: scripts/audit-ci-pins.sh
+      - name: Validate GNOME window provider metadata and syntax
+        run: |
+          python3 -m json.tool \
+            packaging/linux/gnome-shell-extension/window-provider@org.taskmgr_rs.TaskManager/metadata.json \
+            >/dev/null
+          node --check \
+            packaging/linux/gnome-shell-extension/window-provider@org.taskmgr_rs.TaskManager/extension.js
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:
           toolchain: 1.97.1
           components: rustfmt
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: 3.44.7
           channel: stable
-          cache: true
+      - name: Verify pinned Flutter SDK
+        env:
+          FLUTTER_GIT_REVISION: 84fc5cbb223bc12f83d65b647ff8a56caf779ffd
+        run: |
+          actual_revision="$(git -C "$FLUTTER_ROOT" rev-parse HEAD)"
+          if [[ "$actual_revision" != "$FLUTTER_GIT_REVISION" ]]; then
+            echo "Flutter revision mismatch: expected $FLUTTER_GIT_REVISION, received $actual_revision" >&2
+            exit 1
+          fi
+          git -C "$FLUTTER_ROOT" diff --quiet --no-ext-diff "$FLUTTER_GIT_REVISION" --
       - name: Install FRB generator
         run: cargo install flutter_rust_bridge_codegen --version 2.12.0 --locked
       - name: Resolve pinned Flutter packages
@@ -83,35 +101,66 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@master
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:
           toolchain: 1.97.1
           components: rustfmt, clippy
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         if: matrix.arch == 'x64'
         with:
           flutter-version: 3.44.7
           channel: stable
-          cache: true
+      - name: Verify pinned Flutter SDK
+        if: matrix.arch == 'x64'
+        shell: bash
+        env:
+          FLUTTER_GIT_REVISION: 84fc5cbb223bc12f83d65b647ff8a56caf779ffd
+        run: |
+          actual_revision="$(git -C "$FLUTTER_ROOT" rev-parse HEAD)"
+          if [[ "$actual_revision" != "$FLUTTER_GIT_REVISION" ]]; then
+            echo "Flutter revision mismatch: expected $FLUTTER_GIT_REVISION, received $actual_revision" >&2
+            exit 1
+          fi
+          git -C "$FLUTTER_ROOT" diff --quiet --no-ext-diff "$FLUTTER_GIT_REVISION" --
       - name: Bootstrap pinned Flutter on Linux ARM64
         if: matrix.arch == 'arm64' && runner.os == 'Linux'
         shell: bash
+        env:
+          FLUTTER_GIT_REVISION: 84fc5cbb223bc12f83d65b647ff8a56caf779ffd
         run: |
-          git clone --depth 1 --branch 3.44.7 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin "$FLUTTER_GIT_REVISION"
+          actual_revision="$(git -C "$RUNNER_TEMP/flutter" rev-parse FETCH_HEAD)"
+          if [[ "$actual_revision" != "$FLUTTER_GIT_REVISION" ]]; then
+            echo "Flutter revision mismatch: expected $FLUTTER_GIT_REVISION, received $actual_revision" >&2
+            exit 1
+          fi
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$actual_revision"
+          git -C "$RUNNER_TEMP/flutter" diff --quiet --no-ext-diff "$FLUTTER_GIT_REVISION" --
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/flutter/bin/flutter" --version
       - name: Bootstrap pinned Flutter on Windows ARM64
         if: matrix.arch == 'arm64' && runner.os == 'Windows'
         shell: pwsh
+        env:
+          FLUTTER_GIT_REVISION: 84fc5cbb223bc12f83d65b647ff8a56caf779ffd
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           $flutterRoot = Join-Path $env:RUNNER_TEMP 'flutter'
-          git clone --depth 1 --branch 3.44.7 https://github.com/flutter/flutter.git $flutterRoot
+          git init $flutterRoot
+          git -C $flutterRoot remote add origin https://github.com/flutter/flutter.git
+          git -C $flutterRoot fetch --depth 1 origin $env:FLUTTER_GIT_REVISION
+          $actualRevision = (git -C $flutterRoot rev-parse FETCH_HEAD).Trim()
+          if ($actualRevision -ne $env:FLUTTER_GIT_REVISION) {
+            throw "Flutter revision mismatch: expected $env:FLUTTER_GIT_REVISION, received $actualRevision"
+          }
+          git -C $flutterRoot checkout --detach $actualRevision
+          git -C $flutterRoot diff --quiet --no-ext-diff $env:FLUTTER_GIT_REVISION --
           Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $flutterRoot 'bin')
           & (Join-Path $flutterRoot 'bin\flutter.bat') --version
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
-          }
       - name: Install Linux desktop toolchain
         if: runner.os == 'Linux'
         run: |
@@ -190,28 +239,28 @@ jobs:
             -Version 0.3.0
       - name: Upload Linux bundle
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: taskmgr-rs-${{ matrix.platform }}-${{ matrix.arch }}
           path: flutter_app/build/linux/${{ matrix.arch }}/release/bundle
           if-no-files-found: error
       - name: Upload Windows bundle
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: taskmgr-rs-${{ matrix.platform }}-${{ matrix.arch }}
           path: flutter_app/build/windows/${{ matrix.arch }}/runner/Release
           if-no-files-found: error
       - name: Upload Linux packages
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: taskmgr-rs-${{ matrix.platform }}-${{ matrix.arch }}-packages
           path: dist/*
           if-no-files-found: error
       - name: Upload Windows packages
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: taskmgr-rs-${{ matrix.platform }}-${{ matrix.arch }}-packages
           path: dist/*

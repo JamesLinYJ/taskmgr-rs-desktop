@@ -31,6 +31,7 @@ use wayland_protocols_wlr::foreign_toplevel::v1::client::{
     zwlr_foreign_toplevel_manager_v1::{self, ZwlrForeignToplevelManagerV1},
 };
 
+use crate::desktop_icons::DesktopIconResolver;
 use crate::wayland_kde::KdeSession;
 
 const EXT_INTERFACE: &str = "ext_foreign_toplevel_list_v1";
@@ -174,6 +175,7 @@ struct ExtSession {
     event_queue: EventQueue<ExtState>,
     _list: ExtForeignToplevelListV1,
     state: ExtState,
+    icons: DesktopIconResolver,
 }
 
 #[derive(Default)]
@@ -182,12 +184,11 @@ struct ExtState {
 }
 
 struct ExtWindow {
-    _proxy: ExtForeignToplevelHandleV1,
+    proxy: ExtForeignToplevelHandleV1,
     identifier: Option<String>,
     title: Option<String>,
     app_id: Option<String>,
     ready: bool,
-    closed: bool,
 }
 
 impl ExtSession {
@@ -209,6 +210,7 @@ impl ExtSession {
             event_queue,
             _list: list,
             state,
+            icons: DesktopIconResolver::discover(),
         })
     }
 
@@ -216,18 +218,20 @@ impl ExtSession {
         self.event_queue
             .roundtrip(&mut self.state)
             .map_err(|error| wayland_error("refresh ext foreign toplevels", error))?;
+        let icons = &mut self.icons;
         let mut rows = self
             .state
             .windows
             .iter()
-            .filter(|(_, window)| window.ready && !window.closed)
+            .filter(|(_, window)| window.ready)
             .map(|(proxy_id, window)| {
+                let resolved_icons = icons.resolve(None, window.app_id.as_deref());
                 let title = window
                     .title
                     .clone()
                     .or_else(|| window.app_id.clone())
                     .filter(|value| !value.is_empty())
-                    .unwrap_or_else(|| "Untitled Wayland window".to_string());
+                    .unwrap_or_default();
                 ApplicationRow {
                     identity: ApplicationIdentity {
                         native_id: window
@@ -241,8 +245,8 @@ impl ExtSession {
                     status: ApplicationStatus::Running,
                     window_station: None,
                     desktop: None,
-                    icon_png: None,
-                    large_icon_png: None,
+                    icon_png: resolved_icons.small,
+                    large_icon_png: resolved_icons.large,
                     allowed_actions: Vec::new(),
                     row_error: window.identifier.is_none().then(|| {
                         BackendError::internal(
@@ -283,12 +287,11 @@ impl Dispatch<ExtForeignToplevelListV1, ()> for ExtState {
             state.windows.insert(
                 toplevel.id().protocol_id(),
                 ExtWindow {
-                    _proxy: toplevel,
+                    proxy: toplevel,
                     identifier: None,
                     title: None,
                     app_id: None,
                     ready: false,
-                    closed: false,
                 },
             );
         }
@@ -310,7 +313,14 @@ impl Dispatch<ExtForeignToplevelHandleV1, ()> for ExtState {
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
-        let Some(window) = state.windows.get_mut(&proxy.id().protocol_id()) else {
+        let id = proxy.id().protocol_id();
+        if matches!(&event, ext_foreign_toplevel_handle_v1::Event::Closed) {
+            let _ = release_terminal_entry(&mut state.windows, &id, |window| {
+                window.proxy.destroy();
+            });
+            return;
+        }
+        let Some(window) = state.windows.get_mut(&id) else {
             return;
         };
         match event {
@@ -324,7 +334,6 @@ impl Dispatch<ExtForeignToplevelHandleV1, ()> for ExtState {
                 window.identifier = Some(identifier);
             }
             ext_foreign_toplevel_handle_v1::Event::Done => window.ready = true,
-            ext_foreign_toplevel_handle_v1::Event::Closed => window.closed = true,
             _ => {}
         }
     }
@@ -336,6 +345,7 @@ struct WlrSession {
     _manager: ZwlrForeignToplevelManagerV1,
     seat: Option<wl_seat::WlSeat>,
     state: WlrState,
+    icons: DesktopIconResolver,
 }
 
 #[derive(Default)]
@@ -348,7 +358,6 @@ struct WlrWindow {
     title: Option<String>,
     app_id: Option<String>,
     ready: bool,
-    closed: bool,
 }
 
 impl WlrSession {
@@ -372,6 +381,7 @@ impl WlrSession {
             _manager: manager,
             seat,
             state,
+            icons: DesktopIconResolver::discover(),
         })
     }
 
@@ -392,29 +402,33 @@ impl WlrSession {
             .roundtrip(&mut self.state)
             .map_err(|error| wayland_error("refresh wlroots foreign toplevels", error))?;
         let actions = self.actions();
+        let icons = &mut self.icons;
         let mut rows = self
             .state
             .windows
             .iter()
-            .filter(|(_, window)| window.ready && !window.closed)
-            .map(|(id, window)| ApplicationRow {
-                identity: ApplicationIdentity {
-                    native_id: u64::from(*id),
-                    process: None,
-                },
-                title: window
-                    .title
-                    .clone()
-                    .or_else(|| window.app_id.clone())
-                    .filter(|value| !value.is_empty())
-                    .unwrap_or_else(|| "Untitled Wayland window".to_string()),
-                status: ApplicationStatus::Running,
-                window_station: None,
-                desktop: None,
-                icon_png: None,
-                large_icon_png: None,
-                allowed_actions: actions.clone(),
-                row_error: None,
+            .filter(|(_, window)| window.ready)
+            .map(|(id, window)| {
+                let resolved_icons = icons.resolve(None, window.app_id.as_deref());
+                ApplicationRow {
+                    identity: ApplicationIdentity {
+                        native_id: u64::from(*id),
+                        process: None,
+                    },
+                    title: window
+                        .title
+                        .clone()
+                        .or_else(|| window.app_id.clone())
+                        .filter(|value| !value.is_empty())
+                        .unwrap_or_default(),
+                    status: ApplicationStatus::Running,
+                    window_station: None,
+                    desktop: None,
+                    icon_png: resolved_icons.small,
+                    large_icon_png: resolved_icons.large,
+                    allowed_actions: actions.clone(),
+                    row_error: None,
+                }
             })
             .collect::<Vec<_>>();
         rows.sort_by_key(|row| row.title.to_lowercase());
@@ -435,7 +449,7 @@ impl WlrSession {
                 "window identifier is out of range",
             ));
         };
-        let Some(window) = self.state.windows.get(&id).filter(|window| !window.closed) else {
+        let Some(window) = self.state.windows.get(&id) else {
             return ActionResult::failed(BackendError::internal(
                 "wlroots window action",
                 "the selected window no longer exists",
@@ -502,7 +516,6 @@ impl Dispatch<ZwlrForeignToplevelManagerV1, ()> for WlrState {
                     title: None,
                     app_id: None,
                     ready: false,
-                    closed: false,
                 },
             );
         }
@@ -524,7 +537,14 @@ impl Dispatch<ZwlrForeignToplevelHandleV1, ()> for WlrState {
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
-        let Some(window) = state.windows.get_mut(&proxy.id().protocol_id()) else {
+        let id = proxy.id().protocol_id();
+        if matches!(&event, zwlr_foreign_toplevel_handle_v1::Event::Closed) {
+            let _ = release_terminal_entry(&mut state.windows, &id, |window| {
+                window.proxy.destroy();
+            });
+            return;
+        }
+        let Some(window) = state.windows.get_mut(&id) else {
             return;
         };
         match event {
@@ -535,10 +555,21 @@ impl Dispatch<ZwlrForeignToplevelHandleV1, ()> for WlrState {
                 window.app_id = Some(app_id);
             }
             zwlr_foreign_toplevel_handle_v1::Event::Done => window.ready = true,
-            zwlr_foreign_toplevel_handle_v1::Event::Closed => window.closed = true,
             _ => {}
         }
     }
+}
+
+pub(crate) fn release_terminal_entry<K: Ord, V>(
+    windows: &mut BTreeMap<K, V>,
+    key: &K,
+    release: impl FnOnce(V),
+) -> bool {
+    let Some(window) = windows.remove(key) else {
+        return false;
+    };
+    release(window);
+    true
 }
 
 fn stable_identifier(value: &str) -> u64 {
@@ -561,7 +592,11 @@ pub(crate) fn wayland_error(context: &str, error: impl std::fmt::Display) -> Bac
 
 #[cfg(test)]
 mod tests {
-    use super::{ForeignToplevelProtocol, protocol_candidates, stable_identifier};
+    use std::collections::BTreeMap;
+
+    use super::{
+        ForeignToplevelProtocol, protocol_candidates, release_terminal_entry, stable_identifier,
+    };
 
     #[test]
     fn stable_identifier_distinguishes_window_tokens() {
@@ -584,5 +619,23 @@ mod tests {
                 ForeignToplevelProtocol::Kde,
             ]
         );
+    }
+
+    #[test]
+    fn terminal_entries_are_removed_once_instead_of_becoming_history() {
+        let mut windows = BTreeMap::new();
+        let mut released = Vec::new();
+        for id in 0..1_000_u32 {
+            windows.insert(id, format!("window-{id}"));
+            assert!(release_terminal_entry(&mut windows, &id, |window| {
+                released.push(window);
+            }));
+            assert!(!release_terminal_entry(&mut windows, &id, |_| {
+                panic!("a terminal resource must be released only once");
+            }));
+        }
+
+        assert!(windows.is_empty());
+        assert_eq!(released.len(), 1_000);
     }
 }

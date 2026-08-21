@@ -13,6 +13,7 @@
 
 %global debug_package %{nil}
 %global application_id org.taskmgr_rs.TaskManager
+%global extension_uuid window-provider@org.taskmgr_rs.TaskManager
 
 Name:           taskmgr-rs
 Version:        %{package_version}
@@ -39,6 +40,9 @@ install -Dpm0755 %{helper_path} %{buildroot}/usr/libexec/taskmgr-rs/taskmgr-help
 install -Dpm0755 %{launcher_path} %{buildroot}/usr/bin/taskmgr_rs
 install -Dpm0644 %{desktop_path} %{buildroot}/usr/share/applications/%{application_id}.desktop
 install -Dpm0644 %{policy_path} %{buildroot}/usr/share/polkit-1/actions/%{application_id}.policy
+install -d %{buildroot}/usr/share/gnome-shell/extensions/%{extension_uuid}
+install -m 0644 %{extension_path}/metadata.json %{extension_path}/extension.js \
+    %{buildroot}/usr/share/gnome-shell/extensions/%{extension_uuid}
 install -d %{buildroot}/usr/share/icons/hicolor
 cp -a %{icons_path}/. %{buildroot}/usr/share/icons/hicolor/
 install -Dpm0644 %{license_path} %{buildroot}/usr/share/licenses/taskmgr-rs/LICENSE
@@ -58,6 +62,7 @@ gtk-update-icon-cache -q /usr/share/icons/hicolor >/dev/null 2>&1 || :
 /usr/libexec/taskmgr-rs/taskmgr-helper
 /usr/share/applications/%{application_id}.desktop
 /usr/share/icons/hicolor/*/apps/%{application_id}.png
+/usr/share/gnome-shell/extensions/%{extension_uuid}/
 /usr/share/polkit-1/actions/%{application_id}.policy
 
 %changelog

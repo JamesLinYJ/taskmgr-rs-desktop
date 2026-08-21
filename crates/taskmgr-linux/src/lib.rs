@@ -16,15 +16,25 @@
 #[cfg(target_os = "linux")]
 mod applications;
 #[cfg(target_os = "linux")]
+mod desktop_icons;
+#[cfg(target_os = "linux")]
+mod gnome;
+#[cfg(target_os = "linux")]
 mod gpu;
 #[cfg(target_os = "linux")]
 mod launch;
 #[cfg(target_os = "linux")]
 mod network;
 #[cfg(target_os = "linux")]
+mod nvml;
+#[cfg(target_os = "linux")]
 mod procfs;
 #[cfg(target_os = "linux")]
+mod tray;
+#[cfg(target_os = "linux")]
 mod users;
+#[cfg(target_os = "linux")]
+mod vulkan;
 #[cfg(target_os = "linux")]
 mod wayland;
 #[cfg(target_os = "linux")]
@@ -176,10 +186,9 @@ impl PlatformProvider for LinuxProvider {
                     },
                 ],
                 privileged_details: Availability::Partial,
-                // AppIndicator support is supplied by the Flutter desktop layer. Linux remains
-                // partial because a compositor/session may omit a StatusNotifier host; the UI
-                // therefore never enables "hide when minimized" from this flag alone.
-                tray: Availability::Partial,
+                // Flutter supplies the AppIndicator item, while Rust verifies the standard
+                // session-bus watcher before the UI initializes it.
+                tray: tray::availability(),
                 compositor: std::env::var("XDG_CURRENT_DESKTOP").ok(),
                 logical_processors: procfs::online_logical_processors(),
             }

@@ -119,5 +119,5 @@ Linux 可用 FD、nice、cgroup 替换没有真实对应关系的 Windows 概念
 - PID 动作携带 PID 与创建时间；执行前 Rust 再验证身份。
 - 500ms 高速刷新不阻塞 Flutter UI isolate，不改变当前选择或滚动位置。
 - 快照失败保留上一份数据并显示 stale/error；只读不到一个字段时只影响该单元格。
-- 八种语言、四档缩放下不得出现 RenderFlex overflow。
+- 九种语言（含独立 `zh_HK`）、四档缩放下不得出现 RenderFlex overflow。
 - X11、GNOME Wayland、KDE Wayland 缺少窗口协议时，操作必须随能力禁用；不得使用假窗口数据。

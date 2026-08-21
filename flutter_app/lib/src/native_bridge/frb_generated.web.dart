@@ -262,6 +262,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GpuData dco_decode_gpu_data(dynamic raw);
 
   @protected
+  GpuDriverModel dco_decode_gpu_driver_model(dynamic raw);
+
+  @protected
   GpuEngine dco_decode_gpu_engine(dynamic raw);
 
   @protected
@@ -722,6 +725,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   GpuData sse_decode_gpu_data(SseDeserializer deserializer);
+
+  @protected
+  GpuDriverModel sse_decode_gpu_driver_model(SseDeserializer deserializer);
 
   @protected
   GpuEngine sse_decode_gpu_engine(SseDeserializer deserializer);
@@ -1270,6 +1276,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_gpu_data(GpuData self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_gpu_driver_model(
+    GpuDriverModel self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_gpu_engine(GpuEngine self, SseSerializer serializer);

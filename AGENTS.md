@@ -158,9 +158,9 @@ Flutter -> taskmgr-bridge -> taskmgr-core <- taskmgr-windows/taskmgr-linux
 
 Linux：
 
-- 进程、CPU、内存优先使用 `/proc`；设备与 GPU 使用稳定的 `/sys` ABI；网络使用 rtnetlink，必要时以已声明的 sysfs 字段补充。
-- 应用程序页优先使用 Wayland，顺序固定为 `ext-foreign-toplevel-list-v1`、wlroots、KDE Plasma 兼容协议；仅三者均不可用时才回退 X11/EWMH。KDE 协议属于受限的桌面环境实现细节，必须由已安装 desktop entry 明确声明，且不能被描述为标准协议。
-- 合成器只允许枚举时保留列表并禁用切换、最小化等动作；禁止调用 GNOME 私有调试接口。
+- 进程、CPU、内存优先使用 `/proc`；GPU 清单以 DRM sysfs 为准，驱动正式管理 ABI 仅补充内核未公开的真实指标，Vulkan 设备必须按 `VK_EXT_pci_bus_info` 的 PCI 地址精确关联；网络使用 rtnetlink，必要时以已声明的 sysfs 字段补充。
+- 应用程序页优先使用 Wayland，顺序固定为 `ext-foreign-toplevel-list-v1`、wlroots、KDE Plasma 兼容协议；三者均不可用的 GNOME 会话可连接用户显式启用、版本化且只读的 Shell 扩展，其他情况才回退 X11/EWMH。KDE 与 GNOME 适配器都属于受限桌面环境实现，必须清楚标注，不能描述为统一标准。
+- 标准 foreign-toplevel 协议永远优先于桌面适配器。合成器只允许枚举时保留列表并禁用切换、最小化等动作；禁止调用 GNOME `Eval`、`unsafe_mode`、私有调试接口或解析桌面命令输出。
 - 用户与会话优先使用 systemd-logind 的公开接口；降级来源必须在能力中可见。
 - Windows 句柄、优先级类等概念在 Linux 上使用 FD、RSS/cgroup、nice/调度策略等真实语义，不伪造同名数据。
 
@@ -209,7 +209,7 @@ shutdownBackend(handle)
 - 设置使用带 schema 版本的 JSON：Windows 位于用户 AppData，Linux 位于 XDG config。
 - 写入采用同目录临时文件、flush/fsync 和原子 rename；损坏文件先备份再恢复默认值。
 - 不读取、迁移或删除旧注册表设置。
-- 八种语言统一转换为 Flutter ARB；可见文本不得硬编码在页面或由 Rust 拼接。
+- 九种语言（含独立 `zh_HK`）统一使用 Flutter ARB；可见文本不得硬编码在页面或由 Rust 拼接。
 - Rust 错误只提供稳定错误键与参数，Flutter 负责本地化。
 - 内置 Noto Sans 系列字体并记录许可证；不得依赖目标机器恰好安装字体。
 - 现有图标、位图若继续使用，必须迁移到 Flutter asset 并确认来源、尺寸和缩放行为。
@@ -227,7 +227,7 @@ Flutter 必须覆盖：
 
 - 七页、全部菜单和对话框的 widget/golden 测试。
 - 100% 基准及 125%、150%、200% 缩放。
-- 八种语言无溢出，键盘、焦点、右键菜单与 Semantics 可用。
+- 九种语言无溢出，键盘、焦点、右键菜单与 Semantics 可用。
 - 大进程表和 500 ms 刷新时的帧稳定性。
 
 平台矩阵至少覆盖 Windows、GNOME Wayland、KDE Wayland 与一个 X11 桌面（优先 Xfce），并核对默认客户区、系统/CSD 标题栏、本地化、四档缩放，以及协议/托盘/helper 不可用路径。矩阵外桌面环境为尽力支持，但启动与七页主体不得依赖托盘或 foreign-toplevel 协议。ARM64 正式发布前必须在真实或虚拟 ARM64 环境做启动与采样冒烟测试。

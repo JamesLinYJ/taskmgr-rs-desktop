@@ -23,8 +23,8 @@ use std::ptr::{null, null_mut};
 use std::slice;
 
 use taskmgr_core::{
-    BackendError, GpuAdapter, GpuData, GpuEngine, GpuEngineKind, HISTORY_CAPACITY, HistoryBuffer,
-    SnapshotData,
+    BackendError, GpuAdapter, GpuData, GpuDriverModel, GpuEngine, GpuEngineKind, HISTORY_CAPACITY,
+    HistoryBuffer, SnapshotData,
 };
 use windows::Win32::Graphics::Direct3D::{
     D3D_FEATURE_LEVEL, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_12_0,
@@ -310,6 +310,7 @@ impl GpuSampler {
                 name: inventory
                     .map(|inventory| inventory.name.clone())
                     .unwrap_or_else(|| format!("GPU {index} ({stable_id})")),
+                driver_model: GpuDriverModel::WindowsWddm,
                 utilization_percent,
                 dedicated_used_bytes: builder.dedicated,
                 dedicated_total_bytes: dedicated_total,
@@ -321,6 +322,8 @@ impl GpuSampler {
                 driver_date: metadata.driver_date,
                 graphics_api: inventory.and_then(|value| value.graphics_api.clone()),
                 physical_location: metadata.physical_location,
+                primary_device_node: None,
+                render_device_node: None,
                 hardware_reserved_bytes: metadata.hardware_reserved_bytes,
                 engines,
                 dedicated_usage_history_percent: history.dedicated.snapshot(),

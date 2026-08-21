@@ -20,6 +20,7 @@ import 'package:taskmgr_rs/src/native_bridge/third_party/taskmgr_core.dart';
 BackendState sampleState(
   PageId activePage, {
   PlatformKind platform = PlatformKind.linux,
+  Availability tray = Availability.partial,
 }) {
   final history = _history(8, 72);
   final secondHistory = _history(16, 38);
@@ -99,7 +100,7 @@ BackendState sampleState(
       architecture: Architecture.x8664,
       pages: pages,
       privilegedDetails: Availability.partial,
-      tray: Availability.partial,
+      tray: tray,
       compositor: 'Test compositor',
       logicalProcessors: Uint32List.fromList(<int>[0, 1, 2, 3]),
     ),
@@ -261,6 +262,7 @@ BackendState sampleState(
         GpuAdapter(
           id: 'card0',
           name: 'AMD Radeon Graphics',
+          driverModel: GpuDriverModel.linuxDrm,
           utilizationPercent: 42,
           dedicatedUsedBytes: BigInt.from(2147483648),
           dedicatedTotalBytes: BigInt.from(8589934592),
@@ -268,11 +270,11 @@ BackendState sampleState(
           sharedTotalBytes: BigInt.from(17179869184),
           temperatureCelsius: 58,
           driverName: 'amdgpu',
-          driverVersion: 'amdgpu 6.18',
-          driverDate: '2026-07-14',
+          driverVersion: '6.18.0',
           graphicsApi: 'Vulkan 1.4',
-          physicalLocation: 'PCI 0000:65:00.0',
-          hardwareReservedBytes: BigInt.from(16777216),
+          physicalLocation: '0000:65:00.0',
+          primaryDeviceNode: '/dev/dri/card0',
+          renderDeviceNode: '/dev/dri/renderD128',
           engines: <GpuEngine>[
             GpuEngine(
               id: '3d:0',

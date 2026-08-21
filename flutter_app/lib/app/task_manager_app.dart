@@ -12,6 +12,7 @@
 // --------------------------------------------------------------------------
 
 import 'dart:async';
+import 'dart:ui' show AppExitType;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -100,15 +101,6 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
   String? _lastTrayTooltip;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_trayInitializationStarted) {
-      _trayInitializationStarted = true;
-      unawaited(_initializeTray(AppLocalizations.of(context)));
-    }
-  }
-
-  @override
   void dispose() {
     widget.windowController.dispose();
     widget.controller.dispose();
@@ -121,6 +113,11 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
       valueListenable: widget.controller,
       builder: (context, state, child) {
         final l10n = AppLocalizations.of(context);
+        final capabilities = state.capabilities;
+        if (!_trayInitializationStarted && capabilities != null) {
+          _trayInitializationStarted = true;
+          unawaited(_initializeTray(l10n, capabilities.tray));
+        }
         _scheduleTrayUpdate(l10n, state);
         final visiblePages = _pageOrder
             .where((page) => _isPageVisible(state.capabilities, page))
@@ -753,8 +750,18 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
     }
   }
 
-  Future<void> _initializeTray(AppLocalizations l10n) async {
+  Future<void> _initializeTray(
+    AppLocalizations l10n,
+    Availability backendAvailability,
+  ) async {
     final settings = widget.controller.value.settings;
+    if (backendAvailability == Availability.unsupported) {
+      await widget.windowController.setHideWhenMinimized(false);
+      if (settings?.hideWhenMinimized == true) {
+        await widget.controller.setUiPreferences(hideWhenMinimized: false);
+      }
+      return;
+    }
     final availability = await widget.windowController.initializeTray(
       restoreLabel: stripMnemonic(l10n.restoreTaskManager),
       exitLabel: stripMnemonic(l10n.exitTaskManager),
@@ -837,8 +844,11 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
   }
 
   Future<void> _exitTaskManager() async {
-    await widget.controller.close();
-    await SystemNavigator.pop();
+    try {
+      await widget.controller.close();
+    } finally {
+      await ServicesBinding.instance.exitApplication(AppExitType.required);
+    }
   }
 
   Future<bool> _applicationWindowAction(

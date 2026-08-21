@@ -301,6 +301,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get gpuSharedMemory => 'Gemeinsam genutzter GPU-Speicher';
 
   @override
+  String get gpuDeviceLocalMemory => 'Gerätelokaler GPU-Speicher';
+
+  @override
+  String get gpuSharedSystemMemory => 'Gemeinsam genutzter Systemspeicher';
+
+  @override
   String get gpuTemperature => 'Temperatur';
 
   @override
@@ -317,6 +323,27 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get gpuHardwareReservedMemory => 'Für Hardware reservierter Speicher';
+
+  @override
+  String get gpuKernelDriver => 'Kernel-Treiber';
+
+  @override
+  String get gpuKernelModuleVersion => 'Kernelmodulversion';
+
+  @override
+  String get gpuGraphicsApi => 'Grafik-API';
+
+  @override
+  String get gpuDrmPrimaryNode => 'Primärer DRM-Knoten';
+
+  @override
+  String get gpuDrmRenderNode => 'DRM-Render-Knoten';
+
+  @override
+  String get gpuPciAddress => 'PCI-Adresse';
+
+  @override
+  String get gpuEngineMemory => 'Speicher';
 
   @override
   String get gpuEngine3D => '3D';
@@ -338,6 +365,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get notAvailable => 'Nicht verfügbar';
+
+  @override
+  String get untitledWindow => 'Fenster ohne Titel';
 
   @override
   String get taskColumnTask => 'Task';

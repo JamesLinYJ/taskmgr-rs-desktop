@@ -1725,27 +1725,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   GpuAdapter dco_decode_gpu_adapter(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 18)
-      throw Exception('unexpected arr length: expect 18 but see ${arr.length}');
+    if (arr.length != 21)
+      throw Exception('unexpected arr length: expect 21 but see ${arr.length}');
     return GpuAdapter(
       id: dco_decode_String(arr[0]),
       name: dco_decode_String(arr[1]),
-      utilizationPercent: dco_decode_opt_box_autoadd_f_64(arr[2]),
-      dedicatedUsedBytes: dco_decode_opt_box_autoadd_u_64(arr[3]),
-      dedicatedTotalBytes: dco_decode_opt_box_autoadd_u_64(arr[4]),
-      sharedUsedBytes: dco_decode_opt_box_autoadd_u_64(arr[5]),
-      sharedTotalBytes: dco_decode_opt_box_autoadd_u_64(arr[6]),
-      temperatureCelsius: dco_decode_opt_box_autoadd_f_64(arr[7]),
-      driverName: dco_decode_opt_String(arr[8]),
-      driverVersion: dco_decode_opt_String(arr[9]),
-      driverDate: dco_decode_opt_String(arr[10]),
-      graphicsApi: dco_decode_opt_String(arr[11]),
-      physicalLocation: dco_decode_opt_String(arr[12]),
-      hardwareReservedBytes: dco_decode_opt_box_autoadd_u_64(arr[13]),
-      engines: dco_decode_list_gpu_engine(arr[14]),
-      dedicatedUsageHistoryPercent: dco_decode_list_prim_f_64_strict(arr[15]),
-      sharedUsageHistoryPercent: dco_decode_list_prim_f_64_strict(arr[16]),
-      detailError: dco_decode_opt_box_autoadd_backend_error(arr[17]),
+      driverModel: dco_decode_gpu_driver_model(arr[2]),
+      utilizationPercent: dco_decode_opt_box_autoadd_f_64(arr[3]),
+      dedicatedUsedBytes: dco_decode_opt_box_autoadd_u_64(arr[4]),
+      dedicatedTotalBytes: dco_decode_opt_box_autoadd_u_64(arr[5]),
+      sharedUsedBytes: dco_decode_opt_box_autoadd_u_64(arr[6]),
+      sharedTotalBytes: dco_decode_opt_box_autoadd_u_64(arr[7]),
+      temperatureCelsius: dco_decode_opt_box_autoadd_f_64(arr[8]),
+      driverName: dco_decode_opt_String(arr[9]),
+      driverVersion: dco_decode_opt_String(arr[10]),
+      driverDate: dco_decode_opt_String(arr[11]),
+      graphicsApi: dco_decode_opt_String(arr[12]),
+      physicalLocation: dco_decode_opt_String(arr[13]),
+      primaryDeviceNode: dco_decode_opt_String(arr[14]),
+      renderDeviceNode: dco_decode_opt_String(arr[15]),
+      hardwareReservedBytes: dco_decode_opt_box_autoadd_u_64(arr[16]),
+      engines: dco_decode_list_gpu_engine(arr[17]),
+      dedicatedUsageHistoryPercent: dco_decode_list_prim_f_64_strict(arr[18]),
+      sharedUsageHistoryPercent: dco_decode_list_prim_f_64_strict(arr[19]),
+      detailError: dco_decode_opt_box_autoadd_backend_error(arr[20]),
     );
   }
 
@@ -1759,6 +1762,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       adapters: dco_decode_list_gpu_adapter(arr[0]),
       selectedAdapter: dco_decode_opt_box_autoadd_usize(arr[1]),
     );
+  }
+
+  @protected
+  GpuDriverModel dco_decode_gpu_driver_model(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return GpuDriverModel.values[raw as int];
   }
 
   @protected
@@ -3153,6 +3162,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_String(deserializer);
     var var_name = sse_decode_String(deserializer);
+    var var_driverModel = sse_decode_gpu_driver_model(deserializer);
     var var_utilizationPercent = sse_decode_opt_box_autoadd_f_64(deserializer);
     var var_dedicatedUsedBytes = sse_decode_opt_box_autoadd_u_64(deserializer);
     var var_dedicatedTotalBytes = sse_decode_opt_box_autoadd_u_64(deserializer);
@@ -3164,6 +3174,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_driverDate = sse_decode_opt_String(deserializer);
     var var_graphicsApi = sse_decode_opt_String(deserializer);
     var var_physicalLocation = sse_decode_opt_String(deserializer);
+    var var_primaryDeviceNode = sse_decode_opt_String(deserializer);
+    var var_renderDeviceNode = sse_decode_opt_String(deserializer);
     var var_hardwareReservedBytes = sse_decode_opt_box_autoadd_u_64(
       deserializer,
     );
@@ -3180,6 +3192,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return GpuAdapter(
       id: var_id,
       name: var_name,
+      driverModel: var_driverModel,
       utilizationPercent: var_utilizationPercent,
       dedicatedUsedBytes: var_dedicatedUsedBytes,
       dedicatedTotalBytes: var_dedicatedTotalBytes,
@@ -3191,6 +3204,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       driverDate: var_driverDate,
       graphicsApi: var_graphicsApi,
       physicalLocation: var_physicalLocation,
+      primaryDeviceNode: var_primaryDeviceNode,
+      renderDeviceNode: var_renderDeviceNode,
       hardwareReservedBytes: var_hardwareReservedBytes,
       engines: var_engines,
       dedicatedUsageHistoryPercent: var_dedicatedUsageHistoryPercent,
@@ -3208,6 +3223,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       adapters: var_adapters,
       selectedAdapter: var_selectedAdapter,
     );
+  }
+
+  @protected
+  GpuDriverModel sse_decode_gpu_driver_model(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return GpuDriverModel.values[inner];
   }
 
   @protected
@@ -4781,6 +4803,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.id, serializer);
     sse_encode_String(self.name, serializer);
+    sse_encode_gpu_driver_model(self.driverModel, serializer);
     sse_encode_opt_box_autoadd_f_64(self.utilizationPercent, serializer);
     sse_encode_opt_box_autoadd_u_64(self.dedicatedUsedBytes, serializer);
     sse_encode_opt_box_autoadd_u_64(self.dedicatedTotalBytes, serializer);
@@ -4792,6 +4815,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.driverDate, serializer);
     sse_encode_opt_String(self.graphicsApi, serializer);
     sse_encode_opt_String(self.physicalLocation, serializer);
+    sse_encode_opt_String(self.primaryDeviceNode, serializer);
+    sse_encode_opt_String(self.renderDeviceNode, serializer);
     sse_encode_opt_box_autoadd_u_64(self.hardwareReservedBytes, serializer);
     sse_encode_list_gpu_engine(self.engines, serializer);
     sse_encode_list_prim_f_64_strict(
@@ -4810,6 +4835,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_gpu_adapter(self.adapters, serializer);
     sse_encode_opt_box_autoadd_usize(self.selectedAdapter, serializer);
+  }
+
+  @protected
+  void sse_encode_gpu_driver_model(
+    GpuDriverModel self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected

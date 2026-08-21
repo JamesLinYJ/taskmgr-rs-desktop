@@ -89,6 +89,9 @@ void main() {
       find.byKey(const ValueKey<String>('gpu-engine-selector-3')),
       findsOneWidget,
     );
+    expect(find.text('Graphics API'), findsOneWidget);
+    expect(find.text('Vulkan 1.4'), findsOneWidget);
+    expect(find.text('DirectX Version'), findsNothing);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('gpu-engine-selector-0')),
@@ -108,6 +111,7 @@ GpuAdapter _copyAdapter(GpuAdapter value, List<GpuEngine> engines) {
   return GpuAdapter(
     id: value.id,
     name: value.name,
+    driverModel: value.driverModel,
     utilizationPercent: value.utilizationPercent,
     dedicatedUsedBytes: value.dedicatedUsedBytes,
     dedicatedTotalBytes: value.dedicatedTotalBytes,
@@ -119,6 +123,8 @@ GpuAdapter _copyAdapter(GpuAdapter value, List<GpuEngine> engines) {
     driverDate: value.driverDate,
     graphicsApi: value.graphicsApi,
     physicalLocation: value.physicalLocation,
+    primaryDeviceNode: value.primaryDeviceNode,
+    renderDeviceNode: value.renderDeviceNode,
     hardwareReservedBytes: value.hardwareReservedBytes,
     engines: engines,
     dedicatedUsageHistoryPercent: value.dedicatedUsageHistoryPercent,

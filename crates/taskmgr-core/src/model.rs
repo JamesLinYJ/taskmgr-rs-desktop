@@ -527,6 +527,7 @@ pub struct GpuEngine {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum GpuEngineKind {
     Overall,
+    Memory,
     ThreeD,
     Copy,
     VideoEncode,
@@ -536,10 +537,17 @@ pub enum GpuEngineKind {
     Other,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum GpuDriverModel {
+    WindowsWddm,
+    LinuxDrm,
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct GpuAdapter {
     pub id: String,
     pub name: String,
+    pub driver_model: GpuDriverModel,
     pub utilization_percent: Option<f64>,
     pub dedicated_used_bytes: Option<u64>,
     pub dedicated_total_bytes: Option<u64>,
@@ -551,6 +559,8 @@ pub struct GpuAdapter {
     pub driver_date: Option<String>,
     pub graphics_api: Option<String>,
     pub physical_location: Option<String>,
+    pub primary_device_node: Option<String>,
+    pub render_device_node: Option<String>,
     pub hardware_reserved_bytes: Option<u64>,
     pub engines: Vec<GpuEngine>,
     /// Dedicated-memory utilization history normalized to 0–100 percent.
