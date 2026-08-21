@@ -18,6 +18,8 @@ use std::ffi::{CString, c_char, c_int, c_uint, c_void};
 
 use libloading::Library;
 
+use crate::c_text::BoundedCText;
+
 const NVML_SUCCESS: c_int = 0;
 const NVML_TEMPERATURE_GPU: c_uint = 0;
 const TEXT_BUFFER_BYTES: usize = 256;
@@ -183,7 +185,7 @@ fn query_text(device: NvmlDevice, function: DeviceNameFn) -> Option<String> {
     // SAFETY: the device is valid and the function receives the exact writable buffer length.
     let result = unsafe { function(device, buffer.as_mut_ptr(), buffer.len() as c_uint) };
     (result == NVML_SUCCESS)
-        .then(|| c_buffer_to_string(&buffer))
+        .then(|| BoundedCText::new(&buffer).decode_nul_terminated())
         .flatten()
 }
 
@@ -192,7 +194,7 @@ fn query_driver_version(function: DriverVersionFn) -> Option<String> {
     // SAFETY: the function receives the exact writable buffer length.
     let result = unsafe { function(buffer.as_mut_ptr(), buffer.len() as c_uint) };
     (result == NVML_SUCCESS)
-        .then(|| c_buffer_to_string(&buffer))
+        .then(|| BoundedCText::new(&buffer).decode_nul_terminated())
         .flatten()
 }
 
@@ -206,19 +208,6 @@ fn query_codec(device: NvmlDevice, function: CodecUtilizationFn) -> Option<f64> 
         .flatten()
 }
 
-fn c_buffer_to_string(buffer: &[c_char]) -> Option<String> {
-    // Search for NUL inside the supplied bound before decoding. `c_char` is signed on some
-    // targets and unsigned on others; `to_ne_bytes` preserves its single-byte representation on
-    // both without an architecture-dependent numeric cast.
-    let end = buffer.iter().position(|value| *value == 0)?;
-    let bytes = buffer[..end]
-        .iter()
-        .map(|value| value.to_ne_bytes()[0])
-        .collect::<Vec<_>>();
-    let text = String::from_utf8_lossy(&bytes).trim().to_string();
-    (!text.is_empty()).then_some(text)
-}
-
 fn valid_percent(value: c_uint) -> Option<f64> {
     (value <= 100).then_some(f64::from(value))
 }
@@ -228,26 +217,5 @@ fn check(operation: &str, result: c_int) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!("{operation} failed with NVML status {result}"))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::ffi::c_char;
-
-    use super::c_buffer_to_string;
-
-    #[test]
-    fn bounded_c_text_stops_at_the_first_nul() {
-        let buffer: [c_char; 16] = [
-            32, 32, 78, 86, 73, 68, 73, 65, 32, 71, 80, 85, 32, 32, 0, 88,
-        ];
-        assert_eq!(c_buffer_to_string(&buffer), Some("NVIDIA GPU".to_string()));
-    }
-
-    #[test]
-    fn unterminated_c_text_is_rejected() {
-        let buffer: [c_char; 4] = [78, 86, 77, 76];
-        assert_eq!(c_buffer_to_string(&buffer), None);
     }
 }

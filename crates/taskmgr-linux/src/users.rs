@@ -15,6 +15,8 @@
 
 use taskmgr_core::{SnapshotData, UserSession, UserSessionIdentity, UsersData};
 
+use crate::c_text::BoundedCText;
+
 pub fn sample() -> Result<SnapshotData, taskmgr_core::BackendError> {
     let mut sessions = Vec::new();
     unsafe {
@@ -28,9 +30,9 @@ pub fn sample() -> Result<SnapshotData, taskmgr_core::BackendError> {
             if entry.ut_type != libc::USER_PROCESS {
                 continue;
             }
-            let user_name = c_field(&entry.ut_user);
-            let line = c_field(&entry.ut_line);
-            let host = c_field(&entry.ut_host);
+            let user_name = BoundedCText::new(&entry.ut_user).decode_nul_padded_field();
+            let line = BoundedCText::new(&entry.ut_line).decode_nul_padded_field();
+            let host = BoundedCText::new(&entry.ut_host).decode_nul_padded_field();
             if user_name.is_empty() {
                 continue;
             }
@@ -57,13 +59,4 @@ pub fn sample() -> Result<SnapshotData, taskmgr_core::BackendError> {
     }
     sessions.sort_by(|left, right| left.user_name.cmp(&right.user_name));
     Ok(SnapshotData::Users(UsersData { sessions }))
-}
-
-fn c_field<const N: usize>(field: &[libc::c_char; N]) -> String {
-    let bytes = field
-        .iter()
-        .map(|value| value.to_ne_bytes()[0])
-        .take_while(|value| *value != 0)
-        .collect::<Vec<_>>();
-    String::from_utf8_lossy(&bytes).trim().to_string()
 }

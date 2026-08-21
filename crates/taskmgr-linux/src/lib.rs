@@ -16,6 +16,8 @@
 #[cfg(target_os = "linux")]
 mod applications;
 #[cfg(target_os = "linux")]
+mod c_text;
+#[cfg(target_os = "linux")]
 mod desktop_icons;
 #[cfg(target_os = "linux")]
 mod gnome;
