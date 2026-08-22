@@ -30,13 +30,13 @@ The Linux Applications page is Wayland-first: standard `ext-foreign-toplevel-lis
 
 ## Pinned toolchain
 
-- Flutter `3.44.7`
+- Flutter `3.47.1`
 - Rust `1.97.1`
 - `flutter_rust_bridge` / code generator `2.12.0`
 - `tray_manager` `0.5.3`
 - Rust `png` `0.18.1`
 
-Install the pinned Rust toolchain, make Flutter 3.44.7 available, then run:
+Install the pinned Rust toolchain, make Flutter 3.47.1 available, then run:
 
 ```bash
 cargo +1.97.1 check --workspace --all-targets

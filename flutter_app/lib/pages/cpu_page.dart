@@ -33,13 +33,18 @@ class CpuPage extends StatelessWidget {
   final PlatformKind? platform;
   final bool showKernelTimes;
 
+  static const double _minimumContentHeight = 468;
+  static const double _metricGroupExtent = 148;
+  static const double _metricGroupSpacing = 6;
+  static const double _minimumMetricGroupWidth = 220;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final groups = _groups(l10n, data, platform);
+    final status = _status(l10n, data);
     return LayoutBuilder(
       builder: (context, constraints) {
-        const contentHeight = 468.0;
         return SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(8, 8, 8, 7),
           child: ConstrainedBox(
@@ -48,7 +53,7 @@ class CpuPage extends StatelessWidget {
             ),
             child: SizedBox(
               height: math.max(
-                contentHeight,
+                _minimumContentHeight,
                 math.max(0, constraints.maxHeight - 15),
               ),
               child: Column(
@@ -70,47 +75,74 @@ class CpuPage extends StatelessWidget {
                           ),
                         ),
                       ),
-                      Text(
-                        percentOrUnavailable(
-                          data?.utilizationPercent,
-                          l10n.notAvailable,
-                        ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 3),
-                  Text(_status(l10n, data), overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  SizedBox(
-                    height: 112,
-                    child: DesktopGraph(
-                      primary: data?.history.toList() ?? const <double>[],
-                      secondary: showKernelTimes
-                          ? data?.kernelHistory.toList() ?? const <double>[]
-                          : const <double>[],
+                  Tooltip(
+                    message: status,
+                    child: Text(
+                      status,
+                      key: const ValueKey<String>('cpu-header-summary'),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Expanded(
-                    child: GridView.builder(
-                      key: const ValueKey<String>('cpu-details-grid'),
-                      padding: EdgeInsets.zero,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 6,
-                            mainAxisSpacing: 6,
-                            mainAxisExtent: 148,
-                          ),
-                      itemCount: groups.length,
-                      itemBuilder: (context, index) {
-                        final group = groups[index];
-                        return _CpuMetricGroup(
-                          key: ValueKey<String>('cpu-group-${group.title}'),
-                          title: group.title,
-                          metrics: group.metrics,
-                          fallback: l10n.notAvailable,
+                    child: LayoutBuilder(
+                      builder: (context, detailConstraints) {
+                        final fourColumnMinimum =
+                            _minimumMetricGroupWidth * 4 +
+                            _metricGroupSpacing * 3;
+                        final columnCount =
+                            detailConstraints.maxWidth >= fourColumnMinimum
+                            ? 4
+                            : 2;
+                        final rowCount = (groups.length / columnCount).ceil();
+                        final detailsHeight =
+                            rowCount * _metricGroupExtent +
+                            math.max(0, rowCount - 1) * _metricGroupSpacing;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            Expanded(
+                              child: DesktopGraph(
+                                key: const ValueKey<String>('cpu-usage-graph'),
+                                label: l10n.cpuUsage,
+                                primary: data?.history ?? const <double>[],
+                                secondary: showKernelTimes
+                                    ? data?.kernelHistory ?? const <double>[]
+                                    : const <double>[],
+                              ),
+                            ),
+                            const SizedBox(height: _metricGroupSpacing),
+                            SizedBox(
+                              height: detailsHeight,
+                              child: GridView.builder(
+                                key: const ValueKey<String>('cpu-details-grid'),
+                                padding: EdgeInsets.zero,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: columnCount,
+                                      crossAxisSpacing: _metricGroupSpacing,
+                                      mainAxisSpacing: _metricGroupSpacing,
+                                      mainAxisExtent: _metricGroupExtent,
+                                    ),
+                                itemCount: groups.length,
+                                itemBuilder: (context, index) {
+                                  final group = groups[index];
+                                  return _CpuMetricGroup(
+                                    key: ValueKey<String>(
+                                      'cpu-group-${group.title}',
+                                    ),
+                                    title: group.title,
+                                    metrics: group.metrics,
+                                    fallback: l10n.notAvailable,
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         );
                       },
                     ),
@@ -142,9 +174,34 @@ class CpuPage extends StatelessWidget {
         value.hardware.manufacturer != null ||
         value.hardware.architecture != null ||
         value.hardware.caches.isNotEmpty;
-    return hasTopology && hasHardware
-        ? l10n.cpuCurrentState
+    final summary = _headerSummary(l10n, value);
+    return hasTopology && hasHardware && summary != null
+        ? summary
         : l10n.cpuPartialDetails;
+  }
+
+  String? _headerSummary(AppLocalizations l10n, CpuData value) {
+    final topology = value.topology;
+    final fields = <(String, String?)>[
+      (l10n.cpuAverageFrequency, _frequency(value.current.averageFrequencyMhz)),
+      (l10n.cpuPhysicalCores, _plainInteger(topology.physicalCoreCount)),
+      (
+        l10n.cpuLogicalProcessors,
+        _plainInteger(topology.logicalProcessorCount),
+      ),
+      (
+        l10n.cpuThreadsPerCore,
+        _integerRange(
+          topology.minimumThreadsPerCore,
+          topology.maximumThreadsPerCore,
+        ),
+      ),
+      (l10n.cpuCoreClasses, _coreClasses(l10n, topology.coreClasses)),
+    ];
+    if (fields.any((field) => field.$2 == null)) {
+      return null;
+    }
+    return fields.map((field) => '${field.$1}: ${field.$2!}').join('    ');
   }
 
   List<_MetricGroupData> _groups(
@@ -339,16 +396,18 @@ class CpuPage extends StatelessWidget {
     if (hardware == null) {
       return null;
     }
-    final widths = <int>{
-      ?hardware.addressWidthBits,
-      ?hardware.dataWidthBits,
-    }.toList(growable: false);
-    final width = widths.isEmpty
-        ? null
-        : widths.length == 1
-        ? '${widths.first}-bit'
-        : '${widths.join('/')}-bit';
-    return _pair(hardware.architecture, width);
+    final address = hardware.addressWidthBits;
+    final data = hardware.dataWidthBits;
+    final width = switch ((address, data)) {
+      (null, null) => null,
+      (final value?, null) || (null, final value?) => '$value',
+      (final address?, final data?) => '$address / $data',
+    };
+    final architecture = hardware.architecture?.trim();
+    if (architecture == null || architecture.isEmpty) {
+      return width;
+    }
+    return width == null ? architecture : '$architecture; $width';
   }
 
   String? _pair(String? left, String? right) {
@@ -397,7 +456,7 @@ class _Metric {
   final String? value;
 }
 
-class _CpuMetricGroup extends StatelessWidget {
+class _CpuMetricGroup extends StatefulWidget {
   const _CpuMetricGroup({
     super.key,
     required this.title,
@@ -410,52 +469,118 @@ class _CpuMetricGroup extends StatelessWidget {
   final String fallback;
 
   @override
+  State<_CpuMetricGroup> createState() => _CpuMetricGroupState();
+}
+
+class _CpuMetricGroupState extends State<_CpuMetricGroup> {
+  double _measuredLabelWidth = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _measureLabelWidth();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CpuMetricGroup oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_sameLabels(oldWidget.metrics, widget.metrics)) {
+      _measureLabelWidth();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final rows = (metrics.length / 2).ceil().clamp(1, 6);
+    final rows = (widget.metrics.length / 2).ceil().clamp(1, 6);
     return DesktopGroupBox(
-      label: title,
-      child: Column(
-        children: List<Widget>.generate(rows, (rowIndex) {
-          return Expanded(
-            child: Row(
-              children: List<Widget>.generate(2, (columnIndex) {
-                final index = rowIndex * 2 + columnIndex;
-                if (index >= metrics.length) {
-                  return const Expanded(child: SizedBox.shrink());
-                }
-                final metric = metrics[index];
-                final value = metric.value ?? fallback;
-                return Expanded(
-                  child: Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: Tooltip(
-                          message: metric.label,
-                          child: Text(
-                            metric.label,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Tooltip(
-                          message: value,
-                          child: Text(
-                            value,
-                            textAlign: TextAlign.right,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                      if (columnIndex == 0) const SizedBox(width: 6),
-                    ],
-                  ),
-                );
-              }),
-            ),
+      label: widget.title,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const pairSpacing = 6.0;
+          final pairWidth = math.max(
+            0.0,
+            (constraints.maxWidth - pairSpacing) / 2,
           );
-        }),
+          final labelWidth = math.min(
+            _measuredLabelWidth + 4,
+            pairWidth * 0.55,
+          );
+          return Column(
+            children: List<Widget>.generate(rows, (rowIndex) {
+              final leftIndex = rowIndex * 2;
+              final rightIndex = leftIndex + 1;
+              return Expanded(
+                child: Row(
+                  children: <Widget>[
+                    Expanded(child: _metricCell(leftIndex, labelWidth)),
+                    const SizedBox(width: pairSpacing),
+                    Expanded(child: _metricCell(rightIndex, labelWidth)),
+                  ],
+                ),
+              );
+            }),
+          );
+        },
       ),
+    );
+  }
+
+  void _measureLabelWidth() {
+    final style = DefaultTextStyle.of(context).style;
+    final direction = Directionality.of(context);
+    final scaler = MediaQuery.textScalerOf(context);
+    var width = 0.0;
+    for (final metric in widget.metrics) {
+      final painter = TextPainter(
+        text: TextSpan(text: metric.label, style: style),
+        textDirection: direction,
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      width = math.max(width, painter.width);
+      painter.dispose();
+    }
+    _measuredLabelWidth = width;
+  }
+
+  bool _sameLabels(List<_Metric> left, List<_Metric> right) {
+    if (left.length != right.length) {
+      return false;
+    }
+    for (var index = 0; index < left.length; index++) {
+      if (left[index].label != right[index].label) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Widget _metricCell(int index, double labelWidth) {
+    if (index >= widget.metrics.length) {
+      return const SizedBox.shrink();
+    }
+    final metric = widget.metrics[index];
+    final value = metric.value ?? widget.fallback;
+    return Row(
+      children: <Widget>[
+        SizedBox(
+          width: labelWidth,
+          child: Tooltip(
+            message: metric.label,
+            child: Text(metric.label, overflow: TextOverflow.ellipsis),
+          ),
+        ),
+        Expanded(
+          child: Tooltip(
+            message: value,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -27,15 +27,18 @@ use windows_sys::Win32::System::SystemInformation::GetTickCount64;
 
 use crate::cpu::{CpuUsageDelta, CpuUsageSampler, query_cpu_frequencies, query_cpu_inventory};
 use crate::native::last_error;
+use crate::pdh::CpuPdhSampler;
 
 pub(crate) struct SystemSampler {
     performance_cpu: CpuUsageSampler,
     cpu_page_cpu: CpuUsageSampler,
+    cpu_page_pdh: Option<CpuPdhSampler>,
     performance_cpu_history: HistoryBuffer,
     performance_kernel_history: HistoryBuffer,
     memory_history: HistoryBuffer,
     logical_cpu_histories: Vec<HistoryBuffer>,
     logical_kernel_histories: Vec<HistoryBuffer>,
+    logical_cpu_labels: Vec<String>,
     cpu_page_history: HistoryBuffer,
     cpu_page_kernel_history: HistoryBuffer,
     model: Option<String>,
@@ -45,15 +48,18 @@ pub(crate) struct SystemSampler {
 
 impl SystemSampler {
     pub(crate) fn new() -> Self {
-        let (model, topology, hardware) = query_cpu_inventory();
+        let (model, topology, hardware, logical_cpu_labels) = query_cpu_inventory();
+        let logical_processor_count = topology.logical_processor_count.unwrap_or(1).max(1) as usize;
         Self {
             performance_cpu: CpuUsageSampler::default(),
             cpu_page_cpu: CpuUsageSampler::default(),
+            cpu_page_pdh: CpuPdhSampler::new(logical_processor_count).ok(),
             performance_cpu_history: HistoryBuffer::new(HISTORY_CAPACITY),
             performance_kernel_history: HistoryBuffer::new(HISTORY_CAPACITY),
             memory_history: HistoryBuffer::new(HISTORY_CAPACITY),
             logical_cpu_histories: Vec::new(),
             logical_kernel_histories: Vec::new(),
+            logical_cpu_labels,
             cpu_page_history: HistoryBuffer::new(HISTORY_CAPACITY),
             cpu_page_kernel_history: HistoryBuffer::new(HISTORY_CAPACITY),
             model,
@@ -99,6 +105,10 @@ impl SystemSampler {
             cpu_history: self.performance_cpu_history.snapshot(),
             kernel_history: self.performance_kernel_history.snapshot(),
             memory_history: self.memory_history.snapshot(),
+            logical_cpu_labels: logical_labels_for_count(
+                &self.logical_cpu_labels,
+                self.logical_cpu_histories.len(),
+            ),
             logical_cpu_histories: history_snapshots(&self.logical_cpu_histories),
             logical_kernel_histories: history_snapshots(&self.logical_kernel_histories),
         })))
@@ -112,6 +122,11 @@ impl SystemSampler {
             self.cpu_page_kernel_history.push(delta.kernel_percent);
         }
         let logical_count = self.cpu_page_cpu.logical_processor_count();
+        let pdh = self
+            .cpu_page_pdh
+            .as_mut()
+            .and_then(|sampler| sampler.sample().ok())
+            .flatten();
         let frequency = query_cpu_frequencies(logical_count);
         let mut topology = self.topology.clone();
         if logical_count > 0 {
@@ -128,9 +143,15 @@ impl SystemSampler {
             history: self.cpu_page_history.snapshot(),
             kernel_history: self.cpu_page_kernel_history.snapshot(),
             current: CpuCurrentMetrics {
-                average_frequency_mhz: frequency.average_current_mhz,
-                minimum_frequency_mhz: frequency.minimum_current_mhz,
-                maximum_frequency_mhz: frequency.maximum_current_mhz,
+                average_frequency_mhz: pdh
+                    .and_then(|value| value.average_frequency_mhz)
+                    .or(frequency.average_current_mhz),
+                minimum_frequency_mhz: pdh
+                    .and_then(|value| value.minimum_frequency_mhz)
+                    .or(frequency.minimum_current_mhz),
+                maximum_frequency_mhz: pdh
+                    .and_then(|value| value.maximum_frequency_mhz)
+                    .or(frequency.maximum_current_mhz),
                 user_percent: cpu.as_ref().map(|delta| delta.user_percent),
                 kernel_percent: cpu.as_ref().map(|delta| delta.kernel_percent),
                 dpc_percent: cpu.as_ref().map(|delta| delta.dpc_percent),
@@ -144,9 +165,10 @@ impl SystemSampler {
                 handle_count: Some(u64::from(performance.HandleCount)),
                 file_descriptor_count: None,
                 open_file_count: None,
-                processor_queue_length: None,
-                context_switches_per_second: None,
-                system_calls_per_second: None,
+                processor_queue_length: pdh.and_then(|value| value.processor_queue_length),
+                context_switches_per_second: pdh
+                    .and_then(|value| value.context_switches_per_second),
+                system_calls_per_second: pdh.and_then(|value| value.system_calls_per_second),
             },
             topology,
             hardware,
@@ -174,6 +196,14 @@ impl SystemSampler {
         {
             history.push(*value);
         }
+    }
+}
+
+fn logical_labels_for_count(labels: &[String], count: usize) -> Vec<String> {
+    if labels.len() == count {
+        labels.to_vec()
+    } else {
+        (0..count).map(|index| format!("CPU{index}")).collect()
     }
 }
 

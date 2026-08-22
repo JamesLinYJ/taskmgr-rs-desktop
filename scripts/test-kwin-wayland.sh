@@ -6,7 +6,7 @@
 #   文件:       scripts/test-kwin-wayland.sh
 #
 #   日期:       2026年08月20日
-#   环境:       Fedora/Ubuntu Linux x64/ARM64；KWin Wayland；Flutter 3.44.7
+#   环境:       Fedora/Ubuntu Linux x64/ARM64；KWin Wayland；Flutter 3.47.1
 #   作者:       JamesLinYJ
 #   协助:       OpenAI Codex:gpt-5.6-sol
 #   参考标准:   KDE plasma-window-management；X-KDE-Wayland-Interfaces；Flutter integration_test

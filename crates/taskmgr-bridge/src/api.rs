@@ -26,6 +26,7 @@ use taskmgr_core::{BackendRuntime, PlatformProvider, SettingsStore};
 #[frb(non_opaque)]
 pub enum BridgeBackendEvent {
     Capabilities(taskmgr_core::PlatformCapabilities),
+    Diagnostics(taskmgr_core::DiagnosticStatus),
     Applications {
         meta: taskmgr_core::SnapshotMeta,
         data: taskmgr_core::ApplicationsData,
@@ -65,6 +66,7 @@ impl From<taskmgr_core::BackendEvent> for BridgeBackendEvent {
     fn from(event: taskmgr_core::BackendEvent) -> Self {
         match event {
             taskmgr_core::BackendEvent::Capabilities(value) => Self::Capabilities(value),
+            taskmgr_core::BackendEvent::Diagnostics(value) => Self::Diagnostics(value),
             taskmgr_core::BackendEvent::Applications(value) => Self::Applications {
                 meta: value.meta,
                 data: value.data,
@@ -103,6 +105,21 @@ impl From<taskmgr_core::BackendEvent> for BridgeBackendEvent {
 
 #[derive(Clone, Debug)]
 pub enum BridgeActionRequest {
+    ShowAboutDialog {
+        title: String,
+    },
+    ShowRunDialog,
+    ConfigureDiagnostics {
+        detailed: bool,
+        sensitive: bool,
+    },
+    OpenDiagnosticFolder,
+    SaveDiagnosticBundle,
+    RestartWithDetailedDiagnostics,
+    RecordUiError {
+        message: String,
+        stack: Option<String>,
+    },
     RunTask {
         command_line: String,
     },
@@ -144,6 +161,23 @@ pub enum BridgeActionRequest {
 impl From<BridgeActionRequest> for taskmgr_core::ActionRequest {
     fn from(request: BridgeActionRequest) -> Self {
         match request {
+            BridgeActionRequest::ShowAboutDialog { title } => Self::ShowAboutDialog { title },
+            BridgeActionRequest::ShowRunDialog => Self::ShowRunDialog,
+            BridgeActionRequest::ConfigureDiagnostics {
+                detailed,
+                sensitive,
+            } => Self::ConfigureDiagnostics {
+                detailed,
+                sensitive,
+            },
+            BridgeActionRequest::OpenDiagnosticFolder => Self::OpenDiagnosticFolder,
+            BridgeActionRequest::SaveDiagnosticBundle => Self::SaveDiagnosticBundle,
+            BridgeActionRequest::RestartWithDetailedDiagnostics => {
+                Self::RestartWithDetailedDiagnostics
+            }
+            BridgeActionRequest::RecordUiError { message, stack } => {
+                Self::RecordUiError { message, stack }
+            }
             BridgeActionRequest::RunTask { command_line } => Self::RunTask { command_line },
             BridgeActionRequest::EndProcess {
                 identity,
@@ -204,6 +238,7 @@ pub struct BackendHandle {
 #[frb(init)]
 pub fn init_app() {
     flutter_rust_bridge::setup_default_user_utils();
+    taskmgr_core::diagnostics::initialize();
 }
 
 pub fn start_backend(options: BackendOptions) -> BackendHandle {
@@ -260,7 +295,9 @@ pub fn save_settings(settings: UiSettings) -> Result<(), String> {
 }
 
 pub fn shutdown_backend(handle: &BackendHandle) -> Result<(), String> {
-    handle.runtime.shutdown().map_err(|error| error.to_string())
+    let result = handle.runtime.shutdown().map_err(|error| error.to_string());
+    taskmgr_core::diagnostics::shutdown();
+    result
 }
 
 fn platform_provider() -> Box<dyn PlatformProvider> {

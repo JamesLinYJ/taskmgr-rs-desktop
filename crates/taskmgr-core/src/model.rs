@@ -21,7 +21,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 
 pub const PROTOCOL_VERSION: u16 = 1;
-pub const SETTINGS_SCHEMA_VERSION: u16 = 3;
+pub const SETTINGS_SCHEMA_VERSION: u16 = 4;
 pub const HISTORY_CAPACITY: usize = 120;
 pub const ORIGINAL_MAIN_WINDOW_WIDTH: f64 = 396.0;
 pub const ORIGINAL_MAIN_WINDOW_HEIGHT: f64 = 401.0;
@@ -254,6 +254,41 @@ pub struct UiSettings {
     pub process_columns: Vec<ColumnLayout>,
 }
 
+fn pre_v4_process_columns() -> Vec<ColumnLayout> {
+    vec![
+        ColumnLayout {
+            column: ColumnId::ImageName,
+            width: 107.0,
+            visible: true,
+        },
+        ColumnLayout {
+            column: ColumnId::Pid,
+            width: 50.0,
+            visible: true,
+        },
+        ColumnLayout {
+            column: ColumnId::Cpu,
+            width: 35.0,
+            visible: true,
+        },
+        ColumnLayout {
+            column: ColumnId::CpuTime,
+            width: 70.0,
+            visible: true,
+        },
+        ColumnLayout {
+            column: ColumnId::MemoryUsage,
+            width: 70.0,
+            visible: true,
+        },
+        ColumnLayout {
+            column: ColumnId::UserName,
+            width: 107.0,
+            visible: true,
+        },
+    ]
+}
+
 impl Default for UiSettings {
     fn default() -> Self {
         Self {
@@ -278,8 +313,13 @@ impl Default for UiSettings {
                     visible: true,
                 },
                 ColumnLayout {
-                    column: ColumnId::Pid,
-                    width: 50.0,
+                    column: ColumnId::UserName,
+                    width: 107.0,
+                    visible: true,
+                },
+                ColumnLayout {
+                    column: ColumnId::SessionId,
+                    width: 60.0,
                     visible: true,
                 },
                 ColumnLayout {
@@ -288,18 +328,8 @@ impl Default for UiSettings {
                     visible: true,
                 },
                 ColumnLayout {
-                    column: ColumnId::CpuTime,
-                    width: 70.0,
-                    visible: true,
-                },
-                ColumnLayout {
                     column: ColumnId::MemoryUsage,
                     width: 70.0,
-                    visible: true,
-                },
-                ColumnLayout {
-                    column: ColumnId::UserName,
-                    width: 107.0,
                     visible: true,
                 },
             ],
@@ -321,6 +351,9 @@ impl UiSettings {
             // Schema 1/2 accidentally inverted the archived default. Those schemas were only
             // emitted by the pre-release Flutter port, so migrate them to the intended default.
             self.one_graph_per_cpu = true;
+        }
+        if source_schema < 4 && self.process_columns == pre_v4_process_columns() {
+            self.process_columns = UiSettings::default().process_columns;
         }
         self.schema_version = SETTINGS_SCHEMA_VERSION;
         if !self.window.width.is_finite() || self.window.width < ORIGINAL_MAIN_WINDOW_WIDTH {
@@ -390,6 +423,9 @@ pub enum ApplicationStatus {
 pub struct ApplicationRow {
     pub identity: ApplicationIdentity,
     pub title: String,
+    /// Whether the UI should append its localized 32-bit process suffix.
+    /// `None` means the provider does not expose or could not determine the process architecture.
+    pub show_32_bit_suffix: Option<bool>,
     pub status: ApplicationStatus,
     pub window_station: Option<String>,
     pub desktop: Option<String>,
@@ -404,6 +440,9 @@ pub struct ProcessRow {
     pub identity: ProcessIdentity,
     pub parent_pid: Option<u32>,
     pub image_name: String,
+    /// Whether the UI should append its localized 32-bit process suffix.
+    /// `None` means the provider could not determine the process architecture.
+    pub show_32_bit_suffix: Option<bool>,
     pub executable_path: Option<String>,
     pub user_name: Option<String>,
     pub session_id: Option<u32>,
@@ -571,11 +610,25 @@ pub struct GpuAdapter {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NetworkInterfaceState {
+    Connected,
+    Disconnected,
+    Connecting,
+    Disconnecting,
+    HardwareMissing,
+    HardwareDisabled,
+    HardwareMalfunction,
+    Unknown,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct NetworkInterface {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
     pub operational: bool,
+    pub state: NetworkInterfaceState,
     pub link_speed_bits_per_second: Option<u64>,
     pub received_bytes_per_second: Option<f64>,
     pub sent_bytes_per_second: Option<f64>,
@@ -640,6 +693,9 @@ pub struct PerformanceData {
     pub cpu_history: Vec<f64>,
     pub kernel_history: Vec<f64>,
     pub memory_history: Vec<f64>,
+    /// Labels in the same order as the per-logical-processor histories. Windows includes the
+    /// topology-derived SMT sibling index when the physical core has multiple threads.
+    pub logical_cpu_labels: Vec<String>,
     pub logical_cpu_histories: Vec<Vec<f64>>,
     pub logical_kernel_histories: Vec<Vec<f64>>,
 }
@@ -720,6 +776,29 @@ pub struct BackendError {
     pub message: String,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DiagnosticLevel {
+    Info,
+    Debug,
+    Trace,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct DiagnosticStatus {
+    pub level: DiagnosticLevel,
+    pub sensitive: bool,
+    pub session_id: String,
+    pub directory: Option<String>,
+    pub file_active: bool,
+    pub sink_error: Option<String>,
+    pub dropped_events: u64,
+    /// True once sensitive fields were enabled at any point in this session.
+    /// Exporters use this sticky bit to show a privacy warning even after the
+    /// current configuration has returned to redacted logging.
+    pub export_requires_privacy_warning: bool,
+}
+
 impl BackendError {
     pub fn io(context: impl Into<String>, error: &std::io::Error) -> Self {
         Self {
@@ -787,6 +866,7 @@ pub struct PageSnapshot<T> {
 #[serde(tag = "event", content = "payload", rename_all = "snake_case")]
 pub enum BackendEvent {
     Capabilities(PlatformCapabilities),
+    Diagnostics(DiagnosticStatus),
     Applications(PageSnapshot<ApplicationsData>),
     Processes(PageSnapshot<ProcessesData>),
     Performance(Box<PageSnapshot<PerformanceData>>),
@@ -801,7 +881,7 @@ pub enum BackendEvent {
 impl BackendEvent {
     pub const fn page(&self) -> Option<PageId> {
         match self {
-            Self::Capabilities(_) | Self::PrivilegeChanged(_) => None,
+            Self::Capabilities(_) | Self::Diagnostics(_) | Self::PrivilegeChanged(_) => None,
             Self::Applications(_) => Some(PageId::Applications),
             Self::Processes(_) => Some(PageId::Processes),
             Self::Performance(_) => Some(PageId::Performance),
@@ -854,6 +934,21 @@ pub enum UserAction {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
 pub enum ActionRequest {
+    ShowAboutDialog {
+        title: String,
+    },
+    ShowRunDialog,
+    ConfigureDiagnostics {
+        detailed: bool,
+        sensitive: bool,
+    },
+    OpenDiagnosticFolder,
+    SaveDiagnosticBundle,
+    RestartWithDetailedDiagnostics,
+    RecordUiError {
+        message: String,
+        stack: Option<String>,
+    },
     RunTask {
         command_line: String,
     },
@@ -972,7 +1067,7 @@ mod tests {
     use super::{
         ActionRequest, ApplicationIdentity, ColumnId, ORIGINAL_MAIN_WINDOW_HEIGHT,
         ORIGINAL_MAIN_WINDOW_WIDTH, PageId, SETTINGS_SCHEMA_VERSION, UiSettings, WindowArrangement,
-        WindowGeometry,
+        WindowGeometry, pre_v4_process_columns,
     };
 
     #[test]
@@ -1046,6 +1141,56 @@ mod tests {
         .normalize();
 
         assert!(!settings.one_graph_per_cpu);
+    }
+
+    #[test]
+    fn pre_v4_flutter_process_defaults_migrate_to_classic_columns() {
+        let settings = UiSettings {
+            schema_version: 3,
+            process_columns: pre_v4_process_columns(),
+            ..UiSettings::default()
+        }
+        .normalize();
+
+        assert_eq!(
+            settings
+                .process_columns
+                .iter()
+                .map(|layout| layout.column)
+                .collect::<Vec<_>>(),
+            vec![
+                ColumnId::ImageName,
+                ColumnId::UserName,
+                ColumnId::SessionId,
+                ColumnId::Cpu,
+                ColumnId::MemoryUsage,
+            ]
+        );
+    }
+
+    #[test]
+    fn customized_pre_v4_process_columns_are_preserved() {
+        let settings = UiSettings {
+            schema_version: 3,
+            process_columns: vec![
+                super::ColumnLayout {
+                    column: ColumnId::ImageName,
+                    width: 145.0,
+                    visible: true,
+                },
+                super::ColumnLayout {
+                    column: ColumnId::Pid,
+                    width: 55.0,
+                    visible: true,
+                },
+            ],
+            ..UiSettings::default()
+        }
+        .normalize();
+
+        assert_eq!(settings.process_columns.len(), 2);
+        assert_eq!(settings.process_columns[1].column, ColumnId::Pid);
+        assert_eq!(settings.process_columns[1].width, 55.0);
     }
 
     #[test]

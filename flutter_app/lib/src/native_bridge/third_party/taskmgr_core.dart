@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BackendEvent>>
@@ -87,6 +88,10 @@ class ApplicationIdentity {
 class ApplicationRow {
   final ApplicationIdentity identity;
   final String title;
+
+  /// Whether the UI should append its localized 32-bit process suffix.
+  /// `None` means the provider does not expose or could not determine the process architecture.
+  final bool? show32BitSuffix;
   final ApplicationStatus status;
   final String? windowStation;
   final String? desktop;
@@ -98,6 +103,7 @@ class ApplicationRow {
   const ApplicationRow({
     required this.identity,
     required this.title,
+    this.show32BitSuffix,
     required this.status,
     this.windowStation,
     this.desktop,
@@ -111,6 +117,7 @@ class ApplicationRow {
   int get hashCode =>
       identity.hashCode ^
       title.hashCode ^
+      show32BitSuffix.hashCode ^
       status.hashCode ^
       windowStation.hashCode ^
       desktop.hashCode ^
@@ -126,6 +133,7 @@ class ApplicationRow {
           runtimeType == other.runtimeType &&
           identity == other.identity &&
           title == other.title &&
+          show32BitSuffix == other.show32BitSuffix &&
           status == other.status &&
           windowStation == other.windowStation &&
           desktop == other.desktop &&
@@ -634,6 +642,59 @@ class CpuTopologyMetrics {
           secondLevelAddressTranslation == other.secondLevelAddressTranslation;
 }
 
+enum DiagnosticLevel { info, debug, trace }
+
+class DiagnosticStatus {
+  final DiagnosticLevel level;
+  final bool sensitive;
+  final String sessionId;
+  final String? directory;
+  final bool fileActive;
+  final String? sinkError;
+  final BigInt droppedEvents;
+
+  /// True once sensitive fields were enabled at any point in this session.
+  /// Exporters use this sticky bit to show a privacy warning even after the
+  /// current configuration has returned to redacted logging.
+  final bool exportRequiresPrivacyWarning;
+
+  const DiagnosticStatus({
+    required this.level,
+    required this.sensitive,
+    required this.sessionId,
+    this.directory,
+    required this.fileActive,
+    this.sinkError,
+    required this.droppedEvents,
+    required this.exportRequiresPrivacyWarning,
+  });
+
+  @override
+  int get hashCode =>
+      level.hashCode ^
+      sensitive.hashCode ^
+      sessionId.hashCode ^
+      directory.hashCode ^
+      fileActive.hashCode ^
+      sinkError.hashCode ^
+      droppedEvents.hashCode ^
+      exportRequiresPrivacyWarning.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DiagnosticStatus &&
+          runtimeType == other.runtimeType &&
+          level == other.level &&
+          sensitive == other.sensitive &&
+          sessionId == other.sessionId &&
+          directory == other.directory &&
+          fileActive == other.fileActive &&
+          sinkError == other.sinkError &&
+          droppedEvents == other.droppedEvents &&
+          exportRequiresPrivacyWarning == other.exportRequiresPrivacyWarning;
+}
+
 class GpuAdapter {
   final String id;
   final String name;
@@ -831,6 +892,7 @@ class NetworkInterface {
   final String name;
   final String? description;
   final bool operational;
+  final NetworkInterfaceState state;
   final BigInt? linkSpeedBitsPerSecond;
   final double? receivedBytesPerSecond;
   final double? sentBytesPerSecond;
@@ -844,6 +906,7 @@ class NetworkInterface {
     required this.name,
     this.description,
     required this.operational,
+    required this.state,
     this.linkSpeedBitsPerSecond,
     this.receivedBytesPerSecond,
     this.sentBytesPerSecond,
@@ -859,6 +922,7 @@ class NetworkInterface {
       name.hashCode ^
       description.hashCode ^
       operational.hashCode ^
+      state.hashCode ^
       linkSpeedBitsPerSecond.hashCode ^
       receivedBytesPerSecond.hashCode ^
       sentBytesPerSecond.hashCode ^
@@ -876,6 +940,7 @@ class NetworkInterface {
           name == other.name &&
           description == other.description &&
           operational == other.operational &&
+          state == other.state &&
           linkSpeedBitsPerSecond == other.linkSpeedBitsPerSecond &&
           receivedBytesPerSecond == other.receivedBytesPerSecond &&
           sentBytesPerSecond == other.sentBytesPerSecond &&
@@ -883,6 +948,17 @@ class NetworkInterface {
           receivedHistory == other.receivedHistory &&
           sentHistory == other.sentHistory &&
           rowError == other.rowError;
+}
+
+enum NetworkInterfaceState {
+  connected,
+  disconnected,
+  connecting,
+  disconnecting,
+  hardwareMissing,
+  hardwareDisabled,
+  hardwareMalfunction,
+  unknown,
 }
 
 class PageCapability {
@@ -951,6 +1027,10 @@ class PerformanceData {
   final Float64List cpuHistory;
   final Float64List kernelHistory;
   final Float64List memoryHistory;
+
+  /// Labels in the same order as the per-logical-processor histories. Windows includes the
+  /// topology-derived SMT sibling index when the physical core has multiple threads.
+  final List<String> logicalCpuLabels;
   final List<Float64List> logicalCpuHistories;
   final List<Float64List> logicalKernelHistories;
 
@@ -977,6 +1057,7 @@ class PerformanceData {
     required this.cpuHistory,
     required this.kernelHistory,
     required this.memoryHistory,
+    required this.logicalCpuLabels,
     required this.logicalCpuHistories,
     required this.logicalKernelHistories,
   });
@@ -1005,6 +1086,7 @@ class PerformanceData {
       cpuHistory.hashCode ^
       kernelHistory.hashCode ^
       memoryHistory.hashCode ^
+      logicalCpuLabels.hashCode ^
       logicalCpuHistories.hashCode ^
       logicalKernelHistories.hashCode;
 
@@ -1035,6 +1117,7 @@ class PerformanceData {
           cpuHistory == other.cpuHistory &&
           kernelHistory == other.kernelHistory &&
           memoryHistory == other.memoryHistory &&
+          logicalCpuLabels == other.logicalCpuLabels &&
           logicalCpuHistories == other.logicalCpuHistories &&
           logicalKernelHistories == other.logicalKernelHistories;
 }
@@ -1134,6 +1217,10 @@ class ProcessRow {
   final ProcessIdentity identity;
   final int? parentPid;
   final String imageName;
+
+  /// Whether the UI should append its localized 32-bit process suffix.
+  /// `None` means the provider could not determine the process architecture.
+  final bool? show32BitSuffix;
   final String? executablePath;
   final String? userName;
   final int? sessionId;
@@ -1161,6 +1248,7 @@ class ProcessRow {
     required this.identity,
     this.parentPid,
     required this.imageName,
+    this.show32BitSuffix,
     this.executablePath,
     this.userName,
     this.sessionId,
@@ -1188,6 +1276,7 @@ class ProcessRow {
       identity.hashCode ^
       parentPid.hashCode ^
       imageName.hashCode ^
+      show32BitSuffix.hashCode ^
       executablePath.hashCode ^
       userName.hashCode ^
       sessionId.hashCode ^
@@ -1217,6 +1306,7 @@ class ProcessRow {
           identity == other.identity &&
           parentPid == other.parentPid &&
           imageName == other.imageName &&
+          show32BitSuffix == other.show32BitSuffix &&
           executablePath == other.executablePath &&
           userName == other.userName &&
           sessionId == other.sessionId &&

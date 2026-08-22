@@ -44,8 +44,10 @@ mod wayland_kde;
 #[cfg(target_os = "linux")]
 mod x11;
 
+#[cfg(any(target_os = "linux", test))]
+use taskmgr_core::ActionKind;
 #[cfg(target_os = "linux")]
-use taskmgr_core::{ActionKind, ColumnId};
+use taskmgr_core::ColumnId;
 use taskmgr_core::{
     ActionRequest, ActionResult, Architecture, Availability, BackendError, PROTOCOL_VERSION,
     PageCapability, PageId, PlatformCapabilities, PlatformKind, PlatformProvider, PrivilegeResult,
@@ -60,6 +62,15 @@ use gpu::GpuSampler;
 use network::NetworkSampler;
 #[cfg(target_os = "linux")]
 use procfs::ProcSampler;
+
+#[cfg(any(target_os = "linux", test))]
+fn linux_process_actions() -> Vec<ActionKind> {
+    vec![
+        ActionKind::EndProcess,
+        ActionKind::EndProcessTree,
+        ActionKind::OpenFileLocation,
+    ]
+}
 
 pub struct LinuxProvider {
     #[cfg(target_os = "linux")]
@@ -131,13 +142,7 @@ impl PlatformProvider for LinuxProvider {
                             ColumnId::ThreadCount,
                             ColumnId::Cgroup,
                         ],
-                        actions: vec![
-                            ActionKind::EndProcess,
-                            ActionKind::EndProcessTree,
-                            ActionKind::SetNice,
-                            ActionKind::SetAffinity,
-                            ActionKind::OpenFileLocation,
-                        ],
+                        actions: linux_process_actions(),
                         detail: Some(
                             "Linux uses nice, file descriptors, RSS and cgroups".to_string(),
                         ),
@@ -245,6 +250,26 @@ impl PlatformProvider for LinuxProvider {
         #[cfg(target_os = "linux")]
         {
             match request {
+                ActionRequest::ShowAboutDialog { .. } => ActionResult::unsupported(
+                    "the Windows Shell About dialog is not available on Linux",
+                ),
+                ActionRequest::ShowRunDialog => ActionResult::unsupported(
+                    "the Windows system Run dialog is not available on Linux",
+                ),
+                ActionRequest::OpenDiagnosticFolder => launch::open_diagnostic_folder(),
+                ActionRequest::SaveDiagnosticBundle => ActionResult::unsupported(
+                    "saving a diagnostic bundle requires a desktop file chooser integration",
+                ),
+                ActionRequest::RestartWithDetailedDiagnostics => {
+                    launch::restart_with_detailed_diagnostics()
+                }
+                ActionRequest::ConfigureDiagnostics { .. }
+                | ActionRequest::RecordUiError { .. } => {
+                    ActionResult::failed(BackendError::internal(
+                        "diagnostic action routing",
+                        "process-wide diagnostic actions must be handled by the core runtime",
+                    ))
+                }
                 ActionRequest::RunTask { command_line } => launch::run(&command_line),
                 ActionRequest::Window { .. } => self.applications.execute(request),
                 ActionRequest::ArrangeWindows { .. } => ActionResult::unsupported(
@@ -252,9 +277,10 @@ impl PlatformProvider for LinuxProvider {
                 ),
                 ActionRequest::EndProcess { .. }
                 | ActionRequest::SetPriority { .. }
-                | ActionRequest::SetNice { .. }
-                | ActionRequest::SetAffinity { .. }
                 | ActionRequest::OpenFileLocation { .. } => self.procfs.execute(request),
+                ActionRequest::SetNice { .. } | ActionRequest::SetAffinity { .. } => {
+                    ActionResult::unsupported(procfs::PID_ONLY_SCHEDULING_UNSUPPORTED)
+                }
                 ActionRequest::UserSession { .. } => ActionResult::unsupported(
                     "session control requires the installed polkit helper",
                 ),
@@ -271,5 +297,22 @@ impl PlatformProvider for LinuxProvider {
         PrivilegeResult::unavailable(
             "install the DEB/RPM package to enable the polkit helper; portable builds stay unprivileged",
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use taskmgr_core::ActionKind;
+
+    use super::linux_process_actions;
+
+    #[test]
+    fn linux_process_capabilities_exclude_pid_only_scheduling_mutations() {
+        let actions = linux_process_actions();
+        assert!(actions.contains(&ActionKind::EndProcess));
+        assert!(actions.contains(&ActionKind::EndProcessTree));
+        assert!(actions.contains(&ActionKind::OpenFileLocation));
+        assert!(!actions.contains(&ActionKind::SetNice));
+        assert!(!actions.contains(&ActionKind::SetAffinity));
     }
 }

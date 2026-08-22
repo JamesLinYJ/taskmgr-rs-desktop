@@ -21,6 +21,8 @@ import 'backend_state.dart';
 
 /// 接收 Rust 不可变快照，并只替换相应页面的数据引用。
 class BackendController extends ValueNotifier<BackendState> {
+  static const _eventCoalesceWindow = Duration(milliseconds: 8);
+
   BackendController._(super.value);
 
   native.BackendHandle? _handle;
@@ -30,6 +32,9 @@ class BackendController extends ValueNotifier<BackendState> {
   bool _isPreview = false;
   Future<ActionResult?> Function(native.BridgeActionRequest request)?
   _previewAction;
+  BackendState? _pendingEventState;
+  Timer? _eventFlushTimer;
+  bool _closing = false;
 
   static Future<BackendController> create() async {
     UiSettings settings;
@@ -68,6 +73,9 @@ class BackendController extends ValueNotifier<BackendState> {
             controller._acceptEvent,
             onError: controller._acceptError,
             onDone: () {
+              if (!controller._closing) {
+                controller._flushPendingEvents();
+              }
               if (!eventStreamDone.isCompleted) {
                 eventStreamDone.complete();
               }
@@ -94,51 +102,86 @@ class BackendController extends ValueNotifier<BackendState> {
   }
 
   void _acceptError(Object error, StackTrace stackTrace) {
+    if (_closing) {
+      return;
+    }
+    _flushPendingEvents();
     value = value.copyWith(loading: false, errorText: error.toString());
+    _recordUiError(error, stackTrace);
   }
 
   void _acceptEvent(native.BridgeBackendEvent event) {
+    if (_closing) {
+      return;
+    }
+    _pendingEventState = _reduceEvent(_pendingEventState ?? value, event);
+    _eventFlushTimer ??= Timer(_eventCoalesceWindow, _flushPendingEvents);
+  }
+
+  BackendState _reduceEvent(
+    BackendState current,
+    native.BridgeBackendEvent event,
+  ) {
     final next = switch (event) {
-      native.BridgeBackendEvent_Capabilities(:final field0) => value.copyWith(
+      native.BridgeBackendEvent_Capabilities(:final field0) => current.copyWith(
         loading: false,
         capabilities: field0,
       ),
+      native.BridgeBackendEvent_Diagnostics(:final field0) => current.copyWith(
+        diagnostics: field0,
+      ),
       native.BridgeBackendEvent_Applications(:final meta, :final data) =>
-        value
+        current
             .copyWith(loading: false, applications: data)
             .withSnapshotMeta(PageId.applications, meta),
       native.BridgeBackendEvent_Processes(:final meta, :final data) =>
-        value
+        current
             .copyWith(loading: false, processes: data)
             .withSnapshotMeta(PageId.processes, meta),
       native.BridgeBackendEvent_Performance(:final meta, :final data) =>
-        value
+        current
             .copyWith(loading: false, performance: data)
             .withSnapshotMeta(PageId.performance, meta),
       native.BridgeBackendEvent_Cpu(:final meta, :final data) =>
-        value
+        current
             .copyWith(loading: false, cpu: data)
             .withSnapshotMeta(PageId.cpu, meta),
       native.BridgeBackendEvent_Gpu(:final meta, :final data) =>
-        value
+        current
             .copyWith(loading: false, gpu: data)
             .withSnapshotMeta(PageId.gpu, meta),
       native.BridgeBackendEvent_Network(:final meta, :final data) =>
-        value
+        current
             .copyWith(loading: false, network: data)
             .withSnapshotMeta(PageId.network, meta),
       native.BridgeBackendEvent_Users(:final meta, :final data) =>
-        value
+        current
             .copyWith(loading: false, users: data)
             .withSnapshotMeta(PageId.users, meta),
       native.BridgeBackendEvent_PageUnavailable(:final page, :final meta) =>
-        value.withSnapshotMeta(page, meta),
-      native.BridgeBackendEvent_PrivilegeChanged() => value,
+        current.withSnapshotMeta(page, meta),
+      native.BridgeBackendEvent_PrivilegeChanged() => current,
     };
-    value = next;
+    return next;
+  }
+
+  void _flushPendingEvents() {
+    _eventFlushTimer?.cancel();
+    _eventFlushTimer = null;
+    final next = _pendingEventState;
+    _pendingEventState = null;
+    if (next != null && !_closing) {
+      value = next;
+    }
+  }
+
+  @visibleForTesting
+  void acceptEventForTesting(native.BridgeBackendEvent event) {
+    _acceptEvent(event);
   }
 
   Future<void> selectPage(PageId page) async {
+    _flushPendingEvents();
     value = value.copyWith(
       activePage: page,
       settings: _copySettings(value.settings, activePage: page),
@@ -152,6 +195,7 @@ class BackendController extends ValueNotifier<BackendState> {
   }
 
   Future<void> setUpdateSpeed(UpdateSpeed speed) async {
+    _flushPendingEvents();
     value = value.copyWith(
       updateSpeed: speed,
       settings: _copySettings(value.settings, updateSpeed: speed),
@@ -172,6 +216,7 @@ class BackendController extends ValueNotifier<BackendState> {
     WindowGeometry? window,
     List<ColumnLayout>? processColumns,
   }) async {
+    _flushPendingEvents();
     final current = value.settings;
     if (current == null) {
       return;
@@ -218,8 +263,22 @@ class BackendController extends ValueNotifier<BackendState> {
     return native.executeAction(handle: handle, request: request);
   }
 
-  void reportUiError(Object error) {
+  void reportUiError(Object error, [StackTrace? stackTrace]) {
+    _flushPendingEvents();
     value = value.copyWith(errorText: error.toString());
+    _recordUiError(error, stackTrace);
+  }
+
+  void _recordUiError(Object error, StackTrace? stackTrace) {
+    final operation = execute(
+      native.BridgeActionRequest.recordUiError(
+        message: error.toString(),
+        stack: stackTrace?.toString(),
+      ),
+    );
+    unawaited(
+      operation.then<void>((_) {}, onError: (Object _, StackTrace _) {}),
+    );
   }
 
   Future<void> _pushOptions() async {
@@ -247,8 +306,8 @@ class BackendController extends ValueNotifier<BackendState> {
     }
     try {
       await native.saveSettings(settings: settings);
-    } catch (error) {
-      value = value.copyWith(errorText: error.toString());
+    } catch (error, stackTrace) {
+      reportUiError(error, stackTrace);
     }
   }
 
@@ -281,6 +340,10 @@ class BackendController extends ValueNotifier<BackendState> {
   Future<void> close() => _closeFuture ??= _close();
 
   Future<void> _close() async {
+    _closing = true;
+    _eventFlushTimer?.cancel();
+    _eventFlushTimer = null;
+    _pendingEventState = null;
     final handle = _handle;
     _handle = null;
     final subscription = _subscription;

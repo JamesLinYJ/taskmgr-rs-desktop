@@ -114,6 +114,112 @@ void main() {
     expect(find.text('●'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('details-view row right click opens only the row menu', (
+    tester,
+  ) async {
+    final state = sampleState(PageId.applications);
+    final controller = BackendController.preview(state);
+    final title = state.applications!.rows.first.title;
+    await tester.pumpWidget(TaskManagerApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(title), buttons: kSecondaryMouseButton);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.ancestor(
+        of: find.text('Switch To'),
+        matching: find.byType(PopupMenuItem<void>),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.ancestor(
+        of: find.text('End Task'),
+        matching: find.byType(PopupMenuItem<void>),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.ancestor(
+        of: find.text('Go To Process'),
+        matching: find.byType(PopupMenuItem<void>),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Large Icons'), findsNothing);
+    expect(find.text('Small Icons'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('icon-view item right click opens only the item menu', (
+    tester,
+  ) async {
+    final state = sampleState(PageId.applications);
+    final controller = BackendController.preview(state);
+    final title = state.applications!.rows.first.title;
+    await tester.pumpWidget(TaskManagerApp(controller: controller));
+    await tester.pumpAndSettle();
+    await _chooseView(tester, 'Small Icons');
+
+    await tester.tap(find.text(title), buttons: kSecondaryMouseButton);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.ancestor(
+        of: find.text('Switch To'),
+        matching: find.byType(PopupMenuItem<void>),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.ancestor(
+        of: find.text('End Task'),
+        matching: find.byType(PopupMenuItem<void>),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Large Icons'), findsNothing);
+    expect(find.text('Details'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('32-bit applications use the localized title suffix', (
+    tester,
+  ) async {
+    final initial = sampleState(PageId.applications);
+    final original = initial.applications!.rows.first;
+    final marked = ApplicationRow(
+      identity: original.identity,
+      title: original.title,
+      show32BitSuffix: true,
+      status: original.status,
+      windowStation: original.windowStation,
+      desktop: original.desktop,
+      iconPng: original.iconPng,
+      largeIconPng: original.largeIconPng,
+      allowedActions: original.allowedActions,
+      rowError: original.rowError,
+    );
+    final controller = BackendController.preview(
+      initial.copyWith(
+        applications: ApplicationsData(rows: <ApplicationRow>[marked]),
+      ),
+    );
+
+    await tester.pumpWidget(TaskManagerApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    final localizedTitle = '${original.title} (32-bit)';
+    expect(find.text(localizedTitle), findsOneWidget);
+    expect(find.text(original.title), findsNothing);
+
+    await _chooseView(tester, 'Large Icons');
+
+    expect(find.text(localizedTitle), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Future<void> _chooseView(WidgetTester tester, String label) async {

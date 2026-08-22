@@ -1117,6 +1117,7 @@ const _: fn() = || {
         let ApplicationRow = None::<taskmgr_core::ApplicationRow>.unwrap();
         let _: taskmgr_core::ApplicationIdentity = ApplicationRow.identity;
         let _: String = ApplicationRow.title;
+        let _: Option<bool> = ApplicationRow.show_32_bit_suffix;
         let _: taskmgr_core::ApplicationStatus = ApplicationRow.status;
         let _: Option<String> = ApplicationRow.window_station;
         let _: Option<String> = ApplicationRow.desktop;
@@ -1229,6 +1230,17 @@ const _: fn() = || {
         let _: Option<bool> = CpuTopologyMetrics.second_level_address_translation;
     }
     {
+        let DiagnosticStatus = None::<taskmgr_core::DiagnosticStatus>.unwrap();
+        let _: taskmgr_core::DiagnosticLevel = DiagnosticStatus.level;
+        let _: bool = DiagnosticStatus.sensitive;
+        let _: String = DiagnosticStatus.session_id;
+        let _: Option<String> = DiagnosticStatus.directory;
+        let _: bool = DiagnosticStatus.file_active;
+        let _: Option<String> = DiagnosticStatus.sink_error;
+        let _: u64 = DiagnosticStatus.dropped_events;
+        let _: bool = DiagnosticStatus.export_requires_privacy_warning;
+    }
+    {
         let GpuAdapter = None::<taskmgr_core::GpuAdapter>.unwrap();
         let _: String = GpuAdapter.id;
         let _: String = GpuAdapter.name;
@@ -1276,6 +1288,7 @@ const _: fn() = || {
         let _: String = NetworkInterface.name;
         let _: Option<String> = NetworkInterface.description;
         let _: bool = NetworkInterface.operational;
+        let _: taskmgr_core::NetworkInterfaceState = NetworkInterface.state;
         let _: Option<u64> = NetworkInterface.link_speed_bits_per_second;
         let _: Option<f64> = NetworkInterface.received_bytes_per_second;
         let _: Option<f64> = NetworkInterface.sent_bytes_per_second;
@@ -1316,6 +1329,7 @@ const _: fn() = || {
         let _: Vec<f64> = PerformanceData.cpu_history;
         let _: Vec<f64> = PerformanceData.kernel_history;
         let _: Vec<f64> = PerformanceData.memory_history;
+        let _: Vec<String> = PerformanceData.logical_cpu_labels;
         let _: Vec<Vec<f64>> = PerformanceData.logical_cpu_histories;
         let _: Vec<Vec<f64>> = PerformanceData.logical_kernel_histories;
     }
@@ -1345,6 +1359,7 @@ const _: fn() = || {
         let _: taskmgr_core::ProcessIdentity = ProcessRow.identity;
         let _: Option<u32> = ProcessRow.parent_pid;
         let _: String = ProcessRow.image_name;
+        let _: Option<bool> = ProcessRow.show_32_bit_suffix;
         let _: Option<String> = ProcessRow.executable_path;
         let _: Option<String> = ProcessRow.user_name;
         let _: Option<u32> = ProcessRow.session_id;
@@ -1603,6 +1618,7 @@ impl SseDecode for taskmgr_core::ApplicationRow {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_identity = <taskmgr_core::ApplicationIdentity>::sse_decode(deserializer);
         let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_show32BitSuffix = <Option<bool>>::sse_decode(deserializer);
         let mut var_status = <taskmgr_core::ApplicationStatus>::sse_decode(deserializer);
         let mut var_windowStation = <Option<String>>::sse_decode(deserializer);
         let mut var_desktop = <Option<String>>::sse_decode(deserializer);
@@ -1613,6 +1629,7 @@ impl SseDecode for taskmgr_core::ApplicationRow {
         return taskmgr_core::ApplicationRow {
             identity: var_identity,
             title: var_title,
+            show_32_bit_suffix: var_show32BitSuffix,
             status: var_status,
             window_station: var_windowStation,
             desktop: var_desktop,
@@ -1727,12 +1744,44 @@ impl SseDecode for crate::api::BridgeActionRequest {
         let mut tag_ = <i32>::sse_decode(deserializer);
         match tag_ {
             0 => {
+                let mut var_title = <String>::sse_decode(deserializer);
+                return crate::api::BridgeActionRequest::ShowAboutDialog { title: var_title };
+            }
+            1 => {
+                return crate::api::BridgeActionRequest::ShowRunDialog;
+            }
+            2 => {
+                let mut var_detailed = <bool>::sse_decode(deserializer);
+                let mut var_sensitive = <bool>::sse_decode(deserializer);
+                return crate::api::BridgeActionRequest::ConfigureDiagnostics {
+                    detailed: var_detailed,
+                    sensitive: var_sensitive,
+                };
+            }
+            3 => {
+                return crate::api::BridgeActionRequest::OpenDiagnosticFolder;
+            }
+            4 => {
+                return crate::api::BridgeActionRequest::SaveDiagnosticBundle;
+            }
+            5 => {
+                return crate::api::BridgeActionRequest::RestartWithDetailedDiagnostics;
+            }
+            6 => {
+                let mut var_message = <String>::sse_decode(deserializer);
+                let mut var_stack = <Option<String>>::sse_decode(deserializer);
+                return crate::api::BridgeActionRequest::RecordUiError {
+                    message: var_message,
+                    stack: var_stack,
+                };
+            }
+            7 => {
                 let mut var_commandLine = <String>::sse_decode(deserializer);
                 return crate::api::BridgeActionRequest::RunTask {
                     command_line: var_commandLine,
                 };
             }
-            1 => {
+            8 => {
                 let mut var_identity = <taskmgr_core::ProcessIdentity>::sse_decode(deserializer);
                 let mut var_includeDescendants = <bool>::sse_decode(deserializer);
                 return crate::api::BridgeActionRequest::EndProcess {
@@ -1740,7 +1789,7 @@ impl SseDecode for crate::api::BridgeActionRequest {
                     include_descendants: var_includeDescendants,
                 };
             }
-            2 => {
+            9 => {
                 let mut var_identity = <taskmgr_core::ProcessIdentity>::sse_decode(deserializer);
                 let mut var_priority = <taskmgr_core::ProcessPriority>::sse_decode(deserializer);
                 return crate::api::BridgeActionRequest::SetPriority {
@@ -1748,7 +1797,7 @@ impl SseDecode for crate::api::BridgeActionRequest {
                     priority: var_priority,
                 };
             }
-            3 => {
+            10 => {
                 let mut var_identity = <taskmgr_core::ProcessIdentity>::sse_decode(deserializer);
                 let mut var_nice = <i32>::sse_decode(deserializer);
                 return crate::api::BridgeActionRequest::SetNice {
@@ -1756,7 +1805,7 @@ impl SseDecode for crate::api::BridgeActionRequest {
                     nice: var_nice,
                 };
             }
-            4 => {
+            11 => {
                 let mut var_identity = <taskmgr_core::ProcessIdentity>::sse_decode(deserializer);
                 let mut var_logicalProcessors = <Vec<u32>>::sse_decode(deserializer);
                 return crate::api::BridgeActionRequest::SetAffinity {
@@ -1764,13 +1813,13 @@ impl SseDecode for crate::api::BridgeActionRequest {
                     logical_processors: var_logicalProcessors,
                 };
             }
-            5 => {
+            12 => {
                 let mut var_identity = <taskmgr_core::ProcessIdentity>::sse_decode(deserializer);
                 return crate::api::BridgeActionRequest::OpenFileLocation {
                     identity: var_identity,
                 };
             }
-            6 => {
+            13 => {
                 let mut var_identity =
                     <taskmgr_core::ApplicationIdentity>::sse_decode(deserializer);
                 let mut var_operation = <taskmgr_core::WindowAction>::sse_decode(deserializer);
@@ -1779,7 +1828,7 @@ impl SseDecode for crate::api::BridgeActionRequest {
                     operation: var_operation,
                 };
             }
-            7 => {
+            14 => {
                 let mut var_identities =
                     <Vec<taskmgr_core::ApplicationIdentity>>::sse_decode(deserializer);
                 let mut var_arrangement =
@@ -1789,7 +1838,7 @@ impl SseDecode for crate::api::BridgeActionRequest {
                     arrangement: var_arrangement,
                 };
             }
-            8 => {
+            15 => {
                 let mut var_identity =
                     <taskmgr_core::UserSessionIdentity>::sse_decode(deserializer);
                 let mut var_operation = <taskmgr_core::UserAction>::sse_decode(deserializer);
@@ -1819,6 +1868,10 @@ impl SseDecode for crate::api::BridgeBackendEvent {
                 return crate::api::BridgeBackendEvent::Capabilities(var_field0);
             }
             1 => {
+                let mut var_field0 = <taskmgr_core::DiagnosticStatus>::sse_decode(deserializer);
+                return crate::api::BridgeBackendEvent::Diagnostics(var_field0);
+            }
+            2 => {
                 let mut var_meta = <taskmgr_core::SnapshotMeta>::sse_decode(deserializer);
                 let mut var_data = <taskmgr_core::ApplicationsData>::sse_decode(deserializer);
                 return crate::api::BridgeBackendEvent::Applications {
@@ -1826,7 +1879,7 @@ impl SseDecode for crate::api::BridgeBackendEvent {
                     data: var_data,
                 };
             }
-            2 => {
+            3 => {
                 let mut var_meta = <taskmgr_core::SnapshotMeta>::sse_decode(deserializer);
                 let mut var_data = <taskmgr_core::ProcessesData>::sse_decode(deserializer);
                 return crate::api::BridgeBackendEvent::Processes {
@@ -1834,7 +1887,7 @@ impl SseDecode for crate::api::BridgeBackendEvent {
                     data: var_data,
                 };
             }
-            3 => {
+            4 => {
                 let mut var_meta = <taskmgr_core::SnapshotMeta>::sse_decode(deserializer);
                 let mut var_data = <taskmgr_core::PerformanceData>::sse_decode(deserializer);
                 return crate::api::BridgeBackendEvent::Performance {
@@ -1842,7 +1895,7 @@ impl SseDecode for crate::api::BridgeBackendEvent {
                     data: var_data,
                 };
             }
-            4 => {
+            5 => {
                 let mut var_meta = <taskmgr_core::SnapshotMeta>::sse_decode(deserializer);
                 let mut var_data = <taskmgr_core::CpuData>::sse_decode(deserializer);
                 return crate::api::BridgeBackendEvent::Cpu {
@@ -1850,7 +1903,7 @@ impl SseDecode for crate::api::BridgeBackendEvent {
                     data: var_data,
                 };
             }
-            5 => {
+            6 => {
                 let mut var_meta = <taskmgr_core::SnapshotMeta>::sse_decode(deserializer);
                 let mut var_data = <taskmgr_core::GpuData>::sse_decode(deserializer);
                 return crate::api::BridgeBackendEvent::Gpu {
@@ -1858,7 +1911,7 @@ impl SseDecode for crate::api::BridgeBackendEvent {
                     data: var_data,
                 };
             }
-            6 => {
+            7 => {
                 let mut var_meta = <taskmgr_core::SnapshotMeta>::sse_decode(deserializer);
                 let mut var_data = <taskmgr_core::NetworkData>::sse_decode(deserializer);
                 return crate::api::BridgeBackendEvent::Network {
@@ -1866,7 +1919,7 @@ impl SseDecode for crate::api::BridgeBackendEvent {
                     data: var_data,
                 };
             }
-            7 => {
+            8 => {
                 let mut var_meta = <taskmgr_core::SnapshotMeta>::sse_decode(deserializer);
                 let mut var_data = <taskmgr_core::UsersData>::sse_decode(deserializer);
                 return crate::api::BridgeBackendEvent::Users {
@@ -1874,7 +1927,7 @@ impl SseDecode for crate::api::BridgeBackendEvent {
                     data: var_data,
                 };
             }
-            8 => {
+            9 => {
                 let mut var_page = <taskmgr_core::PageId>::sse_decode(deserializer);
                 let mut var_meta = <taskmgr_core::SnapshotMeta>::sse_decode(deserializer);
                 return crate::api::BridgeBackendEvent::PageUnavailable {
@@ -1882,7 +1935,7 @@ impl SseDecode for crate::api::BridgeBackendEvent {
                     meta: var_meta,
                 };
             }
-            9 => {
+            10 => {
                 let mut var_field0 = <taskmgr_core::PrivilegeResult>::sse_decode(deserializer);
                 return crate::api::BridgeBackendEvent::PrivilegeChanged(var_field0);
             }
@@ -2125,6 +2178,43 @@ impl SseDecode for taskmgr_core::CpuTopologyMetrics {
             maximum_threads_per_core: var_maximumThreadsPerCore,
             virtualization: var_virtualization,
             second_level_address_translation: var_secondLevelAddressTranslation,
+        };
+    }
+}
+
+impl SseDecode for taskmgr_core::DiagnosticLevel {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => taskmgr_core::DiagnosticLevel::Info,
+            1 => taskmgr_core::DiagnosticLevel::Debug,
+            2 => taskmgr_core::DiagnosticLevel::Trace,
+            _ => unreachable!("Invalid variant for DiagnosticLevel: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for taskmgr_core::DiagnosticStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_level = <taskmgr_core::DiagnosticLevel>::sse_decode(deserializer);
+        let mut var_sensitive = <bool>::sse_decode(deserializer);
+        let mut var_sessionId = <String>::sse_decode(deserializer);
+        let mut var_directory = <Option<String>>::sse_decode(deserializer);
+        let mut var_fileActive = <bool>::sse_decode(deserializer);
+        let mut var_sinkError = <Option<String>>::sse_decode(deserializer);
+        let mut var_droppedEvents = <u64>::sse_decode(deserializer);
+        let mut var_exportRequiresPrivacyWarning = <bool>::sse_decode(deserializer);
+        return taskmgr_core::DiagnosticStatus {
+            level: var_level,
+            sensitive: var_sensitive,
+            session_id: var_sessionId,
+            directory: var_directory,
+            file_active: var_fileActive,
+            sink_error: var_sinkError,
+            dropped_events: var_droppedEvents,
+            export_requires_privacy_warning: var_exportRequiresPrivacyWarning,
         };
     }
 }
@@ -2498,6 +2588,7 @@ impl SseDecode for taskmgr_core::NetworkInterface {
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_description = <Option<String>>::sse_decode(deserializer);
         let mut var_operational = <bool>::sse_decode(deserializer);
+        let mut var_state = <taskmgr_core::NetworkInterfaceState>::sse_decode(deserializer);
         let mut var_linkSpeedBitsPerSecond = <Option<u64>>::sse_decode(deserializer);
         let mut var_receivedBytesPerSecond = <Option<f64>>::sse_decode(deserializer);
         let mut var_sentBytesPerSecond = <Option<f64>>::sse_decode(deserializer);
@@ -2510,6 +2601,7 @@ impl SseDecode for taskmgr_core::NetworkInterface {
             name: var_name,
             description: var_description,
             operational: var_operational,
+            state: var_state,
             link_speed_bits_per_second: var_linkSpeedBitsPerSecond,
             received_bytes_per_second: var_receivedBytesPerSecond,
             sent_bytes_per_second: var_sentBytesPerSecond,
@@ -2517,6 +2609,24 @@ impl SseDecode for taskmgr_core::NetworkInterface {
             received_history: var_receivedHistory,
             sent_history: var_sentHistory,
             row_error: var_rowError,
+        };
+    }
+}
+
+impl SseDecode for taskmgr_core::NetworkInterfaceState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => taskmgr_core::NetworkInterfaceState::Connected,
+            1 => taskmgr_core::NetworkInterfaceState::Disconnected,
+            2 => taskmgr_core::NetworkInterfaceState::Connecting,
+            3 => taskmgr_core::NetworkInterfaceState::Disconnecting,
+            4 => taskmgr_core::NetworkInterfaceState::HardwareMissing,
+            5 => taskmgr_core::NetworkInterfaceState::HardwareDisabled,
+            6 => taskmgr_core::NetworkInterfaceState::HardwareMalfunction,
+            7 => taskmgr_core::NetworkInterfaceState::Unknown,
+            _ => unreachable!("Invalid variant for NetworkInterfaceState: {}", inner),
         };
     }
 }
@@ -2735,6 +2845,7 @@ impl SseDecode for taskmgr_core::PerformanceData {
         let mut var_cpuHistory = <Vec<f64>>::sse_decode(deserializer);
         let mut var_kernelHistory = <Vec<f64>>::sse_decode(deserializer);
         let mut var_memoryHistory = <Vec<f64>>::sse_decode(deserializer);
+        let mut var_logicalCpuLabels = <Vec<String>>::sse_decode(deserializer);
         let mut var_logicalCpuHistories = <Vec<Vec<f64>>>::sse_decode(deserializer);
         let mut var_logicalKernelHistories = <Vec<Vec<f64>>>::sse_decode(deserializer);
         return taskmgr_core::PerformanceData {
@@ -2760,6 +2871,7 @@ impl SseDecode for taskmgr_core::PerformanceData {
             cpu_history: var_cpuHistory,
             kernel_history: var_kernelHistory,
             memory_history: var_memoryHistory,
+            logical_cpu_labels: var_logicalCpuLabels,
             logical_cpu_histories: var_logicalCpuHistories,
             logical_kernel_histories: var_logicalKernelHistories,
         };
@@ -2863,6 +2975,7 @@ impl SseDecode for taskmgr_core::ProcessRow {
         let mut var_identity = <taskmgr_core::ProcessIdentity>::sse_decode(deserializer);
         let mut var_parentPid = <Option<u32>>::sse_decode(deserializer);
         let mut var_imageName = <String>::sse_decode(deserializer);
+        let mut var_show32BitSuffix = <Option<bool>>::sse_decode(deserializer);
         let mut var_executablePath = <Option<String>>::sse_decode(deserializer);
         let mut var_userName = <Option<String>>::sse_decode(deserializer);
         let mut var_sessionId = <Option<u32>>::sse_decode(deserializer);
@@ -2887,6 +3000,7 @@ impl SseDecode for taskmgr_core::ProcessRow {
             identity: var_identity,
             parent_pid: var_parentPid,
             image_name: var_imageName,
+            show_32_bit_suffix: var_show32BitSuffix,
             executable_path: var_executablePath,
             user_name: var_userName,
             session_id: var_sessionId,
@@ -3374,6 +3488,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::ApplicationRow> 
         [
             self.0.identity.into_into_dart().into_dart(),
             self.0.title.into_into_dart().into_dart(),
+            self.0.show_32_bit_suffix.into_into_dart().into_dart(),
             self.0.status.into_into_dart().into_dart(),
             self.0.window_station.into_into_dart().into_dart(),
             self.0.desktop.into_into_dart().into_dart(),
@@ -3553,26 +3668,50 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::BackendOptions>>
 impl flutter_rust_bridge::IntoDart for crate::api::BridgeActionRequest {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
+            crate::api::BridgeActionRequest::ShowAboutDialog { title } => {
+                [0.into_dart(), title.into_into_dart().into_dart()].into_dart()
+            }
+            crate::api::BridgeActionRequest::ShowRunDialog => [1.into_dart()].into_dart(),
+            crate::api::BridgeActionRequest::ConfigureDiagnostics {
+                detailed,
+                sensitive,
+            } => [
+                2.into_dart(),
+                detailed.into_into_dart().into_dart(),
+                sensitive.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            crate::api::BridgeActionRequest::OpenDiagnosticFolder => [3.into_dart()].into_dart(),
+            crate::api::BridgeActionRequest::SaveDiagnosticBundle => [4.into_dart()].into_dart(),
+            crate::api::BridgeActionRequest::RestartWithDetailedDiagnostics => {
+                [5.into_dart()].into_dart()
+            }
+            crate::api::BridgeActionRequest::RecordUiError { message, stack } => [
+                6.into_dart(),
+                message.into_into_dart().into_dart(),
+                stack.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
             crate::api::BridgeActionRequest::RunTask { command_line } => {
-                [0.into_dart(), command_line.into_into_dart().into_dart()].into_dart()
+                [7.into_dart(), command_line.into_into_dart().into_dart()].into_dart()
             }
             crate::api::BridgeActionRequest::EndProcess {
                 identity,
                 include_descendants,
             } => [
-                1.into_dart(),
+                8.into_dart(),
                 identity.into_into_dart().into_dart(),
                 include_descendants.into_into_dart().into_dart(),
             ]
             .into_dart(),
             crate::api::BridgeActionRequest::SetPriority { identity, priority } => [
-                2.into_dart(),
+                9.into_dart(),
                 identity.into_into_dart().into_dart(),
                 priority.into_into_dart().into_dart(),
             ]
             .into_dart(),
             crate::api::BridgeActionRequest::SetNice { identity, nice } => [
-                3.into_dart(),
+                10.into_dart(),
                 identity.into_into_dart().into_dart(),
                 nice.into_into_dart().into_dart(),
             ]
@@ -3581,19 +3720,19 @@ impl flutter_rust_bridge::IntoDart for crate::api::BridgeActionRequest {
                 identity,
                 logical_processors,
             } => [
-                4.into_dart(),
+                11.into_dart(),
                 identity.into_into_dart().into_dart(),
                 logical_processors.into_into_dart().into_dart(),
             ]
             .into_dart(),
             crate::api::BridgeActionRequest::OpenFileLocation { identity } => {
-                [5.into_dart(), identity.into_into_dart().into_dart()].into_dart()
+                [12.into_dart(), identity.into_into_dart().into_dart()].into_dart()
             }
             crate::api::BridgeActionRequest::Window {
                 identity,
                 operation,
             } => [
-                6.into_dart(),
+                13.into_dart(),
                 identity.into_into_dart().into_dart(),
                 operation.into_into_dart().into_dart(),
             ]
@@ -3602,7 +3741,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::BridgeActionRequest {
                 identities,
                 arrangement,
             } => [
-                7.into_dart(),
+                14.into_dart(),
                 identities.into_into_dart().into_dart(),
                 arrangement.into_into_dart().into_dart(),
             ]
@@ -3613,7 +3752,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::BridgeActionRequest {
                 title,
                 message,
             } => [
-                8.into_dart(),
+                15.into_dart(),
                 identity.into_into_dart().into_dart(),
                 operation.into_into_dart().into_dart(),
                 title.into_into_dart().into_dart(),
@@ -3644,56 +3783,59 @@ impl flutter_rust_bridge::IntoDart for crate::api::BridgeBackendEvent {
             crate::api::BridgeBackendEvent::Capabilities(field0) => {
                 [0.into_dart(), field0.into_into_dart().into_dart()].into_dart()
             }
+            crate::api::BridgeBackendEvent::Diagnostics(field0) => {
+                [1.into_dart(), field0.into_into_dart().into_dart()].into_dart()
+            }
             crate::api::BridgeBackendEvent::Applications { meta, data } => [
-                1.into_dart(),
-                meta.into_into_dart().into_dart(),
-                data.into_into_dart().into_dart(),
-            ]
-            .into_dart(),
-            crate::api::BridgeBackendEvent::Processes { meta, data } => [
                 2.into_dart(),
                 meta.into_into_dart().into_dart(),
                 data.into_into_dart().into_dart(),
             ]
             .into_dart(),
-            crate::api::BridgeBackendEvent::Performance { meta, data } => [
+            crate::api::BridgeBackendEvent::Processes { meta, data } => [
                 3.into_dart(),
                 meta.into_into_dart().into_dart(),
                 data.into_into_dart().into_dart(),
             ]
             .into_dart(),
-            crate::api::BridgeBackendEvent::Cpu { meta, data } => [
+            crate::api::BridgeBackendEvent::Performance { meta, data } => [
                 4.into_dart(),
                 meta.into_into_dart().into_dart(),
                 data.into_into_dart().into_dart(),
             ]
             .into_dart(),
-            crate::api::BridgeBackendEvent::Gpu { meta, data } => [
+            crate::api::BridgeBackendEvent::Cpu { meta, data } => [
                 5.into_dart(),
                 meta.into_into_dart().into_dart(),
                 data.into_into_dart().into_dart(),
             ]
             .into_dart(),
-            crate::api::BridgeBackendEvent::Network { meta, data } => [
+            crate::api::BridgeBackendEvent::Gpu { meta, data } => [
                 6.into_dart(),
                 meta.into_into_dart().into_dart(),
                 data.into_into_dart().into_dart(),
             ]
             .into_dart(),
-            crate::api::BridgeBackendEvent::Users { meta, data } => [
+            crate::api::BridgeBackendEvent::Network { meta, data } => [
                 7.into_dart(),
                 meta.into_into_dart().into_dart(),
                 data.into_into_dart().into_dart(),
             ]
             .into_dart(),
-            crate::api::BridgeBackendEvent::PageUnavailable { page, meta } => [
+            crate::api::BridgeBackendEvent::Users { meta, data } => [
                 8.into_dart(),
+                meta.into_into_dart().into_dart(),
+                data.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            crate::api::BridgeBackendEvent::PageUnavailable { page, meta } => [
+                9.into_dart(),
                 page.into_into_dart().into_dart(),
                 meta.into_into_dart().into_dart(),
             ]
             .into_dart(),
             crate::api::BridgeBackendEvent::PrivilegeChanged(field0) => {
-                [9.into_dart(), field0.into_into_dart().into_dart()].into_dart()
+                [10.into_dart(), field0.into_into_dart().into_dart()].into_dart()
             }
             _ => {
                 unimplemented!("");
@@ -4002,6 +4144,58 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::CpuTopologyMetri
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::DiagnosticLevel> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            taskmgr_core::DiagnosticLevel::Info => 0.into_dart(),
+            taskmgr_core::DiagnosticLevel::Debug => 1.into_dart(),
+            taskmgr_core::DiagnosticLevel::Trace => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<taskmgr_core::DiagnosticLevel>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::DiagnosticLevel>>
+    for taskmgr_core::DiagnosticLevel
+{
+    fn into_into_dart(self) -> FrbWrapper<taskmgr_core::DiagnosticLevel> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::DiagnosticStatus> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.level.into_into_dart().into_dart(),
+            self.0.sensitive.into_into_dart().into_dart(),
+            self.0.session_id.into_into_dart().into_dart(),
+            self.0.directory.into_into_dart().into_dart(),
+            self.0.file_active.into_into_dart().into_dart(),
+            self.0.sink_error.into_into_dart().into_dart(),
+            self.0.dropped_events.into_into_dart().into_dart(),
+            self.0
+                .export_requires_privacy_warning
+                .into_into_dart()
+                .into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<taskmgr_core::DiagnosticStatus>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::DiagnosticStatus>>
+    for taskmgr_core::DiagnosticStatus
+{
+    fn into_into_dart(self) -> FrbWrapper<taskmgr_core::DiagnosticStatus> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::GpuAdapter> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -4167,6 +4361,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::NetworkInterface
             self.0.name.into_into_dart().into_dart(),
             self.0.description.into_into_dart().into_dart(),
             self.0.operational.into_into_dart().into_dart(),
+            self.0.state.into_into_dart().into_dart(),
             self.0
                 .link_speed_bits_per_second
                 .into_into_dart()
@@ -4192,6 +4387,33 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::NetworkInterface
     for taskmgr_core::NetworkInterface
 {
     fn into_into_dart(self) -> FrbWrapper<taskmgr_core::NetworkInterface> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::NetworkInterfaceState> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            taskmgr_core::NetworkInterfaceState::Connected => 0.into_dart(),
+            taskmgr_core::NetworkInterfaceState::Disconnected => 1.into_dart(),
+            taskmgr_core::NetworkInterfaceState::Connecting => 2.into_dart(),
+            taskmgr_core::NetworkInterfaceState::Disconnecting => 3.into_dart(),
+            taskmgr_core::NetworkInterfaceState::HardwareMissing => 4.into_dart(),
+            taskmgr_core::NetworkInterfaceState::HardwareDisabled => 5.into_dart(),
+            taskmgr_core::NetworkInterfaceState::HardwareMalfunction => 6.into_dart(),
+            taskmgr_core::NetworkInterfaceState::Unknown => 7.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<taskmgr_core::NetworkInterfaceState>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<taskmgr_core::NetworkInterfaceState>>
+    for taskmgr_core::NetworkInterfaceState
+{
+    fn into_into_dart(self) -> FrbWrapper<taskmgr_core::NetworkInterfaceState> {
         self.into()
     }
 }
@@ -4269,6 +4491,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::PerformanceData>
             self.0.cpu_history.into_into_dart().into_dart(),
             self.0.kernel_history.into_into_dart().into_dart(),
             self.0.memory_history.into_into_dart().into_dart(),
+            self.0.logical_cpu_labels.into_into_dart().into_dart(),
             self.0.logical_cpu_histories.into_into_dart().into_dart(),
             self.0.logical_kernel_histories.into_into_dart().into_dart(),
         ]
@@ -4432,6 +4655,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<taskmgr_core::ProcessRow> {
             self.0.identity.into_into_dart().into_dart(),
             self.0.parent_pid.into_into_dart().into_dart(),
             self.0.image_name.into_into_dart().into_dart(),
+            self.0.show_32_bit_suffix.into_into_dart().into_dart(),
             self.0.executable_path.into_into_dart().into_dart(),
             self.0.user_name.into_into_dart().into_dart(),
             self.0.session_id.into_into_dart().into_dart(),
@@ -4893,6 +5117,7 @@ impl SseEncode for taskmgr_core::ApplicationRow {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <taskmgr_core::ApplicationIdentity>::sse_encode(self.identity, serializer);
         <String>::sse_encode(self.title, serializer);
+        <Option<bool>>::sse_encode(self.show_32_bit_suffix, serializer);
         <taskmgr_core::ApplicationStatus>::sse_encode(self.status, serializer);
         <Option<String>>::sse_encode(self.window_station, serializer);
         <Option<String>>::sse_encode(self.desktop, serializer);
@@ -5008,25 +5233,54 @@ impl SseEncode for crate::api::BridgeActionRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         match self {
-            crate::api::BridgeActionRequest::RunTask { command_line } => {
+            crate::api::BridgeActionRequest::ShowAboutDialog { title } => {
                 <i32>::sse_encode(0, serializer);
+                <String>::sse_encode(title, serializer);
+            }
+            crate::api::BridgeActionRequest::ShowRunDialog => {
+                <i32>::sse_encode(1, serializer);
+            }
+            crate::api::BridgeActionRequest::ConfigureDiagnostics {
+                detailed,
+                sensitive,
+            } => {
+                <i32>::sse_encode(2, serializer);
+                <bool>::sse_encode(detailed, serializer);
+                <bool>::sse_encode(sensitive, serializer);
+            }
+            crate::api::BridgeActionRequest::OpenDiagnosticFolder => {
+                <i32>::sse_encode(3, serializer);
+            }
+            crate::api::BridgeActionRequest::SaveDiagnosticBundle => {
+                <i32>::sse_encode(4, serializer);
+            }
+            crate::api::BridgeActionRequest::RestartWithDetailedDiagnostics => {
+                <i32>::sse_encode(5, serializer);
+            }
+            crate::api::BridgeActionRequest::RecordUiError { message, stack } => {
+                <i32>::sse_encode(6, serializer);
+                <String>::sse_encode(message, serializer);
+                <Option<String>>::sse_encode(stack, serializer);
+            }
+            crate::api::BridgeActionRequest::RunTask { command_line } => {
+                <i32>::sse_encode(7, serializer);
                 <String>::sse_encode(command_line, serializer);
             }
             crate::api::BridgeActionRequest::EndProcess {
                 identity,
                 include_descendants,
             } => {
-                <i32>::sse_encode(1, serializer);
+                <i32>::sse_encode(8, serializer);
                 <taskmgr_core::ProcessIdentity>::sse_encode(identity, serializer);
                 <bool>::sse_encode(include_descendants, serializer);
             }
             crate::api::BridgeActionRequest::SetPriority { identity, priority } => {
-                <i32>::sse_encode(2, serializer);
+                <i32>::sse_encode(9, serializer);
                 <taskmgr_core::ProcessIdentity>::sse_encode(identity, serializer);
                 <taskmgr_core::ProcessPriority>::sse_encode(priority, serializer);
             }
             crate::api::BridgeActionRequest::SetNice { identity, nice } => {
-                <i32>::sse_encode(3, serializer);
+                <i32>::sse_encode(10, serializer);
                 <taskmgr_core::ProcessIdentity>::sse_encode(identity, serializer);
                 <i32>::sse_encode(nice, serializer);
             }
@@ -5034,19 +5288,19 @@ impl SseEncode for crate::api::BridgeActionRequest {
                 identity,
                 logical_processors,
             } => {
-                <i32>::sse_encode(4, serializer);
+                <i32>::sse_encode(11, serializer);
                 <taskmgr_core::ProcessIdentity>::sse_encode(identity, serializer);
                 <Vec<u32>>::sse_encode(logical_processors, serializer);
             }
             crate::api::BridgeActionRequest::OpenFileLocation { identity } => {
-                <i32>::sse_encode(5, serializer);
+                <i32>::sse_encode(12, serializer);
                 <taskmgr_core::ProcessIdentity>::sse_encode(identity, serializer);
             }
             crate::api::BridgeActionRequest::Window {
                 identity,
                 operation,
             } => {
-                <i32>::sse_encode(6, serializer);
+                <i32>::sse_encode(13, serializer);
                 <taskmgr_core::ApplicationIdentity>::sse_encode(identity, serializer);
                 <taskmgr_core::WindowAction>::sse_encode(operation, serializer);
             }
@@ -5054,7 +5308,7 @@ impl SseEncode for crate::api::BridgeActionRequest {
                 identities,
                 arrangement,
             } => {
-                <i32>::sse_encode(7, serializer);
+                <i32>::sse_encode(14, serializer);
                 <Vec<taskmgr_core::ApplicationIdentity>>::sse_encode(identities, serializer);
                 <taskmgr_core::WindowArrangement>::sse_encode(arrangement, serializer);
             }
@@ -5064,7 +5318,7 @@ impl SseEncode for crate::api::BridgeActionRequest {
                 title,
                 message,
             } => {
-                <i32>::sse_encode(8, serializer);
+                <i32>::sse_encode(15, serializer);
                 <taskmgr_core::UserSessionIdentity>::sse_encode(identity, serializer);
                 <taskmgr_core::UserAction>::sse_encode(operation, serializer);
                 <Option<String>>::sse_encode(title, serializer);
@@ -5085,48 +5339,52 @@ impl SseEncode for crate::api::BridgeBackendEvent {
                 <i32>::sse_encode(0, serializer);
                 <taskmgr_core::PlatformCapabilities>::sse_encode(field0, serializer);
             }
-            crate::api::BridgeBackendEvent::Applications { meta, data } => {
+            crate::api::BridgeBackendEvent::Diagnostics(field0) => {
                 <i32>::sse_encode(1, serializer);
+                <taskmgr_core::DiagnosticStatus>::sse_encode(field0, serializer);
+            }
+            crate::api::BridgeBackendEvent::Applications { meta, data } => {
+                <i32>::sse_encode(2, serializer);
                 <taskmgr_core::SnapshotMeta>::sse_encode(meta, serializer);
                 <taskmgr_core::ApplicationsData>::sse_encode(data, serializer);
             }
             crate::api::BridgeBackendEvent::Processes { meta, data } => {
-                <i32>::sse_encode(2, serializer);
+                <i32>::sse_encode(3, serializer);
                 <taskmgr_core::SnapshotMeta>::sse_encode(meta, serializer);
                 <taskmgr_core::ProcessesData>::sse_encode(data, serializer);
             }
             crate::api::BridgeBackendEvent::Performance { meta, data } => {
-                <i32>::sse_encode(3, serializer);
+                <i32>::sse_encode(4, serializer);
                 <taskmgr_core::SnapshotMeta>::sse_encode(meta, serializer);
                 <taskmgr_core::PerformanceData>::sse_encode(data, serializer);
             }
             crate::api::BridgeBackendEvent::Cpu { meta, data } => {
-                <i32>::sse_encode(4, serializer);
+                <i32>::sse_encode(5, serializer);
                 <taskmgr_core::SnapshotMeta>::sse_encode(meta, serializer);
                 <taskmgr_core::CpuData>::sse_encode(data, serializer);
             }
             crate::api::BridgeBackendEvent::Gpu { meta, data } => {
-                <i32>::sse_encode(5, serializer);
+                <i32>::sse_encode(6, serializer);
                 <taskmgr_core::SnapshotMeta>::sse_encode(meta, serializer);
                 <taskmgr_core::GpuData>::sse_encode(data, serializer);
             }
             crate::api::BridgeBackendEvent::Network { meta, data } => {
-                <i32>::sse_encode(6, serializer);
+                <i32>::sse_encode(7, serializer);
                 <taskmgr_core::SnapshotMeta>::sse_encode(meta, serializer);
                 <taskmgr_core::NetworkData>::sse_encode(data, serializer);
             }
             crate::api::BridgeBackendEvent::Users { meta, data } => {
-                <i32>::sse_encode(7, serializer);
+                <i32>::sse_encode(8, serializer);
                 <taskmgr_core::SnapshotMeta>::sse_encode(meta, serializer);
                 <taskmgr_core::UsersData>::sse_encode(data, serializer);
             }
             crate::api::BridgeBackendEvent::PageUnavailable { page, meta } => {
-                <i32>::sse_encode(8, serializer);
+                <i32>::sse_encode(9, serializer);
                 <taskmgr_core::PageId>::sse_encode(page, serializer);
                 <taskmgr_core::SnapshotMeta>::sse_encode(meta, serializer);
             }
             crate::api::BridgeBackendEvent::PrivilegeChanged(field0) => {
-                <i32>::sse_encode(9, serializer);
+                <i32>::sse_encode(10, serializer);
                 <taskmgr_core::PrivilegeResult>::sse_encode(field0, serializer);
             }
             _ => {
@@ -5299,6 +5557,37 @@ impl SseEncode for taskmgr_core::CpuTopologyMetrics {
         <Option<u32>>::sse_encode(self.maximum_threads_per_core, serializer);
         <Option<bool>>::sse_encode(self.virtualization, serializer);
         <Option<bool>>::sse_encode(self.second_level_address_translation, serializer);
+    }
+}
+
+impl SseEncode for taskmgr_core::DiagnosticLevel {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                taskmgr_core::DiagnosticLevel::Info => 0,
+                taskmgr_core::DiagnosticLevel::Debug => 1,
+                taskmgr_core::DiagnosticLevel::Trace => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for taskmgr_core::DiagnosticStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <taskmgr_core::DiagnosticLevel>::sse_encode(self.level, serializer);
+        <bool>::sse_encode(self.sensitive, serializer);
+        <String>::sse_encode(self.session_id, serializer);
+        <Option<String>>::sse_encode(self.directory, serializer);
+        <bool>::sse_encode(self.file_active, serializer);
+        <Option<String>>::sse_encode(self.sink_error, serializer);
+        <u64>::sse_encode(self.dropped_events, serializer);
+        <bool>::sse_encode(self.export_requires_privacy_warning, serializer);
     }
 }
 
@@ -5603,6 +5892,7 @@ impl SseEncode for taskmgr_core::NetworkInterface {
         <String>::sse_encode(self.name, serializer);
         <Option<String>>::sse_encode(self.description, serializer);
         <bool>::sse_encode(self.operational, serializer);
+        <taskmgr_core::NetworkInterfaceState>::sse_encode(self.state, serializer);
         <Option<u64>>::sse_encode(self.link_speed_bits_per_second, serializer);
         <Option<f64>>::sse_encode(self.received_bytes_per_second, serializer);
         <Option<f64>>::sse_encode(self.sent_bytes_per_second, serializer);
@@ -5610,6 +5900,28 @@ impl SseEncode for taskmgr_core::NetworkInterface {
         <Vec<f64>>::sse_encode(self.received_history, serializer);
         <Vec<f64>>::sse_encode(self.sent_history, serializer);
         <Option<taskmgr_core::BackendError>>::sse_encode(self.row_error, serializer);
+    }
+}
+
+impl SseEncode for taskmgr_core::NetworkInterfaceState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                taskmgr_core::NetworkInterfaceState::Connected => 0,
+                taskmgr_core::NetworkInterfaceState::Disconnected => 1,
+                taskmgr_core::NetworkInterfaceState::Connecting => 2,
+                taskmgr_core::NetworkInterfaceState::Disconnecting => 3,
+                taskmgr_core::NetworkInterfaceState::HardwareMissing => 4,
+                taskmgr_core::NetworkInterfaceState::HardwareDisabled => 5,
+                taskmgr_core::NetworkInterfaceState::HardwareMalfunction => 6,
+                taskmgr_core::NetworkInterfaceState::Unknown => 7,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
     }
 }
 
@@ -5810,6 +6122,7 @@ impl SseEncode for taskmgr_core::PerformanceData {
         <Vec<f64>>::sse_encode(self.cpu_history, serializer);
         <Vec<f64>>::sse_encode(self.kernel_history, serializer);
         <Vec<f64>>::sse_encode(self.memory_history, serializer);
+        <Vec<String>>::sse_encode(self.logical_cpu_labels, serializer);
         <Vec<Vec<f64>>>::sse_encode(self.logical_cpu_histories, serializer);
         <Vec<Vec<f64>>>::sse_encode(self.logical_kernel_histories, serializer);
     }
@@ -5906,6 +6219,7 @@ impl SseEncode for taskmgr_core::ProcessRow {
         <taskmgr_core::ProcessIdentity>::sse_encode(self.identity, serializer);
         <Option<u32>>::sse_encode(self.parent_pid, serializer);
         <String>::sse_encode(self.image_name, serializer);
+        <Option<bool>>::sse_encode(self.show_32_bit_suffix, serializer);
         <Option<String>>::sse_encode(self.executable_path, serializer);
         <Option<String>>::sse_encode(self.user_name, serializer);
         <Option<u32>>::sse_encode(self.session_id, serializer);

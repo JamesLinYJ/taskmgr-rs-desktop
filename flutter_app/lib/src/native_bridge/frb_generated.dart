@@ -4,12 +4,16 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api.dart';
+
 import 'dart:async';
 import 'dart:convert';
+
 import 'frb_generated.dart';
 import 'frb_generated.io.dart'
     if (dart.library.js_interop) 'frb_generated.web.dart';
+
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+
 import 'third_party/taskmgr_core.dart';
 
 /// Main entrypoint of the Rust API
@@ -1207,18 +1211,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ApplicationRow dco_decode_application_row(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 9)
-      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
     return ApplicationRow(
       identity: dco_decode_application_identity(arr[0]),
       title: dco_decode_String(arr[1]),
-      status: dco_decode_application_status(arr[2]),
-      windowStation: dco_decode_opt_String(arr[3]),
-      desktop: dco_decode_opt_String(arr[4]),
-      iconPng: dco_decode_opt_list_prim_u_8_strict(arr[5]),
-      largeIconPng: dco_decode_opt_list_prim_u_8_strict(arr[6]),
-      allowedActions: dco_decode_list_action_kind(arr[7]),
-      rowError: dco_decode_opt_box_autoadd_backend_error(arr[8]),
+      show32BitSuffix: dco_decode_opt_box_autoadd_bool(arr[2]),
+      status: dco_decode_application_status(arr[3]),
+      windowStation: dco_decode_opt_String(arr[4]),
+      desktop: dco_decode_opt_String(arr[5]),
+      iconPng: dco_decode_opt_list_prim_u_8_strict(arr[6]),
+      largeIconPng: dco_decode_opt_list_prim_u_8_strict(arr[7]),
+      allowedActions: dco_decode_list_action_kind(arr[8]),
+      rowError: dco_decode_opt_box_autoadd_backend_error(arr[9]),
     );
   }
 
@@ -1330,6 +1335,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   CpuData dco_decode_box_autoadd_cpu_data(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_cpu_data(raw);
+  }
+
+  @protected
+  DiagnosticStatus dco_decode_box_autoadd_diagnostic_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_diagnostic_status(raw);
   }
 
   @protected
@@ -1455,44 +1466,66 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
+        return BridgeActionRequest_ShowAboutDialog(
+          title: dco_decode_String(raw[1]),
+        );
+      case 1:
+        return BridgeActionRequest_ShowRunDialog();
+      case 2:
+        return BridgeActionRequest_ConfigureDiagnostics(
+          detailed: dco_decode_bool(raw[1]),
+          sensitive: dco_decode_bool(raw[2]),
+        );
+      case 3:
+        return BridgeActionRequest_OpenDiagnosticFolder();
+      case 4:
+        return BridgeActionRequest_SaveDiagnosticBundle();
+      case 5:
+        return BridgeActionRequest_RestartWithDetailedDiagnostics();
+      case 6:
+        return BridgeActionRequest_RecordUiError(
+          message: dco_decode_String(raw[1]),
+          stack: dco_decode_opt_String(raw[2]),
+        );
+      case 7:
         return BridgeActionRequest_RunTask(
           commandLine: dco_decode_String(raw[1]),
         );
-      case 1:
+      case 8:
         return BridgeActionRequest_EndProcess(
           identity: dco_decode_box_autoadd_process_identity(raw[1]),
           includeDescendants: dco_decode_bool(raw[2]),
         );
-      case 2:
+      case 9:
         return BridgeActionRequest_SetPriority(
           identity: dco_decode_box_autoadd_process_identity(raw[1]),
           priority: dco_decode_process_priority(raw[2]),
         );
-      case 3:
+      case 10:
         return BridgeActionRequest_SetNice(
           identity: dco_decode_box_autoadd_process_identity(raw[1]),
           nice: dco_decode_i_32(raw[2]),
         );
-      case 4:
+      case 11:
         return BridgeActionRequest_SetAffinity(
           identity: dco_decode_box_autoadd_process_identity(raw[1]),
           logicalProcessors: dco_decode_list_prim_u_32_strict(raw[2]),
         );
-      case 5:
+      case 12:
         return BridgeActionRequest_OpenFileLocation(
           identity: dco_decode_box_autoadd_process_identity(raw[1]),
         );
-      case 6:
+      case 13:
         return BridgeActionRequest_Window(
           identity: dco_decode_box_autoadd_application_identity(raw[1]),
           operation: dco_decode_window_action(raw[2]),
         );
-      case 7:
+      case 14:
         return BridgeActionRequest_ArrangeWindows(
           identities: dco_decode_list_application_identity(raw[1]),
           arrangement: dco_decode_window_arrangement(raw[2]),
         );
-      case 8:
+      case 15:
         return BridgeActionRequest_UserSession(
           identity: dco_decode_box_autoadd_user_session_identity(raw[1]),
           operation: dco_decode_user_action(raw[2]),
@@ -1513,46 +1546,50 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           dco_decode_box_autoadd_platform_capabilities(raw[1]),
         );
       case 1:
+        return BridgeBackendEvent_Diagnostics(
+          dco_decode_box_autoadd_diagnostic_status(raw[1]),
+        );
+      case 2:
         return BridgeBackendEvent_Applications(
           meta: dco_decode_box_autoadd_snapshot_meta(raw[1]),
           data: dco_decode_box_autoadd_applications_data(raw[2]),
         );
-      case 2:
+      case 3:
         return BridgeBackendEvent_Processes(
           meta: dco_decode_box_autoadd_snapshot_meta(raw[1]),
           data: dco_decode_box_autoadd_processes_data(raw[2]),
         );
-      case 3:
+      case 4:
         return BridgeBackendEvent_Performance(
           meta: dco_decode_box_autoadd_snapshot_meta(raw[1]),
           data: dco_decode_box_autoadd_performance_data(raw[2]),
         );
-      case 4:
+      case 5:
         return BridgeBackendEvent_Cpu(
           meta: dco_decode_box_autoadd_snapshot_meta(raw[1]),
           data: dco_decode_box_autoadd_cpu_data(raw[2]),
         );
-      case 5:
+      case 6:
         return BridgeBackendEvent_Gpu(
           meta: dco_decode_box_autoadd_snapshot_meta(raw[1]),
           data: dco_decode_box_autoadd_gpu_data(raw[2]),
         );
-      case 6:
+      case 7:
         return BridgeBackendEvent_Network(
           meta: dco_decode_box_autoadd_snapshot_meta(raw[1]),
           data: dco_decode_box_autoadd_network_data(raw[2]),
         );
-      case 7:
+      case 8:
         return BridgeBackendEvent_Users(
           meta: dco_decode_box_autoadd_snapshot_meta(raw[1]),
           data: dco_decode_box_autoadd_users_data(raw[2]),
         );
-      case 8:
+      case 9:
         return BridgeBackendEvent_PageUnavailable(
           page: dco_decode_page_id(raw[1]),
           meta: dco_decode_box_autoadd_snapshot_meta(raw[2]),
         );
-      case 9:
+      case 10:
         return BridgeBackendEvent_PrivilegeChanged(
           dco_decode_box_autoadd_privilege_result(raw[1]),
         );
@@ -1712,6 +1749,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       maximumThreadsPerCore: dco_decode_opt_box_autoadd_u_32(arr[10]),
       virtualization: dco_decode_opt_box_autoadd_bool(arr[11]),
       secondLevelAddressTranslation: dco_decode_opt_box_autoadd_bool(arr[12]),
+    );
+  }
+
+  @protected
+  DiagnosticLevel dco_decode_diagnostic_level(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DiagnosticLevel.values[raw as int];
+  }
+
+  @protected
+  DiagnosticStatus dco_decode_diagnostic_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return DiagnosticStatus(
+      level: dco_decode_diagnostic_level(arr[0]),
+      sensitive: dco_decode_bool(arr[1]),
+      sessionId: dco_decode_String(arr[2]),
+      directory: dco_decode_opt_String(arr[3]),
+      fileActive: dco_decode_bool(arr[4]),
+      sinkError: dco_decode_opt_String(arr[5]),
+      droppedEvents: dco_decode_u_64(arr[6]),
+      exportRequiresPrivacyWarning: dco_decode_bool(arr[7]),
     );
   }
 
@@ -1927,21 +1988,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   NetworkInterface dco_decode_network_interface(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 11)
-      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
     return NetworkInterface(
       id: dco_decode_String(arr[0]),
       name: dco_decode_String(arr[1]),
       description: dco_decode_opt_String(arr[2]),
       operational: dco_decode_bool(arr[3]),
-      linkSpeedBitsPerSecond: dco_decode_opt_box_autoadd_u_64(arr[4]),
-      receivedBytesPerSecond: dco_decode_opt_box_autoadd_f_64(arr[5]),
-      sentBytesPerSecond: dco_decode_opt_box_autoadd_f_64(arr[6]),
-      utilizationPercent: dco_decode_opt_box_autoadd_f_64(arr[7]),
-      receivedHistory: dco_decode_list_prim_f_64_strict(arr[8]),
-      sentHistory: dco_decode_list_prim_f_64_strict(arr[9]),
-      rowError: dco_decode_opt_box_autoadd_backend_error(arr[10]),
+      state: dco_decode_network_interface_state(arr[4]),
+      linkSpeedBitsPerSecond: dco_decode_opt_box_autoadd_u_64(arr[5]),
+      receivedBytesPerSecond: dco_decode_opt_box_autoadd_f_64(arr[6]),
+      sentBytesPerSecond: dco_decode_opt_box_autoadd_f_64(arr[7]),
+      utilizationPercent: dco_decode_opt_box_autoadd_f_64(arr[8]),
+      receivedHistory: dco_decode_list_prim_f_64_strict(arr[9]),
+      sentHistory: dco_decode_list_prim_f_64_strict(arr[10]),
+      rowError: dco_decode_opt_box_autoadd_backend_error(arr[11]),
     );
+  }
+
+  @protected
+  NetworkInterfaceState dco_decode_network_interface_state(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return NetworkInterfaceState.values[raw as int];
   }
 
   @protected
@@ -2053,8 +2121,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PerformanceData dco_decode_performance_data(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 24)
-      throw Exception('unexpected arr length: expect 24 but see ${arr.length}');
+    if (arr.length != 25)
+      throw Exception('unexpected arr length: expect 25 but see ${arr.length}');
     return PerformanceData(
       processCount: dco_decode_opt_box_autoadd_u_64(arr[0]),
       threadCount: dco_decode_opt_box_autoadd_u_64(arr[1]),
@@ -2078,8 +2146,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       cpuHistory: dco_decode_list_prim_f_64_strict(arr[19]),
       kernelHistory: dco_decode_list_prim_f_64_strict(arr[20]),
       memoryHistory: dco_decode_list_prim_f_64_strict(arr[21]),
-      logicalCpuHistories: dco_decode_list_list_prim_f_64_strict(arr[22]),
-      logicalKernelHistories: dco_decode_list_list_prim_f_64_strict(arr[23]),
+      logicalCpuLabels: dco_decode_list_String(arr[22]),
+      logicalCpuHistories: dco_decode_list_list_prim_f_64_strict(arr[23]),
+      logicalKernelHistories: dco_decode_list_list_prim_f_64_strict(arr[24]),
     );
   }
 
@@ -2147,32 +2216,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ProcessRow dco_decode_process_row(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 23)
-      throw Exception('unexpected arr length: expect 23 but see ${arr.length}');
+    if (arr.length != 24)
+      throw Exception('unexpected arr length: expect 24 but see ${arr.length}');
     return ProcessRow(
       identity: dco_decode_process_identity(arr[0]),
       parentPid: dco_decode_opt_box_autoadd_u_32(arr[1]),
       imageName: dco_decode_String(arr[2]),
-      executablePath: dco_decode_opt_String(arr[3]),
-      userName: dco_decode_opt_String(arr[4]),
-      sessionId: dco_decode_opt_box_autoadd_u_32(arr[5]),
-      cpuPercent: dco_decode_opt_box_autoadd_f_64(arr[6]),
-      cpuTimeMillis: dco_decode_opt_box_autoadd_u_64(arr[7]),
-      memoryKib: dco_decode_opt_box_autoadd_u_64(arr[8]),
-      memoryDeltaKib: dco_decode_opt_box_autoadd_i_64(arr[9]),
-      pageFaults: dco_decode_opt_box_autoadd_u_64(arr[10]),
-      pageFaultsDelta: dco_decode_opt_box_autoadd_i_64(arr[11]),
-      virtualMemoryKib: dco_decode_opt_box_autoadd_u_64(arr[12]),
-      pagedPoolKib: dco_decode_opt_box_autoadd_u_64(arr[13]),
-      nonPagedPoolKib: dco_decode_opt_box_autoadd_u_64(arr[14]),
-      basePriority: dco_decode_opt_String(arr[15]),
-      handleCount: dco_decode_opt_box_autoadd_u_64(arr[16]),
-      threadCount: dco_decode_opt_box_autoadd_u_64(arr[17]),
-      fileDescriptorCount: dco_decode_opt_box_autoadd_u_64(arr[18]),
-      nice: dco_decode_opt_box_autoadd_i_32(arr[19]),
-      cgroup: dco_decode_opt_String(arr[20]),
-      affinity: dco_decode_opt_list_prim_u_32_strict(arr[21]),
-      rowError: dco_decode_opt_box_autoadd_backend_error(arr[22]),
+      show32BitSuffix: dco_decode_opt_box_autoadd_bool(arr[3]),
+      executablePath: dco_decode_opt_String(arr[4]),
+      userName: dco_decode_opt_String(arr[5]),
+      sessionId: dco_decode_opt_box_autoadd_u_32(arr[6]),
+      cpuPercent: dco_decode_opt_box_autoadd_f_64(arr[7]),
+      cpuTimeMillis: dco_decode_opt_box_autoadd_u_64(arr[8]),
+      memoryKib: dco_decode_opt_box_autoadd_u_64(arr[9]),
+      memoryDeltaKib: dco_decode_opt_box_autoadd_i_64(arr[10]),
+      pageFaults: dco_decode_opt_box_autoadd_u_64(arr[11]),
+      pageFaultsDelta: dco_decode_opt_box_autoadd_i_64(arr[12]),
+      virtualMemoryKib: dco_decode_opt_box_autoadd_u_64(arr[13]),
+      pagedPoolKib: dco_decode_opt_box_autoadd_u_64(arr[14]),
+      nonPagedPoolKib: dco_decode_opt_box_autoadd_u_64(arr[15]),
+      basePriority: dco_decode_opt_String(arr[16]),
+      handleCount: dco_decode_opt_box_autoadd_u_64(arr[17]),
+      threadCount: dco_decode_opt_box_autoadd_u_64(arr[18]),
+      fileDescriptorCount: dco_decode_opt_box_autoadd_u_64(arr[19]),
+      nice: dco_decode_opt_box_autoadd_i_32(arr[20]),
+      cgroup: dco_decode_opt_String(arr[21]),
+      affinity: dco_decode_opt_list_prim_u_32_strict(arr[22]),
+      rowError: dco_decode_opt_box_autoadd_backend_error(arr[23]),
     );
   }
 
@@ -2516,6 +2586,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_identity = sse_decode_application_identity(deserializer);
     var var_title = sse_decode_String(deserializer);
+    var var_show32BitSuffix = sse_decode_opt_box_autoadd_bool(deserializer);
     var var_status = sse_decode_application_status(deserializer);
     var var_windowStation = sse_decode_opt_String(deserializer);
     var var_desktop = sse_decode_opt_String(deserializer);
@@ -2526,6 +2597,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return ApplicationRow(
       identity: var_identity,
       title: var_title,
+      show32BitSuffix: var_show32BitSuffix,
       status: var_status,
       windowStation: var_windowStation,
       desktop: var_desktop,
@@ -2659,6 +2731,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   CpuData sse_decode_box_autoadd_cpu_data(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_cpu_data(deserializer));
+  }
+
+  @protected
+  DiagnosticStatus sse_decode_box_autoadd_diagnostic_status(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_diagnostic_status(deserializer));
   }
 
   @protected
@@ -2800,9 +2880,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
+        var var_title = sse_decode_String(deserializer);
+        return BridgeActionRequest_ShowAboutDialog(title: var_title);
+      case 1:
+        return BridgeActionRequest_ShowRunDialog();
+      case 2:
+        var var_detailed = sse_decode_bool(deserializer);
+        var var_sensitive = sse_decode_bool(deserializer);
+        return BridgeActionRequest_ConfigureDiagnostics(
+          detailed: var_detailed,
+          sensitive: var_sensitive,
+        );
+      case 3:
+        return BridgeActionRequest_OpenDiagnosticFolder();
+      case 4:
+        return BridgeActionRequest_SaveDiagnosticBundle();
+      case 5:
+        return BridgeActionRequest_RestartWithDetailedDiagnostics();
+      case 6:
+        var var_message = sse_decode_String(deserializer);
+        var var_stack = sse_decode_opt_String(deserializer);
+        return BridgeActionRequest_RecordUiError(
+          message: var_message,
+          stack: var_stack,
+        );
+      case 7:
         var var_commandLine = sse_decode_String(deserializer);
         return BridgeActionRequest_RunTask(commandLine: var_commandLine);
-      case 1:
+      case 8:
         var var_identity = sse_decode_box_autoadd_process_identity(
           deserializer,
         );
@@ -2811,7 +2916,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           identity: var_identity,
           includeDescendants: var_includeDescendants,
         );
-      case 2:
+      case 9:
         var var_identity = sse_decode_box_autoadd_process_identity(
           deserializer,
         );
@@ -2820,7 +2925,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           identity: var_identity,
           priority: var_priority,
         );
-      case 3:
+      case 10:
         var var_identity = sse_decode_box_autoadd_process_identity(
           deserializer,
         );
@@ -2829,7 +2934,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           identity: var_identity,
           nice: var_nice,
         );
-      case 4:
+      case 11:
         var var_identity = sse_decode_box_autoadd_process_identity(
           deserializer,
         );
@@ -2840,12 +2945,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           identity: var_identity,
           logicalProcessors: var_logicalProcessors,
         );
-      case 5:
+      case 12:
         var var_identity = sse_decode_box_autoadd_process_identity(
           deserializer,
         );
         return BridgeActionRequest_OpenFileLocation(identity: var_identity);
-      case 6:
+      case 13:
         var var_identity = sse_decode_box_autoadd_application_identity(
           deserializer,
         );
@@ -2854,14 +2959,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           identity: var_identity,
           operation: var_operation,
         );
-      case 7:
+      case 14:
         var var_identities = sse_decode_list_application_identity(deserializer);
         var var_arrangement = sse_decode_window_arrangement(deserializer);
         return BridgeActionRequest_ArrangeWindows(
           identities: var_identities,
           arrangement: var_arrangement,
         );
-      case 8:
+      case 15:
         var var_identity = sse_decode_box_autoadd_user_session_identity(
           deserializer,
         );
@@ -2893,41 +2998,44 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         );
         return BridgeBackendEvent_Capabilities(var_field0);
       case 1:
+        var var_field0 = sse_decode_box_autoadd_diagnostic_status(deserializer);
+        return BridgeBackendEvent_Diagnostics(var_field0);
+      case 2:
         var var_meta = sse_decode_box_autoadd_snapshot_meta(deserializer);
         var var_data = sse_decode_box_autoadd_applications_data(deserializer);
         return BridgeBackendEvent_Applications(meta: var_meta, data: var_data);
-      case 2:
+      case 3:
         var var_meta = sse_decode_box_autoadd_snapshot_meta(deserializer);
         var var_data = sse_decode_box_autoadd_processes_data(deserializer);
         return BridgeBackendEvent_Processes(meta: var_meta, data: var_data);
-      case 3:
+      case 4:
         var var_meta = sse_decode_box_autoadd_snapshot_meta(deserializer);
         var var_data = sse_decode_box_autoadd_performance_data(deserializer);
         return BridgeBackendEvent_Performance(meta: var_meta, data: var_data);
-      case 4:
+      case 5:
         var var_meta = sse_decode_box_autoadd_snapshot_meta(deserializer);
         var var_data = sse_decode_box_autoadd_cpu_data(deserializer);
         return BridgeBackendEvent_Cpu(meta: var_meta, data: var_data);
-      case 5:
+      case 6:
         var var_meta = sse_decode_box_autoadd_snapshot_meta(deserializer);
         var var_data = sse_decode_box_autoadd_gpu_data(deserializer);
         return BridgeBackendEvent_Gpu(meta: var_meta, data: var_data);
-      case 6:
+      case 7:
         var var_meta = sse_decode_box_autoadd_snapshot_meta(deserializer);
         var var_data = sse_decode_box_autoadd_network_data(deserializer);
         return BridgeBackendEvent_Network(meta: var_meta, data: var_data);
-      case 7:
+      case 8:
         var var_meta = sse_decode_box_autoadd_snapshot_meta(deserializer);
         var var_data = sse_decode_box_autoadd_users_data(deserializer);
         return BridgeBackendEvent_Users(meta: var_meta, data: var_data);
-      case 8:
+      case 9:
         var var_page = sse_decode_page_id(deserializer);
         var var_meta = sse_decode_box_autoadd_snapshot_meta(deserializer);
         return BridgeBackendEvent_PageUnavailable(
           page: var_page,
           meta: var_meta,
         );
-      case 9:
+      case 10:
         var var_field0 = sse_decode_box_autoadd_privilege_result(deserializer);
         return BridgeBackendEvent_PrivilegeChanged(var_field0);
       default:
@@ -3148,6 +3256,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       maximumThreadsPerCore: var_maximumThreadsPerCore,
       virtualization: var_virtualization,
       secondLevelAddressTranslation: var_secondLevelAddressTranslation,
+    );
+  }
+
+  @protected
+  DiagnosticLevel sse_decode_diagnostic_level(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return DiagnosticLevel.values[inner];
+  }
+
+  @protected
+  DiagnosticStatus sse_decode_diagnostic_status(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_level = sse_decode_diagnostic_level(deserializer);
+    var var_sensitive = sse_decode_bool(deserializer);
+    var var_sessionId = sse_decode_String(deserializer);
+    var var_directory = sse_decode_opt_String(deserializer);
+    var var_fileActive = sse_decode_bool(deserializer);
+    var var_sinkError = sse_decode_opt_String(deserializer);
+    var var_droppedEvents = sse_decode_u_64(deserializer);
+    var var_exportRequiresPrivacyWarning = sse_decode_bool(deserializer);
+    return DiagnosticStatus(
+      level: var_level,
+      sensitive: var_sensitive,
+      sessionId: var_sessionId,
+      directory: var_directory,
+      fileActive: var_fileActive,
+      sinkError: var_sinkError,
+      droppedEvents: var_droppedEvents,
+      exportRequiresPrivacyWarning: var_exportRequiresPrivacyWarning,
     );
   }
 
@@ -3499,6 +3637,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_name = sse_decode_String(deserializer);
     var var_description = sse_decode_opt_String(deserializer);
     var var_operational = sse_decode_bool(deserializer);
+    var var_state = sse_decode_network_interface_state(deserializer);
     var var_linkSpeedBitsPerSecond = sse_decode_opt_box_autoadd_u_64(
       deserializer,
     );
@@ -3515,6 +3654,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       name: var_name,
       description: var_description,
       operational: var_operational,
+      state: var_state,
       linkSpeedBitsPerSecond: var_linkSpeedBitsPerSecond,
       receivedBytesPerSecond: var_receivedBytesPerSecond,
       sentBytesPerSecond: var_sentBytesPerSecond,
@@ -3523,6 +3663,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       sentHistory: var_sentHistory,
       rowError: var_rowError,
     );
+  }
+
+  @protected
+  NetworkInterfaceState sse_decode_network_interface_state(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return NetworkInterfaceState.values[inner];
   }
 
   @protected
@@ -3734,6 +3883,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_cpuHistory = sse_decode_list_prim_f_64_strict(deserializer);
     var var_kernelHistory = sse_decode_list_prim_f_64_strict(deserializer);
     var var_memoryHistory = sse_decode_list_prim_f_64_strict(deserializer);
+    var var_logicalCpuLabels = sse_decode_list_String(deserializer);
     var var_logicalCpuHistories = sse_decode_list_list_prim_f_64_strict(
       deserializer,
     );
@@ -3763,6 +3913,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       cpuHistory: var_cpuHistory,
       kernelHistory: var_kernelHistory,
       memoryHistory: var_memoryHistory,
+      logicalCpuLabels: var_logicalCpuLabels,
       logicalCpuHistories: var_logicalCpuHistories,
       logicalKernelHistories: var_logicalKernelHistories,
     );
@@ -3836,6 +3987,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_identity = sse_decode_process_identity(deserializer);
     var var_parentPid = sse_decode_opt_box_autoadd_u_32(deserializer);
     var var_imageName = sse_decode_String(deserializer);
+    var var_show32BitSuffix = sse_decode_opt_box_autoadd_bool(deserializer);
     var var_executablePath = sse_decode_opt_String(deserializer);
     var var_userName = sse_decode_opt_String(deserializer);
     var var_sessionId = sse_decode_opt_box_autoadd_u_32(deserializer);
@@ -3860,6 +4012,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       identity: var_identity,
       parentPid: var_parentPid,
       imageName: var_imageName,
+      show32BitSuffix: var_show32BitSuffix,
       executablePath: var_executablePath,
       userName: var_userName,
       sessionId: var_sessionId,
@@ -4265,6 +4418,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_application_identity(self.identity, serializer);
     sse_encode_String(self.title, serializer);
+    sse_encode_opt_box_autoadd_bool(self.show32BitSuffix, serializer);
     sse_encode_application_status(self.status, serializer);
     sse_encode_opt_String(self.windowStation, serializer);
     sse_encode_opt_String(self.desktop, serializer);
@@ -4394,6 +4548,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_box_autoadd_cpu_data(CpuData self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_cpu_data(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_diagnostic_status(
+    DiagnosticStatus self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_diagnostic_status(self, serializer);
   }
 
   @protected
@@ -4550,52 +4713,77 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     switch (self) {
-      case BridgeActionRequest_RunTask(commandLine: final commandLine):
+      case BridgeActionRequest_ShowAboutDialog(title: final title):
         sse_encode_i_32(0, serializer);
+        sse_encode_String(title, serializer);
+      case BridgeActionRequest_ShowRunDialog():
+        sse_encode_i_32(1, serializer);
+      case BridgeActionRequest_ConfigureDiagnostics(
+        detailed: final detailed,
+        sensitive: final sensitive,
+      ):
+        sse_encode_i_32(2, serializer);
+        sse_encode_bool(detailed, serializer);
+        sse_encode_bool(sensitive, serializer);
+      case BridgeActionRequest_OpenDiagnosticFolder():
+        sse_encode_i_32(3, serializer);
+      case BridgeActionRequest_SaveDiagnosticBundle():
+        sse_encode_i_32(4, serializer);
+      case BridgeActionRequest_RestartWithDetailedDiagnostics():
+        sse_encode_i_32(5, serializer);
+      case BridgeActionRequest_RecordUiError(
+        message: final message,
+        stack: final stack,
+      ):
+        sse_encode_i_32(6, serializer);
+        sse_encode_String(message, serializer);
+        sse_encode_opt_String(stack, serializer);
+      case BridgeActionRequest_RunTask(commandLine: final commandLine):
+        sse_encode_i_32(7, serializer);
         sse_encode_String(commandLine, serializer);
       case BridgeActionRequest_EndProcess(
         identity: final identity,
         includeDescendants: final includeDescendants,
       ):
-        sse_encode_i_32(1, serializer);
+        sse_encode_i_32(8, serializer);
         sse_encode_box_autoadd_process_identity(identity, serializer);
         sse_encode_bool(includeDescendants, serializer);
       case BridgeActionRequest_SetPriority(
         identity: final identity,
         priority: final priority,
       ):
-        sse_encode_i_32(2, serializer);
+        sse_encode_i_32(9, serializer);
         sse_encode_box_autoadd_process_identity(identity, serializer);
         sse_encode_process_priority(priority, serializer);
       case BridgeActionRequest_SetNice(
         identity: final identity,
         nice: final nice,
       ):
-        sse_encode_i_32(3, serializer);
+        sse_encode_i_32(10, serializer);
         sse_encode_box_autoadd_process_identity(identity, serializer);
         sse_encode_i_32(nice, serializer);
       case BridgeActionRequest_SetAffinity(
         identity: final identity,
         logicalProcessors: final logicalProcessors,
       ):
-        sse_encode_i_32(4, serializer);
+        sse_encode_i_32(11, serializer);
         sse_encode_box_autoadd_process_identity(identity, serializer);
         sse_encode_list_prim_u_32_strict(logicalProcessors, serializer);
       case BridgeActionRequest_OpenFileLocation(identity: final identity):
-        sse_encode_i_32(5, serializer);
+        sse_encode_i_32(12, serializer);
         sse_encode_box_autoadd_process_identity(identity, serializer);
       case BridgeActionRequest_Window(
         identity: final identity,
         operation: final operation,
       ):
-        sse_encode_i_32(6, serializer);
+        sse_encode_i_32(13, serializer);
         sse_encode_box_autoadd_application_identity(identity, serializer);
         sse_encode_window_action(operation, serializer);
       case BridgeActionRequest_ArrangeWindows(
         identities: final identities,
         arrangement: final arrangement,
       ):
-        sse_encode_i_32(7, serializer);
+        sse_encode_i_32(14, serializer);
         sse_encode_list_application_identity(identities, serializer);
         sse_encode_window_arrangement(arrangement, serializer);
       case BridgeActionRequest_UserSession(
@@ -4604,7 +4792,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         title: final title,
         message: final message,
       ):
-        sse_encode_i_32(8, serializer);
+        sse_encode_i_32(15, serializer);
         sse_encode_box_autoadd_user_session_identity(identity, serializer);
         sse_encode_user_action(operation, serializer);
         sse_encode_opt_String(title, serializer);
@@ -4622,43 +4810,46 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case BridgeBackendEvent_Capabilities(field0: final field0):
         sse_encode_i_32(0, serializer);
         sse_encode_box_autoadd_platform_capabilities(field0, serializer);
-      case BridgeBackendEvent_Applications(meta: final meta, data: final data):
+      case BridgeBackendEvent_Diagnostics(field0: final field0):
         sse_encode_i_32(1, serializer);
+        sse_encode_box_autoadd_diagnostic_status(field0, serializer);
+      case BridgeBackendEvent_Applications(meta: final meta, data: final data):
+        sse_encode_i_32(2, serializer);
         sse_encode_box_autoadd_snapshot_meta(meta, serializer);
         sse_encode_box_autoadd_applications_data(data, serializer);
       case BridgeBackendEvent_Processes(meta: final meta, data: final data):
-        sse_encode_i_32(2, serializer);
+        sse_encode_i_32(3, serializer);
         sse_encode_box_autoadd_snapshot_meta(meta, serializer);
         sse_encode_box_autoadd_processes_data(data, serializer);
       case BridgeBackendEvent_Performance(meta: final meta, data: final data):
-        sse_encode_i_32(3, serializer);
+        sse_encode_i_32(4, serializer);
         sse_encode_box_autoadd_snapshot_meta(meta, serializer);
         sse_encode_box_autoadd_performance_data(data, serializer);
       case BridgeBackendEvent_Cpu(meta: final meta, data: final data):
-        sse_encode_i_32(4, serializer);
+        sse_encode_i_32(5, serializer);
         sse_encode_box_autoadd_snapshot_meta(meta, serializer);
         sse_encode_box_autoadd_cpu_data(data, serializer);
       case BridgeBackendEvent_Gpu(meta: final meta, data: final data):
-        sse_encode_i_32(5, serializer);
+        sse_encode_i_32(6, serializer);
         sse_encode_box_autoadd_snapshot_meta(meta, serializer);
         sse_encode_box_autoadd_gpu_data(data, serializer);
       case BridgeBackendEvent_Network(meta: final meta, data: final data):
-        sse_encode_i_32(6, serializer);
+        sse_encode_i_32(7, serializer);
         sse_encode_box_autoadd_snapshot_meta(meta, serializer);
         sse_encode_box_autoadd_network_data(data, serializer);
       case BridgeBackendEvent_Users(meta: final meta, data: final data):
-        sse_encode_i_32(7, serializer);
+        sse_encode_i_32(8, serializer);
         sse_encode_box_autoadd_snapshot_meta(meta, serializer);
         sse_encode_box_autoadd_users_data(data, serializer);
       case BridgeBackendEvent_PageUnavailable(
         page: final page,
         meta: final meta,
       ):
-        sse_encode_i_32(8, serializer);
+        sse_encode_i_32(9, serializer);
         sse_encode_page_id(page, serializer);
         sse_encode_box_autoadd_snapshot_meta(meta, serializer);
       case BridgeBackendEvent_PrivilegeChanged(field0: final field0):
-        sse_encode_i_32(9, serializer);
+        sse_encode_i_32(10, serializer);
         sse_encode_box_autoadd_privilege_result(field0, serializer);
     }
   }
@@ -4790,6 +4981,31 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       self.secondLevelAddressTranslation,
       serializer,
     );
+  }
+
+  @protected
+  void sse_encode_diagnostic_level(
+    DiagnosticLevel self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_diagnostic_status(
+    DiagnosticStatus self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_diagnostic_level(self.level, serializer);
+    sse_encode_bool(self.sensitive, serializer);
+    sse_encode_String(self.sessionId, serializer);
+    sse_encode_opt_String(self.directory, serializer);
+    sse_encode_bool(self.fileActive, serializer);
+    sse_encode_opt_String(self.sinkError, serializer);
+    sse_encode_u_64(self.droppedEvents, serializer);
+    sse_encode_bool(self.exportRequiresPrivacyWarning, serializer);
   }
 
   @protected
@@ -5101,6 +5317,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.name, serializer);
     sse_encode_opt_String(self.description, serializer);
     sse_encode_bool(self.operational, serializer);
+    sse_encode_network_interface_state(self.state, serializer);
     sse_encode_opt_box_autoadd_u_64(self.linkSpeedBitsPerSecond, serializer);
     sse_encode_opt_box_autoadd_f_64(self.receivedBytesPerSecond, serializer);
     sse_encode_opt_box_autoadd_f_64(self.sentBytesPerSecond, serializer);
@@ -5108,6 +5325,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_list_prim_f_64_strict(self.receivedHistory, serializer);
     sse_encode_list_prim_f_64_strict(self.sentHistory, serializer);
     sse_encode_opt_box_autoadd_backend_error(self.rowError, serializer);
+  }
+
+  @protected
+  void sse_encode_network_interface_state(
+    NetworkInterfaceState self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected
@@ -5318,6 +5544,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_list_prim_f_64_strict(self.cpuHistory, serializer);
     sse_encode_list_prim_f_64_strict(self.kernelHistory, serializer);
     sse_encode_list_prim_f_64_strict(self.memoryHistory, serializer);
+    sse_encode_list_String(self.logicalCpuLabels, serializer);
     sse_encode_list_list_prim_f_64_strict(self.logicalCpuHistories, serializer);
     sse_encode_list_list_prim_f_64_strict(
       self.logicalKernelHistories,
@@ -5391,6 +5618,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_process_identity(self.identity, serializer);
     sse_encode_opt_box_autoadd_u_32(self.parentPid, serializer);
     sse_encode_String(self.imageName, serializer);
+    sse_encode_opt_box_autoadd_bool(self.show32BitSuffix, serializer);
     sse_encode_opt_String(self.executablePath, serializer);
     sse_encode_opt_String(self.userName, serializer);
     sse_encode_opt_box_autoadd_u_32(self.sessionId, serializer);

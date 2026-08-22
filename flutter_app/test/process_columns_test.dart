@@ -98,4 +98,15 @@ void main() {
     expect(table.columns.single.label, 'Image Name');
     expect(table.columns.single.width, 145);
   });
+
+  testWidgets('32-bit process image names use the localized suffix', (
+    tester,
+  ) async {
+    final controller = BackendController.preview(sampleState(PageId.processes));
+
+    await tester.pumpWidget(TaskManagerApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    expect(find.text('taskmgr_rs (32-bit)'), findsOneWidget);
+  });
 }

@@ -21,6 +21,7 @@ class BackendState {
     this.updateSpeed = UpdateSpeed.normal,
     this.settings,
     this.capabilities,
+    this.diagnostics,
     this.applications,
     this.processes,
     this.performance,
@@ -37,6 +38,7 @@ class BackendState {
   final UpdateSpeed updateSpeed;
   final UiSettings? settings;
   final PlatformCapabilities? capabilities;
+  final DiagnosticStatus? diagnostics;
   final ApplicationsData? applications;
   final ProcessesData? processes;
   final PerformanceData? performance;
@@ -55,6 +57,7 @@ class BackendState {
     UpdateSpeed? updateSpeed,
     UiSettings? settings,
     PlatformCapabilities? capabilities,
+    DiagnosticStatus? diagnostics,
     ApplicationsData? applications,
     ProcessesData? processes,
     PerformanceData? performance,
@@ -71,6 +74,7 @@ class BackendState {
       updateSpeed: updateSpeed ?? this.updateSpeed,
       settings: settings ?? this.settings,
       capabilities: capabilities ?? this.capabilities,
+      diagnostics: diagnostics ?? this.diagnostics,
       applications: applications ?? this.applications,
       processes: processes ?? this.processes,
       performance: performance ?? this.performance,

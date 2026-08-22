@@ -43,8 +43,23 @@ use windows_sys::Win32::System::SystemInformation::{
 };
 use windows_sys::Win32::System::Threading::{
     ALL_PROCESSOR_GROUPS, GetActiveProcessorCount, IsProcessorFeaturePresent,
-    PF_SECOND_LEVEL_ADDRESS_TRANSLATION, PF_VIRT_FIRMWARE_ENABLED,
+    PF_3DNOW_INSTRUCTIONS_AVAILABLE, PF_ARM_64BIT_LOADSTORE_ATOMIC,
+    PF_ARM_DIVIDE_INSTRUCTION_AVAILABLE, PF_ARM_FMAC_INSTRUCTIONS_AVAILABLE,
+    PF_ARM_NEON_INSTRUCTIONS_AVAILABLE, PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE,
+    PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE, PF_ARM_V8_INSTRUCTIONS_AVAILABLE,
+    PF_ARM_V81_ATOMIC_INSTRUCTIONS_AVAILABLE, PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE,
+    PF_ARM_V83_JSCVT_INSTRUCTIONS_AVAILABLE, PF_ARM_V83_LRCPC_INSTRUCTIONS_AVAILABLE,
+    PF_AVX_INSTRUCTIONS_AVAILABLE, PF_AVX2_INSTRUCTIONS_AVAILABLE,
+    PF_AVX512F_INSTRUCTIONS_AVAILABLE, PF_ERMS_AVAILABLE, PF_MMX_INSTRUCTIONS_AVAILABLE,
+    PF_NX_ENABLED, PF_PAE_ENABLED, PF_RDPID_INSTRUCTION_AVAILABLE, PF_RDRAND_INSTRUCTION_AVAILABLE,
+    PF_RDTSC_INSTRUCTION_AVAILABLE, PF_RDTSCP_INSTRUCTION_AVAILABLE, PF_RDWRFSGSBASE_AVAILABLE,
+    PF_SECOND_LEVEL_ADDRESS_TRANSLATION, PF_SSE3_INSTRUCTIONS_AVAILABLE,
+    PF_SSE4_1_INSTRUCTIONS_AVAILABLE, PF_SSE4_2_INSTRUCTIONS_AVAILABLE,
+    PF_SSSE3_INSTRUCTIONS_AVAILABLE, PF_VIRT_FIRMWARE_ENABLED, PF_XMMI_INSTRUCTIONS_AVAILABLE,
+    PF_XMMI64_INSTRUCTIONS_AVAILABLE, PF_XSAVE_ENABLED,
 };
+
+use crate::wmi::query_cpu_firmware;
 
 const PROCESSOR_PERFORMANCE_INFORMATION_CLASS: i32 = 8;
 const STATUS_INFO_LENGTH_MISMATCH: i32 = 0xC000_0004_u32 as i32;
@@ -201,40 +216,73 @@ pub(crate) fn query_cpu_frequencies(expected_count: usize) -> CpuFrequencySnapsh
     }
 }
 
-pub(crate) fn query_cpu_inventory() -> (Option<String>, CpuTopologyMetrics, CpuHardwareMetrics) {
+pub(crate) fn query_cpu_inventory() -> (
+    Option<String>,
+    CpuTopologyMetrics,
+    CpuHardwareMetrics,
+    Vec<String>,
+) {
     let topology = query_topology().unwrap_or_else(|_| CpuTopologyMetrics {
         logical_processor_count: nonzero_active_processor_count(),
         ..CpuTopologyMetrics::default()
     });
+    let logical_cpu_labels = query_logical_cpu_labels().unwrap_or_else(|_| {
+        (0..topology.logical_processor_count.unwrap_or(0))
+            .map(|index| format!("CPU{index}"))
+            .collect()
+    });
+    let firmware = query_cpu_firmware().ok();
     let mut system_info = SYSTEM_INFO::default();
     unsafe { GetNativeSystemInfo(&mut system_info) };
     let architecture_code = unsafe { system_info.Anonymous.Anonymous.wProcessorArchitecture };
     let architecture = architecture_name(architecture_code).map(str::to_string);
-    let width = architecture_width(architecture_code);
-    let model = registry_string("ProcessorNameString")
+    let native_width = architecture_width(architecture_code);
+    let model = firmware
+        .as_ref()
+        .and_then(|value| value.model.clone())
+        .or_else(|| registry_string("ProcessorNameString"))
         .or_else(|| std::env::var("PROCESSOR_IDENTIFIER").ok())
         .filter(|value| !value.trim().is_empty());
     let hardware = CpuHardwareMetrics {
-        manufacturer: registry_string("VendorIdentifier"),
-        socket: topology.package_count.map(|count| {
-            (0..count)
-                .map(|value| value.to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        }),
-        processor_id: registry_string("Identifier"),
+        manufacturer: firmware
+            .as_ref()
+            .and_then(|value| value.manufacturer.clone())
+            .or_else(|| registry_string("VendorIdentifier")),
+        socket: firmware.as_ref().and_then(|value| value.socket.clone()),
+        processor_id: firmware
+            .as_ref()
+            .and_then(|value| value.processor_id.clone())
+            .or_else(cpuid_processor_id),
         architecture,
-        address_width_bits: width,
-        data_width_bits: width,
-        family: registry_string("Identifier"),
-        level: Some(system_info.wProcessorLevel.to_string()),
-        revision: Some(format!("0x{:04X}", system_info.wProcessorRevision)),
-        stepping: Some((system_info.wProcessorRevision & 0x00ff).to_string()),
-        firmware_max_frequency_mhz: registry_dword("~MHz").map(f64::from),
-        isa_features: Vec::new(),
+        address_width_bits: firmware
+            .as_ref()
+            .and_then(|value| value.address_width_bits)
+            .or(native_width),
+        data_width_bits: firmware
+            .as_ref()
+            .and_then(|value| value.data_width_bits)
+            .or(native_width),
+        family: firmware.as_ref().and_then(|value| value.family.clone()),
+        level: firmware
+            .as_ref()
+            .and_then(|value| value.level.clone())
+            .or_else(|| Some(system_info.wProcessorLevel.to_string())),
+        revision: firmware
+            .as_ref()
+            .and_then(|value| value.revision.clone())
+            .or_else(|| Some(system_info.wProcessorRevision.to_string())),
+        stepping: firmware
+            .as_ref()
+            .and_then(|value| value.stepping.clone())
+            .or_else(|| Some((system_info.wProcessorRevision & 0x00ff).to_string())),
+        firmware_max_frequency_mhz: firmware
+            .as_ref()
+            .and_then(|value| value.maximum_frequency_mhz)
+            .or_else(|| registry_dword("~MHz").map(f64::from)),
+        isa_features: query_isa_features(),
         caches: query_caches().unwrap_or_default(),
     };
-    (model, topology, hardware)
+    (model, topology, hardware, logical_cpu_labels)
 }
 
 fn query_processor_performance(
@@ -631,19 +679,92 @@ fn processor_thread_count(
     record: &SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX,
     processor: &PROCESSOR_RELATIONSHIP,
 ) -> Result<u32, BackendError> {
+    let masks = processor_group_masks(record, processor)?;
+    Ok(masks.iter().map(|mask| mask.Mask.count_ones()).sum::<u32>())
+}
+
+fn query_logical_cpu_labels() -> Result<Vec<String>, BackendError> {
+    let buffer = query_relationship_buffer()?;
+    let bytes = buffer.as_bytes();
+    let mut processors = BTreeMap::<(u16, u32), Option<u32>>::new();
+    let mut offset = 0_usize;
+    while offset < bytes.len() {
+        let record = relationship_record(bytes, offset)?;
+        if record.Relationship == RELATION_PROCESSOR_CORE {
+            ensure_relationship_payload::<PROCESSOR_RELATIONSHIP>(record)?;
+            let processor = unsafe { record.Anonymous.Processor };
+            let masks = processor_group_masks(record, &processor)?;
+            let mut siblings = Vec::<(u16, u32)>::new();
+            for mask in masks {
+                for number in 0..usize::BITS {
+                    if mask.Mask & (1_usize << number) != 0 {
+                        siblings.push((mask.Group, number));
+                    }
+                }
+            }
+            if siblings.is_empty() {
+                return Err(topology_error("CPU core has no logical processors"));
+            }
+            let has_smt = processor.Flags & LTP_PC_SMT_FLAG != 0 || siblings.len() > 1;
+            for (smt_index, identity) in siblings.into_iter().enumerate() {
+                let smt_index = has_smt.then(|| u32::try_from(smt_index).ok()).flatten();
+                if processors.insert(identity, smt_index).is_some() {
+                    return Err(topology_error(
+                        "CPU topology contains a duplicate logical processor",
+                    ));
+                }
+            }
+        }
+        offset = offset
+            .checked_add(record.Size as usize)
+            .ok_or_else(|| topology_error("CPU topology record offset overflow"))?;
+    }
+    let expected = nonzero_active_processor_count().unwrap_or(0) as usize;
+    if processors.len() != expected || processors.is_empty() {
+        return Err(topology_error(
+            "CPU topology does not cover every active logical processor",
+        ));
+    }
+    let multiple_groups = processors
+        .keys()
+        .map(|(group, _)| *group)
+        .collect::<std::collections::BTreeSet<_>>()
+        .len()
+        > 1;
+    Ok(processors
+        .into_iter()
+        .map(|((group, number), smt_index)| {
+            let mut label = if multiple_groups {
+                format!("G{group}:CPU{number}")
+            } else {
+                format!("CPU{number}")
+            };
+            if let Some(smt_index) = smt_index {
+                label.push_str(&format!(" - SMT{smt_index}"));
+            }
+            label
+        })
+        .collect())
+}
+
+fn processor_group_masks(
+    record: &SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX,
+    processor: &PROCESSOR_RELATIONSHIP,
+) -> Result<Vec<GROUP_AFFINITY>, BackendError> {
     let group_count = usize::from(processor.GroupCount);
     if group_count == 0 {
         return Err(topology_error("CPU core has no group affinity"));
     }
     let masks_offset = RELATIONSHIP_HEADER_SIZE + offset_of!(PROCESSOR_RELATIONSHIP, GroupMask);
-    let masks_bytes = group_count
+    let masks_end = group_count
         .checked_mul(size_of::<GROUP_AFFINITY>())
         .and_then(|value| masks_offset.checked_add(value))
         .ok_or_else(|| topology_error("CPU core group-mask bounds overflow"))?;
-    if masks_bytes > record.Size as usize {
+    if masks_end > record.Size as usize {
         return Err(topology_error("CPU core group masks are truncated"));
     }
-    let masks = unsafe {
+    // SAFETY: the flexible-array byte range was validated against this complete record.
+    Ok(unsafe {
         slice::from_raw_parts(
             (record as *const SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)
                 .cast::<u8>()
@@ -651,8 +772,8 @@ fn processor_thread_count(
                 .cast::<GROUP_AFFINITY>(),
             group_count,
         )
-    };
-    Ok(masks.iter().map(|mask| mask.Mask.count_ones()).sum::<u32>())
+    }
+    .to_vec())
 }
 
 fn ensure_relationship_payload<T>(
@@ -671,6 +792,66 @@ fn ensure_relationship_payload<T>(
 fn nonzero_active_processor_count() -> Option<u32> {
     let count = unsafe { GetActiveProcessorCount(ALL_PROCESSOR_GROUPS) };
     (count > 0).then_some(count)
+}
+
+fn query_isa_features() -> Vec<String> {
+    let mut features = Vec::new();
+    for (id, name) in [
+        (PF_MMX_INSTRUCTIONS_AVAILABLE, "MMX"),
+        (PF_XMMI_INSTRUCTIONS_AVAILABLE, "SSE"),
+        (PF_XMMI64_INSTRUCTIONS_AVAILABLE, "SSE2"),
+        (PF_SSE3_INSTRUCTIONS_AVAILABLE, "SSE3"),
+        (PF_SSSE3_INSTRUCTIONS_AVAILABLE, "SSSE3"),
+        (PF_SSE4_1_INSTRUCTIONS_AVAILABLE, "SSE4.1"),
+        (PF_SSE4_2_INSTRUCTIONS_AVAILABLE, "SSE4.2"),
+        (PF_AVX_INSTRUCTIONS_AVAILABLE, "AVX"),
+        (PF_AVX2_INSTRUCTIONS_AVAILABLE, "AVX2"),
+        (PF_AVX512F_INSTRUCTIONS_AVAILABLE, "AVX-512F"),
+        (PF_XSAVE_ENABLED, "XSAVE"),
+        (PF_RDTSC_INSTRUCTION_AVAILABLE, "RDTSC"),
+        (PF_RDTSCP_INSTRUCTION_AVAILABLE, "RDTSCP"),
+        (PF_RDRAND_INSTRUCTION_AVAILABLE, "RDRAND"),
+        (PF_RDPID_INSTRUCTION_AVAILABLE, "RDPID"),
+        (PF_RDWRFSGSBASE_AVAILABLE, "FSGSBASE"),
+        (PF_ERMS_AVAILABLE, "ERMS"),
+        (PF_NX_ENABLED, "NX"),
+        (PF_PAE_ENABLED, "PAE"),
+        (PF_3DNOW_INSTRUCTIONS_AVAILABLE, "3DNow!"),
+        (PF_ARM_NEON_INSTRUCTIONS_AVAILABLE, "NEON"),
+        (PF_ARM_DIVIDE_INSTRUCTION_AVAILABLE, "ARM Divide"),
+        (PF_ARM_FMAC_INSTRUCTIONS_AVAILABLE, "ARM FMAC"),
+        (PF_ARM_V8_INSTRUCTIONS_AVAILABLE, "ARMv8"),
+        (PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE, "ARMv8 Crypto"),
+        (PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE, "ARMv8 CRC32"),
+        (PF_ARM_64BIT_LOADSTORE_ATOMIC, "ARM Atomic"),
+        (PF_ARM_V81_ATOMIC_INSTRUCTIONS_AVAILABLE, "ARMv8.1 Atomic"),
+        (PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE, "ARMv8.2 Dot Product"),
+        (PF_ARM_V83_JSCVT_INSTRUCTIONS_AVAILABLE, "ARMv8.3 JSCVT"),
+        (PF_ARM_V83_LRCPC_INSTRUCTIONS_AVAILABLE, "ARMv8.3 LRCPC"),
+    ] {
+        // SAFETY: the feature identifier is one of the documented constants above.
+        if unsafe { IsProcessorFeaturePresent(id) } != 0 {
+            features.push(name.to_string());
+        }
+    }
+    features
+}
+
+#[cfg(target_arch = "x86")]
+fn cpuid_processor_id() -> Option<String> {
+    let value = std::arch::x86::__cpuid(1);
+    Some(format!("{:08X}{:08X}", value.edx, value.eax))
+}
+
+#[cfg(target_arch = "x86_64")]
+fn cpuid_processor_id() -> Option<String> {
+    let value = std::arch::x86_64::__cpuid(1);
+    Some(format!("{:08X}{:08X}", value.edx, value.eax))
+}
+
+#[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+fn cpuid_processor_id() -> Option<String> {
+    None
 }
 
 fn registry_string(name: &str) -> Option<String> {
@@ -749,7 +930,7 @@ fn architecture_name(value: u16) -> Option<&'static str> {
     };
     match value {
         PROCESSOR_ARCHITECTURE_INTEL => Some("x86"),
-        PROCESSOR_ARCHITECTURE_AMD64 => Some("x86_64"),
+        PROCESSOR_ARCHITECTURE_AMD64 => Some("x64"),
         PROCESSOR_ARCHITECTURE_ARM => Some("ARM"),
         PROCESSOR_ARCHITECTURE_ARM64 => Some("ARM64"),
         PROCESSOR_ARCHITECTURE_IA64 => Some("IA-64"),

@@ -1,6 +1,21 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
+
+# Visual Studio 18 can leave the compiler-identification CL process orphaned in
+# the VCTIP/file-tracker wrapper on some installations. Microsoft documents
+# TrackFileAccess as optional incremental-build bookkeeping. Disable it only for
+# CMake's compiler probes, then restore normal tracking for the application
+# targets so ordinary incremental builds remain fast.
+set(_TASKMGR_VS18_COMPILER_PROBE_WORKAROUND OFF)
+if(CMAKE_GENERATOR MATCHES "^Visual Studio 18 ")
+  set(_TASKMGR_VS18_COMPILER_PROBE_WORKAROUND ON)
+  set(CMAKE_VS_GLOBALS "TrackFileAccess=false")
+  list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES CMAKE_VS_GLOBALS)
+endif()
 project(taskmgr_rs LANGUAGES CXX)
+if(_TASKMGR_VS18_COMPILER_PROBE_WORKAROUND)
+  unset(CMAKE_VS_GLOBALS)
+endif()
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
@@ -39,7 +54,7 @@ add_definitions(-DUNICODE -D_UNICODE)
 # of modifying this function.
 function(APPLY_STANDARD_SETTINGS TARGET)
   target_compile_features(${TARGET} PUBLIC cxx_std_17)
-  target_compile_options(${TARGET} PRIVATE /W4 /WX /wd"4100")
+  target_compile_options(${TARGET} PRIVATE /W4 /WX /wd4100)
   target_compile_options(${TARGET} PRIVATE /EHsc)
   target_compile_definitions(${TARGET} PRIVATE "_HAS_EXCEPTIONS=0")
   target_compile_definitions(${TARGET} PRIVATE "$<$<CONFIG:Debug>:_DEBUG>")

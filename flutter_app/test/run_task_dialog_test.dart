@@ -11,10 +11,13 @@
 //   参考标准:   Flutter widget test；原任务管理器“运行”交互
 // --------------------------------------------------------------------------
 
+import 'package:flutter/foundation.dart'
+    show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taskmgr_rs/app/backend_controller.dart';
 import 'package:taskmgr_rs/app/task_manager_app.dart';
+import 'package:taskmgr_rs/src/native_bridge/api.dart';
 import 'package:taskmgr_rs/src/native_bridge/third_party/taskmgr_core.dart';
 import 'package:taskmgr_rs/ui/desktop_controls.dart';
 import 'package:taskmgr_rs/ui/desktop_dialogs.dart';
@@ -74,21 +77,87 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('applications Run button opens the shared dialog', (
+  testWidgets('Windows Run button delegates to the system Run dialog', (
     tester,
   ) async {
-    final controller = BackendController.preview(
-      sampleState(PageId.applications),
-    );
-    await tester.pumpWidget(TaskManagerApp(controller: controller));
-    await tester.pumpAndSettle();
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      BridgeActionRequest? request;
+      final controller = BackendController.preview(
+        sampleState(PageId.applications),
+        onExecute: (value) async {
+          request = value;
+          return const ActionResult(status: ActionStatus.succeeded);
+        },
+      );
+      await tester.pumpWidget(TaskManagerApp(controller: controller));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Run...'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Run...'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Run'), findsOneWidget);
-    expect(find.byType(DesktopTextField), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
+      expect(request, isA<BridgeActionRequest_ShowRunDialog>());
+      expect(find.byType(DesktopTextField), findsNothing);
+      expect(tester.takeException(), isNull);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('Windows About menu delegates to the Rust Shell dialog', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      BridgeActionRequest? request;
+      final controller = BackendController.preview(
+        sampleState(PageId.applications),
+        onExecute: (value) async {
+          request = value;
+          return const ActionResult(status: ActionStatus.succeeded);
+        },
+      );
+      await tester.pumpWidget(TaskManagerApp(controller: controller));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Help'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('About Task Manager'));
+      await tester.pumpAndSettle();
+
+      expect(
+        request,
+        isA<BridgeActionRequest_ShowAboutDialog>().having(
+          (value) => value.title,
+          'title',
+          'Windows NT Task Manager',
+        ),
+      );
+      expect(find.text('v0.3.0'), findsNothing);
+      expect(tester.takeException(), isNull);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('non-Windows Run button opens the shared dialog', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+    try {
+      final controller = BackendController.preview(
+        sampleState(PageId.applications),
+      );
+      await tester.pumpWidget(TaskManagerApp(controller: controller));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Run...'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Run'), findsOneWidget);
+      expect(find.byType(DesktopTextField), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 }

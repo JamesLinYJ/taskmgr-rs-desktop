@@ -46,7 +46,7 @@ for edge in 16 32; do
     exit 1
   fi
 done
-for extension_file in metadata.json extension.js; do
+for extension_file in metadata.json extension.js authorization.js; do
   if [[ $(printf '%s\n' "${portable_files[@]}" | grep -Ec "/share/gnome-shell/extensions/$extension_uuid/$extension_file$") -ne 1 ]]; then
     echo "portable archive must contain GNOME provider file: $extension_file" >&2
     exit 1
@@ -66,6 +66,7 @@ if [[ ${#rpm_files[@]} -gt 0 ]]; then
     grep -qx "/usr/share/polkit-1/actions/$application_id.policy" <<<"$listing"
     grep -qx "/usr/share/gnome-shell/extensions/$extension_uuid/metadata.json" <<<"$listing"
     grep -qx "/usr/share/gnome-shell/extensions/$extension_uuid/extension.js" <<<"$listing"
+    grep -qx "/usr/share/gnome-shell/extensions/$extension_uuid/authorization.js" <<<"$listing"
     for edge in 16 32 48 64 256; do
       grep -qx "/usr/share/icons/hicolor/${edge}x${edge}/apps/$application_id.png" <<<"$listing"
     done
@@ -93,6 +94,7 @@ if [[ ${#deb_files[@]} -gt 0 ]]; then
     grep -Eq "\./usr/share/polkit-1/actions/$application_id\.policy$" <<<"$listing"
     grep -Eq "\./usr/share/gnome-shell/extensions/$extension_uuid/metadata\.json$" <<<"$listing"
     grep -Eq "\./usr/share/gnome-shell/extensions/$extension_uuid/extension\.js$" <<<"$listing"
+    grep -Eq "\./usr/share/gnome-shell/extensions/$extension_uuid/authorization\.js$" <<<"$listing"
     for edge in 16 32 48 64 256; do
       grep -Eq "\./usr/share/icons/hicolor/${edge}x${edge}/apps/$application_id\.png$" <<<"$listing"
     done

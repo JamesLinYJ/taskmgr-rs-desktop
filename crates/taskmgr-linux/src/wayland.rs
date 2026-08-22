@@ -218,6 +218,7 @@ impl ExtSession {
         self.event_queue
             .roundtrip(&mut self.state)
             .map_err(|error| wayland_error("refresh ext foreign toplevels", error))?;
+        self.icons.begin_snapshot();
         let icons = &mut self.icons;
         let mut rows = self
             .state
@@ -242,6 +243,7 @@ impl ExtSession {
                         process: None,
                     },
                     title,
+                    show_32_bit_suffix: None,
                     status: ApplicationStatus::Running,
                     window_station: None,
                     desktop: None,
@@ -402,6 +404,7 @@ impl WlrSession {
             .roundtrip(&mut self.state)
             .map_err(|error| wayland_error("refresh wlroots foreign toplevels", error))?;
         let actions = self.actions();
+        self.icons.begin_snapshot();
         let icons = &mut self.icons;
         let mut rows = self
             .state
@@ -421,6 +424,7 @@ impl WlrSession {
                         .or_else(|| window.app_id.clone())
                         .filter(|value| !value.is_empty())
                         .unwrap_or_default(),
+                    show_32_bit_suffix: None,
                     status: ApplicationStatus::Running,
                     window_station: None,
                     desktop: None,

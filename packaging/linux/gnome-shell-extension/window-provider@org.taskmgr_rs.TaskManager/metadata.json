@@ -4,5 +4,5 @@
   "uuid": "window-provider@org.taskmgr_rs.TaskManager",
   "shell-version": ["45", "46", "47", "48", "49", "50", "51"],
   "url": "https://github.com/JamesLinYJ/taskmgr-rs-desktop",
-  "version": 1
+  "version": 2
 }

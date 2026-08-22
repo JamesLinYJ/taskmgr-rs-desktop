@@ -25,7 +25,7 @@ BackendState sampleState(
   final history = _history(8, 72);
   final secondHistory = _history(16, 38);
   final settings = UiSettings(
-    schemaVersion: 3,
+    schemaVersion: 4,
     activePage: activePage,
     updateSpeed: UpdateSpeed.normal,
     alwaysOnTop: false,
@@ -80,6 +80,10 @@ BackendState sampleState(
     cpuHistory: history,
     kernelHistory: secondHistory,
     memoryHistory: _history(38, 70),
+    logicalCpuLabels: List<String>.generate(
+      8,
+      (index) => 'CPU$index - SMT${index % 2}',
+    ),
     logicalCpuHistories: List<Float64List>.generate(
       8,
       (index) => _history(index * 5, 45 + index * 4),
@@ -134,6 +138,7 @@ BackendState sampleState(
           identity: ProcessIdentity(pid: 2341, startTime: BigInt.from(99123)),
           parentPid: 1,
           imageName: 'taskmgr_rs',
+          show32BitSuffix: true,
           executablePath: '/usr/bin/taskmgr_rs',
           userName: 'james',
           sessionId: 2,
@@ -317,6 +322,7 @@ BackendState sampleState(
           name: 'Ethernet',
           description: 'Intel 2.5GbE Controller',
           operational: true,
+          state: NetworkInterfaceState.connected,
           linkSpeedBitsPerSecond: BigInt.from(2500000000),
           receivedBytesPerSecond: 1843200,
           sentBytesPerSecond: 532480,
@@ -329,6 +335,7 @@ BackendState sampleState(
           name: 'Wi-Fi',
           description: 'Wireless LAN adapter',
           operational: false,
+          state: NetworkInterfaceState.hardwareDisabled,
           linkSpeedBitsPerSecond: BigInt.from(866000000),
           receivedHistory: Float64List(60),
           sentHistory: Float64List(60),

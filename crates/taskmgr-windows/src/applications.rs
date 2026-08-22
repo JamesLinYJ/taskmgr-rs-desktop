@@ -8,7 +8,7 @@
 //   环境:       Windows x64/ARM64 API；Rust 1.97.1；x86_64-pc-windows-gnu 交叉检查
 //   作者:       JamesLinYJ
 //   协助:       OpenAI Codex:gpt-5.6-sol
-//   参考标准:   EnumWindows；WM_GETICON；GDI DIB；TileWindows/CascadeWindows
+//   参考标准:   EnumWindows；IsWow64Process2；WM_GETICON；GDI DIB；TileWindows/CascadeWindows
 // --------------------------------------------------------------------------
 
 //! 枚举当前交互桌面的无 owner 可见顶层窗口，并在每次动作前重新验证窗口与进程身份。
@@ -23,7 +23,7 @@ use taskmgr_core::{
     ApplicationStatus, ApplicationsData, BackendError, ProcessIdentity, SnapshotData, WindowAction,
     WindowArrangement,
 };
-use windows_sys::Win32::Foundation::{FILETIME, HANDLE, HWND, LPARAM};
+use windows_sys::Win32::Foundation::{ERROR_INVALID_DATA, FILETIME, HANDLE, HWND, LPARAM};
 use windows_sys::Win32::Graphics::Gdi::{
     BI_RGB, BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleDC, CreateDIBSection, DIB_RGB_COLORS,
     DeleteDC, DeleteObject, HBITMAP, HDC, HGDIOBJ, SelectObject,
@@ -31,8 +31,13 @@ use windows_sys::Win32::Graphics::Gdi::{
 use windows_sys::Win32::System::StationsAndDesktops::{
     GetProcessWindowStation, GetThreadDesktop, GetUserObjectInformationW, UOI_NAME,
 };
+use windows_sys::Win32::System::SystemInformation::{
+    IMAGE_FILE_MACHINE_AMD64, IMAGE_FILE_MACHINE_ARM, IMAGE_FILE_MACHINE_ARM64,
+    IMAGE_FILE_MACHINE_ARMNT, IMAGE_FILE_MACHINE_I386, IMAGE_FILE_MACHINE_IA64,
+    IMAGE_FILE_MACHINE_THUMB, IMAGE_FILE_MACHINE_UNKNOWN,
+};
 use windows_sys::Win32::System::Threading::{
-    GetCurrentProcessId, GetCurrentThreadId, GetProcessTimes, OpenProcess,
+    GetCurrentProcessId, GetCurrentThreadId, GetProcessTimes, IsWow64Process2, OpenProcess,
     PROCESS_QUERY_LIMITED_INFORMATION,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
@@ -46,11 +51,12 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 };
 use windows_sys::core::BOOL;
 
-use crate::native::{OwnedHandle, filetime_to_u64, last_error};
+use crate::native::{OwnedHandle, error_from_code, filetime_to_u64, last_error};
 
 pub(crate) struct ApplicationsSampler {
     desktop_names: Option<(String, String)>,
     icon_cache: HashMap<IconIdentity, WindowIconPngs>,
+    bitness_by_process: HashMap<ProcessIdentity, bool>,
 }
 
 impl ApplicationsSampler {
@@ -58,6 +64,7 @@ impl ApplicationsSampler {
         Self {
             desktop_names: None,
             icon_cache: HashMap::new(),
+            bitness_by_process: HashMap::new(),
         }
     }
 
@@ -79,6 +86,8 @@ impl ApplicationsSampler {
                 .map(|(_, desktop)| desktop.clone()),
             icon_cache: std::mem::take(&mut self.icon_cache),
             seen_icon_identities: HashSet::with_capacity(64),
+            bitness_by_process: std::mem::take(&mut self.bitness_by_process),
+            seen_processes: HashSet::with_capacity(64),
         };
         // SAFETY: `context` lives for the complete synchronous enumeration and the callback never
         // retains its pointer. The callback catches per-window failures by skipping that window.
@@ -92,10 +101,14 @@ impl ApplicationsSampler {
             mut rows,
             mut icon_cache,
             seen_icon_identities,
+            mut bitness_by_process,
+            seen_processes,
             ..
         } = context;
         icon_cache.retain(|identity, _| seen_icon_identities.contains(identity));
+        bitness_by_process.retain(|identity, _| seen_processes.contains(identity));
         self.icon_cache = icon_cache;
+        self.bitness_by_process = bitness_by_process;
         if succeeded == 0 {
             return Err(last_error("EnumWindows applications sampling"));
         }
@@ -134,6 +147,8 @@ struct EnumerationContext {
     desktop: Option<String>,
     icon_cache: HashMap<IconIdentity, WindowIconPngs>,
     seen_icon_identities: HashSet<IconIdentity>,
+    bitness_by_process: HashMap<ProcessIdentity, bool>,
+    seen_processes: HashSet<ProcessIdentity>,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -178,6 +193,23 @@ unsafe extern "system" fn enumerate_window(hwnd: HWND, lparam: LPARAM) -> BOOL {
     let Some(process) = process else {
         return 1;
     };
+    context.seen_processes.insert(process.clone());
+    let mut row_error = None;
+    let show_32_bit_suffix = if let Some(cached) = context.bitness_by_process.get(&process).copied()
+    {
+        Some(cached)
+    } else {
+        match query_process_needs_32_bit_suffix(&process) {
+            Ok(detected) => {
+                context.bitness_by_process.insert(process.clone(), detected);
+                Some(detected)
+            }
+            Err(error) => {
+                row_error = Some(error);
+                None
+            }
+        }
+    };
     let is_hung = unsafe { IsHungAppWindow(hwnd) } != 0;
     let icon_identity = IconIdentity {
         native_id: hwnd as usize as u64,
@@ -196,6 +228,7 @@ unsafe extern "system" fn enumerate_window(hwnd: HWND, lparam: LPARAM) -> BOOL {
             process: Some(process),
         },
         title,
+        show_32_bit_suffix,
         status: if is_hung {
             ApplicationStatus::NotResponding
         } else {
@@ -212,7 +245,7 @@ unsafe extern "system" fn enumerate_window(hwnd: HWND, lparam: LPARAM) -> BOOL {
             ActionKind::Maximize,
             ActionKind::EndTask,
         ],
-        row_error: None,
+        row_error,
     });
     1
 }
@@ -523,6 +556,62 @@ fn query_process_identity(pid: u32) -> Result<ProcessIdentity, BackendError> {
     query_identity_from_handle(pid, handle.as_raw())
 }
 
+fn query_process_needs_32_bit_suffix(identity: &ProcessIdentity) -> Result<bool, BackendError> {
+    // SAFETY: OpenProcess receives scalar arguments and returns a fresh owned handle on success.
+    let raw = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, identity.pid) };
+    // SAFETY: ownership of the successful handle is transferred immediately.
+    let handle = unsafe { OwnedHandle::from_raw(raw) }
+        .ok_or_else(|| last_error("OpenProcess for application bitness"))?;
+    let actual = query_identity_from_handle(identity.pid, handle.as_raw())?;
+    if actual != *identity {
+        return Err(BackendError::internal(
+            "validate process identity for application bitness",
+            "the application process identity changed before its architecture was queried",
+        ));
+    }
+    process_needs_32_bit_suffix_handle(handle.as_raw())
+}
+
+pub(crate) fn process_needs_32_bit_suffix_handle(handle: HANDLE) -> Result<bool, BackendError> {
+    let mut process_machine = IMAGE_FILE_MACHINE_UNKNOWN;
+    let mut native_machine = IMAGE_FILE_MACHINE_UNKNOWN;
+    // SAFETY: the caller owns a live query handle and both machine values are writable outputs.
+    if unsafe { IsWow64Process2(handle, &mut process_machine, &mut native_machine) } == 0 {
+        return Err(last_error("IsWow64Process2 for application bitness"));
+    }
+    process_machine_needs_32_bit_suffix(process_machine, native_machine).ok_or_else(|| {
+        error_from_code(
+            "interpret IsWow64Process2 application machine types",
+            ERROR_INVALID_DATA,
+        )
+    })
+}
+
+fn process_machine_needs_32_bit_suffix(process_machine: u16, native_machine: u16) -> Option<bool> {
+    let effective_machine = if process_machine == IMAGE_FILE_MACHINE_UNKNOWN {
+        native_machine
+    } else {
+        process_machine
+    };
+    let process_is_32_bit = match effective_machine {
+        IMAGE_FILE_MACHINE_I386
+        | IMAGE_FILE_MACHINE_ARM
+        | IMAGE_FILE_MACHINE_ARMNT
+        | IMAGE_FILE_MACHINE_THUMB => true,
+        IMAGE_FILE_MACHINE_AMD64 | IMAGE_FILE_MACHINE_ARM64 | IMAGE_FILE_MACHINE_IA64 => false,
+        _ => return None,
+    };
+    let native_is_64_bit = match native_machine {
+        IMAGE_FILE_MACHINE_AMD64 | IMAGE_FILE_MACHINE_ARM64 | IMAGE_FILE_MACHINE_IA64 => true,
+        IMAGE_FILE_MACHINE_I386
+        | IMAGE_FILE_MACHINE_ARM
+        | IMAGE_FILE_MACHINE_ARMNT
+        | IMAGE_FILE_MACHINE_THUMB => false,
+        _ => return None,
+    };
+    Some(process_is_32_bit && native_is_64_bit)
+}
+
 pub(crate) fn query_identity_from_handle(
     pid: u32,
     handle: windows_sys::Win32::Foundation::HANDLE,
@@ -710,7 +799,43 @@ fn user_object_name(handle: HANDLE) -> Result<String, BackendError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{encode_rgba_png, recover_rgba_from_composites};
+    use super::{
+        encode_rgba_png, process_machine_needs_32_bit_suffix, recover_rgba_from_composites,
+    };
+    use windows_sys::Win32::System::SystemInformation::{
+        IMAGE_FILE_MACHINE_AMD64, IMAGE_FILE_MACHINE_ARM64, IMAGE_FILE_MACHINE_ARMNT,
+        IMAGE_FILE_MACHINE_I386, IMAGE_FILE_MACHINE_UNKNOWN,
+    };
+
+    #[test]
+    fn suffix_is_only_needed_for_a_32_bit_process_on_a_64_bit_machine() {
+        assert_eq!(
+            process_machine_needs_32_bit_suffix(IMAGE_FILE_MACHINE_I386, IMAGE_FILE_MACHINE_AMD64),
+            Some(true)
+        );
+        assert_eq!(
+            process_machine_needs_32_bit_suffix(IMAGE_FILE_MACHINE_ARMNT, IMAGE_FILE_MACHINE_ARM64),
+            Some(true)
+        );
+        assert_eq!(
+            process_machine_needs_32_bit_suffix(
+                IMAGE_FILE_MACHINE_UNKNOWN,
+                IMAGE_FILE_MACHINE_AMD64
+            ),
+            Some(false)
+        );
+        assert_eq!(
+            process_machine_needs_32_bit_suffix(
+                IMAGE_FILE_MACHINE_UNKNOWN,
+                IMAGE_FILE_MACHINE_I386
+            ),
+            Some(false)
+        );
+        assert_eq!(
+            process_machine_needs_32_bit_suffix(0xffff, IMAGE_FILE_MACHINE_ARM64),
+            None
+        );
+    }
 
     #[test]
     fn reconstructs_alpha_from_black_and_white_icon_draws() {

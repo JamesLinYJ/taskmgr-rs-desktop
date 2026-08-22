@@ -30,11 +30,15 @@ mod native;
 #[cfg(windows)]
 mod network;
 #[cfg(windows)]
+mod pdh;
+#[cfg(windows)]
 mod processes;
 #[cfg(windows)]
 mod system;
 #[cfg(windows)]
 mod users;
+#[cfg(windows)]
+mod wmi;
 
 use taskmgr_core::{
     ActionKind, ActionRequest, ActionResult, Architecture, Availability, BackendError, ColumnId,
@@ -238,6 +242,22 @@ impl PlatformProvider for WindowsProvider {
         #[cfg(windows)]
         {
             match request {
+                ActionRequest::ShowAboutDialog { title } => {
+                    launch::show_system_about_dialog(&title)
+                }
+                ActionRequest::ShowRunDialog => launch::show_system_run_dialog(),
+                ActionRequest::OpenDiagnosticFolder => launch::open_diagnostic_folder(),
+                ActionRequest::SaveDiagnosticBundle => launch::save_diagnostic_bundle(),
+                ActionRequest::RestartWithDetailedDiagnostics => {
+                    launch::restart_with_detailed_diagnostics()
+                }
+                ActionRequest::ConfigureDiagnostics { .. }
+                | ActionRequest::RecordUiError { .. } => {
+                    ActionResult::failed(BackendError::internal(
+                        "diagnostic action routing",
+                        "process-wide diagnostic actions must be handled by the core runtime",
+                    ))
+                }
                 ActionRequest::RunTask { command_line } => launch::run(&command_line),
                 ActionRequest::Window { .. } | ActionRequest::ArrangeWindows { .. } => {
                     self.applications.execute(request)

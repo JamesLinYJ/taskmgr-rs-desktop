@@ -4,15 +4,15 @@
 //
 //   文件:       crates/taskmgr-linux/src/desktop_icons.rs
 //
-//   日期:       2026年08月21日
-//   环境:       Fedora Linux 46 x86_64；Linux 7.2.0；Rust 1.97.1
+//   日期:       2026年08月22日
+//   环境:       Windows 11 x64；WSL2 Linux 6.18.33.2 x86_64；Rust 1.97.1
 //   作者:       JamesLinYJ
 //   协助:       OpenAI Codex:gpt-5.6-sol
 //   参考标准:   Desktop Entry Specification；Icon Theme Specification；PNG ISO/IEC 15948
 // --------------------------------------------------------------------------
 
 //! 将 Wayland 的主题图标名或 app_id 映射到 XDG desktop entry，并输出有界 PNG。
-//! 解析器只接受普通 PNG 文件，限制输入尺寸与解码内存，并缓存每个图标名的结果。
+//! 解析器只接受普通 PNG 文件，限制输入尺寸与解码内存，并在有界 LRU 中缓存结果。
 
 use std::collections::HashMap;
 use std::env;
@@ -26,8 +26,14 @@ const MAX_DESKTOP_FILE_BYTES: u64 = 1024 * 1024;
 const MAX_ICON_FILE_BYTES: u64 = 8 * 1024 * 1024;
 const MAX_DECODED_ICON_BYTES: usize = 64 * 1024 * 1024;
 const MAX_ICON_EDGE: u32 = 4096;
-const MAX_DIRECTORY_ENTRIES: usize = 100_000;
+const MAX_DESKTOP_INDEX_ENTRIES: usize = 100_000;
 const MAX_DIRECTORY_DEPTH: usize = 8;
+const MAX_CACHE_ENTRIES: usize = 256;
+const MAX_CACHE_ENCODED_BYTES: usize = 2 * 1024 * 1024;
+const MAX_CACHE_KEY_BYTES: usize = 4096;
+const NEGATIVE_CACHE_TTL_ACCESSES: u64 = 4096;
+const MAX_UNCACHED_LOOKUPS_PER_SNAPSHOT: usize = 64;
+const MAX_FALLBACK_DIRECTORY_ENTRIES_PER_SNAPSHOT: usize = 4096;
 
 #[derive(Clone, Default)]
 pub(crate) struct ResolvedIcons {
@@ -38,7 +44,18 @@ pub(crate) struct ResolvedIcons {
 pub(crate) struct DesktopIconResolver {
     data_roots: Vec<PathBuf>,
     desktop_icons: HashMap<String, String>,
-    cache: HashMap<String, ResolvedIcons>,
+    cache: HashMap<String, CacheEntry>,
+    cache_encoded_bytes: usize,
+    access_clock: u64,
+    remaining_uncached_lookups: usize,
+    remaining_fallback_directory_entries: usize,
+}
+
+struct CacheEntry {
+    icons: ResolvedIcons,
+    encoded_bytes: usize,
+    last_used: u64,
+    negative_expires_at: Option<u64>,
 }
 
 impl DesktopIconResolver {
@@ -51,6 +68,10 @@ impl DesktopIconResolver {
             data_roots,
             desktop_icons: HashMap::new(),
             cache: HashMap::new(),
+            cache_encoded_bytes: 0,
+            access_clock: 0,
+            remaining_uncached_lookups: MAX_UNCACHED_LOOKUPS_PER_SNAPSHOT,
+            remaining_fallback_directory_entries: MAX_FALLBACK_DIRECTORY_ENTRIES_PER_SNAPSHOT,
         };
         resolver.index_desktop_entries();
         resolver
@@ -72,9 +93,17 @@ impl DesktopIconResolver {
         let Some(icon_name) = icon_name else {
             return ResolvedIcons::default();
         };
-        if let Some(cached) = self.cache.get(&icon_name) {
-            return cached.clone();
+        if icon_name.len() > MAX_CACHE_KEY_BYTES {
+            return ResolvedIcons::default();
         }
+        let access = self.next_access();
+        if let Some(cached) = self.cached_icons(&icon_name, access) {
+            return cached;
+        }
+        if self.remaining_uncached_lookups == 0 {
+            return ResolvedIcons::default();
+        }
+        self.remaining_uncached_lookups -= 1;
         let resolved = self
             .find_icon(&icon_name)
             .and_then(|path| decode_png(&path))
@@ -83,8 +112,93 @@ impl DesktopIconResolver {
                 large: resize_and_encode(&image, LARGE_ICON_EDGE),
             })
             .unwrap_or_default();
-        self.cache.insert(icon_name, resolved.clone());
+        self.insert_cache(icon_name, resolved.clone(), access);
         resolved
+    }
+
+    pub(crate) fn begin_snapshot(&mut self) {
+        self.remaining_uncached_lookups = MAX_UNCACHED_LOOKUPS_PER_SNAPSHOT;
+        self.remaining_fallback_directory_entries = MAX_FALLBACK_DIRECTORY_ENTRIES_PER_SNAPSHOT;
+    }
+
+    fn next_access(&mut self) -> u64 {
+        if self.access_clock == u64::MAX {
+            self.cache.clear();
+            self.cache_encoded_bytes = 0;
+            self.access_clock = 1;
+        } else {
+            self.access_clock += 1;
+        }
+        self.access_clock
+    }
+
+    fn cached_icons(&mut self, icon_name: &str, access: u64) -> Option<ResolvedIcons> {
+        let expired = self
+            .cache
+            .get(icon_name)
+            .and_then(|entry| entry.negative_expires_at)
+            .is_some_and(|expires_at| access >= expires_at);
+        if expired {
+            self.remove_cache_entry(icon_name);
+            return None;
+        }
+        let entry = self.cache.get_mut(icon_name)?;
+        entry.last_used = access;
+        Some(entry.icons.clone())
+    }
+
+    fn insert_cache(&mut self, icon_name: String, icons: ResolvedIcons, access: u64) {
+        if icon_name.len() > MAX_CACHE_KEY_BYTES {
+            return;
+        }
+        let encoded_bytes = icons
+            .small
+            .as_ref()
+            .map_or(0, Vec::len)
+            .saturating_add(icons.large.as_ref().map_or(0, Vec::len));
+        if encoded_bytes > MAX_CACHE_ENCODED_BYTES {
+            return;
+        }
+        self.remove_cache_entry(&icon_name);
+        let negative_expires_at =
+            (encoded_bytes == 0).then_some(access.saturating_add(NEGATIVE_CACHE_TTL_ACCESSES));
+        self.cache_encoded_bytes = self.cache_encoded_bytes.saturating_add(encoded_bytes);
+        self.cache.insert(
+            icon_name,
+            CacheEntry {
+                icons,
+                encoded_bytes,
+                last_used: access,
+                negative_expires_at,
+            },
+        );
+        self.evict_cache_to_limits();
+    }
+
+    fn remove_cache_entry(&mut self, icon_name: &str) {
+        if let Some(entry) = self.cache.remove(icon_name) {
+            self.cache_encoded_bytes = self.cache_encoded_bytes.saturating_sub(entry.encoded_bytes);
+        }
+    }
+
+    fn evict_cache_to_limits(&mut self) {
+        while self.cache.len() > MAX_CACHE_ENTRIES
+            || self.cache_encoded_bytes > MAX_CACHE_ENCODED_BYTES
+        {
+            let Some(oldest) = self
+                .cache
+                .iter()
+                .min_by(|(left_key, left), (right_key, right)| {
+                    left.last_used
+                        .cmp(&right.last_used)
+                        .then_with(|| left_key.cmp(right_key))
+                })
+                .map(|(key, _)| key.clone())
+            else {
+                break;
+            };
+            self.remove_cache_entry(&oldest);
+        }
     }
 
     fn index_desktop_entries(&mut self) {
@@ -92,9 +206,14 @@ impl DesktopIconResolver {
         for data_root in self.data_roots.clone() {
             let applications = data_root.join("applications");
             let mut files = Vec::new();
-            collect_files(&applications, 0, &mut visited, &mut files, |path| {
-                path.extension().is_some_and(|value| value == "desktop")
-            });
+            collect_files(
+                &applications,
+                0,
+                &mut visited,
+                &mut files,
+                |path| path.extension().is_some_and(|value| value == "desktop"),
+                MAX_DESKTOP_INDEX_ENTRIES,
+            );
             for path in files {
                 let Ok(metadata) = fs::metadata(&path) else {
                     continue;
@@ -134,7 +253,7 @@ impl DesktopIconResolver {
         }
     }
 
-    fn find_icon(&self, icon_name: &str) -> Option<PathBuf> {
+    fn find_icon(&mut self, icon_name: &str) -> Option<PathBuf> {
         let direct = Path::new(icon_name);
         if direct.is_absolute() {
             return is_png_file(direct).then(|| direct.to_path_buf());
@@ -169,16 +288,27 @@ impl DesktopIconResolver {
         // concrete theme. The bounded search is a final Icon Theme fallback and
         // is cached, so it does not run on each snapshot.
         let mut visited = 0;
+        let directory_entry_limit = self.remaining_fallback_directory_entries;
         for root in &self.data_roots {
             let mut matches = Vec::new();
-            collect_files(&root.join("icons"), 0, &mut visited, &mut matches, |path| {
-                path.file_name()
-                    .is_some_and(|value| value == file_name.as_str())
-            });
+            collect_files(
+                &root.join("icons"),
+                0,
+                &mut visited,
+                &mut matches,
+                |path| {
+                    path.file_name()
+                        .is_some_and(|value| value == file_name.as_str())
+                },
+                directory_entry_limit,
+            );
             if let Some(path) = matches.into_iter().find(|path| is_png_file(path)) {
+                self.remaining_fallback_directory_entries =
+                    directory_entry_limit.saturating_sub(visited);
                 return Some(path);
             }
         }
+        self.remaining_fallback_directory_entries = directory_entry_limit.saturating_sub(visited);
         None
     }
 }
@@ -273,15 +403,16 @@ fn collect_files(
     visited: &mut usize,
     output: &mut Vec<PathBuf>,
     matches: impl Copy + Fn(&Path) -> bool,
+    maximum_entries: usize,
 ) {
-    if depth > MAX_DIRECTORY_DEPTH || *visited >= MAX_DIRECTORY_ENTRIES {
+    if depth > MAX_DIRECTORY_DEPTH || *visited >= maximum_entries {
         return;
     }
     let Ok(entries) = fs::read_dir(directory) else {
         return;
     };
     for entry in entries.filter_map(Result::ok) {
-        if *visited >= MAX_DIRECTORY_ENTRIES {
+        if *visited >= maximum_entries {
             break;
         }
         *visited += 1;
@@ -290,7 +421,7 @@ fn collect_files(
         };
         let path = entry.path();
         if file_type.is_dir() {
-            collect_files(&path, depth + 1, visited, output, matches);
+            collect_files(&path, depth + 1, visited, output, matches, maximum_entries);
         } else if file_type.is_file() && matches(&path) {
             output.push(path);
         }
@@ -428,7 +559,11 @@ mod tests {
 
     use tempfile::tempdir;
 
-    use super::{DesktopIconResolver, encode_rgba_png, safe_icon_name};
+    use super::{
+        DesktopIconResolver, MAX_CACHE_ENCODED_BYTES, MAX_CACHE_ENTRIES,
+        MAX_UNCACHED_LOOKUPS_PER_SNAPSHOT, NEGATIVE_CACHE_TTL_ACCESSES, ResolvedIcons,
+        collect_files, encode_rgba_png, safe_icon_name,
+    };
 
     #[test]
     fn resolves_desktop_id_and_startup_class_to_bounded_pngs() {
@@ -450,13 +585,191 @@ mod tests {
         .expect("icon fixture");
         let mut resolver = DesktopIconResolver::from_data_roots(vec![directory.path().into()]);
 
-        for app_id in ["org.example.Editor", "ExampleEditor"] {
-            let icons = resolver.resolve(None, Some(app_id));
-            let small = icons.small.expect("small icon");
-            let large = icons.large.expect("large icon");
-            assert_eq!(&small[16..24], &[0, 0, 0, 16, 0, 0, 0, 16]);
-            assert_eq!(&large[16..24], &[0, 0, 0, 32, 0, 0, 0, 32]);
+        let icons = resolver.resolve(None, Some("org.example.Editor"));
+        let small = icons.small.expect("small icon");
+        let large = icons.large.expect("large icon");
+        assert_eq!(&small[16..24], &[0, 0, 0, 16, 0, 0, 0, 16]);
+        assert_eq!(&large[16..24], &[0, 0, 0, 32, 0, 0, 0, 32]);
+
+        fs::remove_file(pixmaps.join("example-editor.png")).expect("remove icon fixture");
+        let cached = resolver.resolve(None, Some("ExampleEditor"));
+        assert!(
+            cached.small.is_some(),
+            "a stable positive hit remains cached"
+        );
+        assert!(
+            cached.large.is_some(),
+            "a stable positive hit remains cached"
+        );
+    }
+
+    #[test]
+    fn bounds_unique_negative_cache_entries() {
+        let directory = tempdir().expect("temporary XDG data root");
+        let mut resolver = DesktopIconResolver::from_data_roots(vec![directory.path().into()]);
+
+        for index in 0..MAX_CACHE_ENTRIES * 4 {
+            let icon_name = format!("missing-icon-{index}");
+            let icons = resolver.resolve(Some(&icon_name), None);
+            assert!(icons.small.is_none());
+            assert!(icons.large.is_none());
         }
+
+        assert!(resolver.cache.len() <= MAX_CACHE_ENTRIES);
+        assert!(resolver.cache_encoded_bytes <= MAX_CACHE_ENCODED_BYTES);
+    }
+
+    #[test]
+    fn bounds_total_encoded_cache_bytes_with_deterministic_lru_eviction() {
+        let directory = tempdir().expect("temporary XDG data root");
+        let mut resolver = DesktopIconResolver::from_data_roots(vec![directory.path().into()]);
+        let entry_bytes = MAX_CACHE_ENCODED_BYTES / 3;
+
+        for index in 0..5 {
+            let access = resolver.next_access();
+            resolver.insert_cache(
+                format!("large-{index}"),
+                ResolvedIcons {
+                    small: Some(vec![index as u8; entry_bytes]),
+                    large: None,
+                },
+                access,
+            );
+        }
+
+        assert!(resolver.cache.len() <= MAX_CACHE_ENTRIES);
+        assert!(resolver.cache_encoded_bytes <= MAX_CACHE_ENCODED_BYTES);
+        assert!(!resolver.cache.contains_key("large-0"));
+        assert!(!resolver.cache.contains_key("large-1"));
+        assert!(resolver.cache.contains_key("large-2"));
+        assert!(resolver.cache.contains_key("large-3"));
+        assert!(resolver.cache.contains_key("large-4"));
+    }
+
+    #[test]
+    fn bounds_positive_cache_cardinality() {
+        let directory = tempdir().expect("temporary XDG data root");
+        let mut resolver = DesktopIconResolver::from_data_roots(vec![directory.path().into()]);
+
+        for index in 0..MAX_CACHE_ENTRIES * 2 {
+            let access = resolver.next_access();
+            resolver.insert_cache(
+                format!("positive-{index}"),
+                ResolvedIcons {
+                    small: Some(vec![index as u8]),
+                    large: None,
+                },
+                access,
+            );
+        }
+
+        assert_eq!(resolver.cache.len(), MAX_CACHE_ENTRIES);
+        assert!(resolver.cache_encoded_bytes <= MAX_CACHE_ENCODED_BYTES);
+        assert!(!resolver.cache.contains_key("positive-0"));
+        assert!(
+            resolver
+                .cache
+                .contains_key(&format!("positive-{}", MAX_CACHE_ENTRIES * 2 - 1))
+        );
+    }
+
+    #[test]
+    fn bounds_uncached_work_per_snapshot_and_restores_the_next_budget() {
+        let directory = tempdir().expect("temporary XDG data root");
+        let pixmaps = directory.path().join("pixmaps");
+        fs::create_dir_all(&pixmaps).expect("pixmaps directory");
+        let mut resolver = DesktopIconResolver::from_data_roots(vec![directory.path().into()]);
+        resolver.begin_snapshot();
+
+        for index in 0..MAX_UNCACHED_LOOKUPS_PER_SNAPSHOT {
+            let icon_name = format!("snapshot-miss-{index}");
+            assert!(resolver.resolve(Some(&icon_name), None).small.is_none());
+        }
+        assert_eq!(resolver.remaining_uncached_lookups, 0);
+        assert!(
+            resolver
+                .resolve(Some("deferred-icon"), None)
+                .small
+                .is_none()
+        );
+        assert!(!resolver.cache.contains_key("deferred-icon"));
+
+        let pixels = vec![0x20; 32 * 32 * 4];
+        fs::write(
+            pixmaps.join("deferred-icon.png"),
+            encode_rgba_png(32, 32, &pixels).expect("encode fixture"),
+        )
+        .expect("icon fixture");
+        resolver.begin_snapshot();
+        assert!(
+            resolver
+                .resolve(Some("deferred-icon"), None)
+                .small
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn bounds_recursive_directory_work() {
+        let directory = tempdir().expect("temporary icon root");
+        for index in 0..16 {
+            fs::write(
+                directory.path().join(format!("icon-{index}.png")),
+                b"fixture",
+            )
+            .expect("icon fixture");
+        }
+        let mut visited = 0;
+        let mut files = Vec::new();
+        collect_files(directory.path(), 0, &mut visited, &mut files, |_| true, 5);
+
+        assert_eq!(visited, 5);
+        assert_eq!(files.len(), 5);
+    }
+
+    #[test]
+    fn access_clock_wrap_clears_entries_and_byte_accounting() {
+        let directory = tempdir().expect("temporary XDG data root");
+        let mut resolver = DesktopIconResolver::from_data_roots(vec![directory.path().into()]);
+        let access = resolver.next_access();
+        resolver.insert_cache(
+            "cached".to_string(),
+            ResolvedIcons {
+                small: Some(vec![1, 2, 3]),
+                large: None,
+            },
+            access,
+        );
+        resolver.access_clock = u64::MAX;
+
+        assert_eq!(resolver.next_access(), 1);
+        assert!(resolver.cache.is_empty());
+        assert_eq!(resolver.cache_encoded_bytes, 0);
+    }
+
+    #[test]
+    fn negative_cache_entry_expires_after_bounded_accesses() {
+        let directory = tempdir().expect("temporary XDG data root");
+        let pixmaps = directory.path().join("pixmaps");
+        fs::create_dir_all(&pixmaps).expect("pixmaps directory");
+        let mut resolver = DesktopIconResolver::from_data_roots(vec![directory.path().into()]);
+
+        let missing = resolver.resolve(Some("late-icon"), None);
+        assert!(missing.small.is_none());
+        let pixels = vec![0x40; 32 * 32 * 4];
+        fs::write(
+            pixmaps.join("late-icon.png"),
+            encode_rgba_png(32, 32, &pixels).expect("encode fixture"),
+        )
+        .expect("icon fixture");
+
+        for _ in 0..NEGATIVE_CACHE_TTL_ACCESSES - 1 {
+            assert!(resolver.resolve(Some("late-icon"), None).small.is_none());
+        }
+        assert!(
+            resolver.resolve(Some("late-icon"), None).small.is_some(),
+            "the bounded negative entry must be refreshed after its access TTL",
+        );
     }
 
     #[test]

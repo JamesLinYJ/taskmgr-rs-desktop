@@ -16,6 +16,7 @@
 //! 本 crate 不依赖 Flutter、Win32、X11 或 Wayland。平台实现只提交完整候选快照，
 //! [`BackendRuntime`] 负责 generation、失败时保留上一份可信数据以及有界刷新合并。
 
+pub mod diagnostics;
 mod history;
 mod model;
 mod platform;

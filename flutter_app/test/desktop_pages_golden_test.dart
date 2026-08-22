@@ -11,6 +11,8 @@
 //   参考标准:   Flutter golden test；docs/ui-baseline/layout-spec.yaml
 // --------------------------------------------------------------------------
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taskmgr_rs/app/backend_controller.dart';
@@ -24,6 +26,11 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(loadTestFonts);
+
+  // Pixel output differs between Flutter's Windows and Linux test embedders.
+  // Linux is the repository's canonical golden host, so a Windows
+  // --update-goldens run must not overwrite the reviewed Linux baselines.
+  final skipGoldens = !Platform.isLinux;
 
   for (final page in PageId.values) {
     testWidgets('desktop ${page.name} page matches its baseline', (
@@ -46,7 +53,7 @@ void main() {
         matchesGoldenFile('goldens/desktop_${page.name}_800x600.png'),
       );
       expect(tester.takeException(), isNull);
-    });
+    }, skip: skipGoldens);
   }
 
   for (final mode in <ApplicationViewMode>[
@@ -76,7 +83,7 @@ void main() {
         ),
       );
       expect(tester.takeException(), isNull);
-    });
+    }, skip: skipGoldens);
   }
 }
 

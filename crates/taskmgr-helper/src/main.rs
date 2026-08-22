@@ -120,14 +120,19 @@ fn validate_request(request: &HelperRequest) -> Result<(), BackendError> {
 }
 
 fn is_whitelisted(action: &ActionRequest) -> bool {
+    is_whitelisted_with_handle_bound_affinity(action, cfg!(windows))
+}
+
+fn is_whitelisted_with_handle_bound_affinity(
+    action: &ActionRequest,
+    allow_handle_bound_affinity: bool,
+) -> bool {
     matches!(
         action,
         ActionRequest::EndProcess { .. }
             | ActionRequest::SetPriority { .. }
-            | ActionRequest::SetNice { .. }
-            | ActionRequest::SetAffinity { .. }
             | ActionRequest::UserSession { .. }
-    )
+    ) || (allow_handle_bound_affinity && matches!(action, ActionRequest::SetAffinity { .. }))
 }
 
 fn platform_provider() -> Box<dyn PlatformProvider> {
@@ -149,7 +154,10 @@ mod tests {
         ActionRequest, ApplicationIdentity, ProcessIdentity, WindowAction, WindowArrangement,
     };
 
-    use super::{HelperRequest, PROTOCOL_VERSION, is_whitelisted, validate_request};
+    use super::{
+        HelperRequest, PROTOCOL_VERSION, is_whitelisted, is_whitelisted_with_handle_bound_affinity,
+        validate_request,
+    };
 
     fn process_action() -> ActionRequest {
         ActionRequest::EndProcess {
@@ -187,6 +195,39 @@ mod tests {
     }
 
     #[test]
+    fn linux_helper_policy_rejects_pid_only_scheduling_mutations() {
+        let identity = ProcessIdentity {
+            pid: 42,
+            start_time: 7,
+        };
+        let nice = ActionRequest::SetNice {
+            identity: identity.clone(),
+            nice: 0,
+        };
+        let affinity = ActionRequest::SetAffinity {
+            identity,
+            logical_processors: vec![0],
+        };
+
+        assert!(!is_whitelisted_with_handle_bound_affinity(&nice, false));
+        assert!(!is_whitelisted_with_handle_bound_affinity(&affinity, false));
+        assert!(!is_whitelisted_with_handle_bound_affinity(&nice, true));
+        assert!(is_whitelisted_with_handle_bound_affinity(&affinity, true));
+        assert!(is_whitelisted_with_handle_bound_affinity(
+            &process_action(),
+            false
+        ));
+
+        if cfg!(target_os = "linux") {
+            assert!(validate_request(&request(nice)).is_err());
+            assert!(validate_request(&request(affinity)).is_err());
+        } else if cfg!(windows) {
+            assert!(validate_request(&request(nice)).is_err());
+            assert!(validate_request(&request(affinity)).is_ok());
+        }
+    }
+
+    #[test]
     fn rejects_nonprivileged_ui_actions_outside_the_helper_whitelist() {
         let window_action = ActionRequest::Window {
             identity: ApplicationIdentity {
@@ -213,6 +254,15 @@ mod tests {
         };
         assert!(!is_whitelisted(&run_action));
         assert!(validate_request(&request(run_action)).is_err());
+
+        assert!(!is_whitelisted(&ActionRequest::ShowRunDialog));
+        assert!(validate_request(&request(ActionRequest::ShowRunDialog)).is_err());
+
+        let about_action = ActionRequest::ShowAboutDialog {
+            title: "Task Manager".to_string(),
+        };
+        assert!(!is_whitelisted(&about_action));
+        assert!(validate_request(&request(about_action)).is_err());
     }
 
     #[test]

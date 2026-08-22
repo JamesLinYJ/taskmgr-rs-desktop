@@ -15,15 +15,65 @@
 set -euo pipefail
 
 readonly workflow_directory='.github/workflows'
-readonly flutter_revision='84fc5cbb223bc12f83d65b647ff8a56caf779ffd'
-readonly flutter_tag='3.44.7'
+readonly flutter_revision='6655482ec06e547f90abf8ae7590466f4415978d'
+readonly flutter_tag='3.47.1'
+readonly inno_setup_version='6.7.3'
+readonly inno_setup_sha256='9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732'
+readonly inno_setup_signer_thumbprint='e0ab19c8d38cbf9c44709925122a7a02f8c70cb7'
+readonly inno_setup_url='https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe'
 
 failures=0
 external_action_count=0
 flutter_revision_count=0
 flutter_tag_count=0
+matched_line=0
 shopt -s nullglob
 workflow_files=("$workflow_directory"/*.yml "$workflow_directory"/*.yaml)
+
+require_single_workflow_line() {
+  local description="$1"
+  local pattern="$2"
+  local matches
+  local count
+
+  matches="$(grep -nE "$pattern" .github/workflows/ci.yml || true)"
+  count="$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l | tr -d '[:space:]')"
+  if ((count != 1)); then
+    echo "Expected exactly one executable $description line, found $count." >&2
+    failures=1
+    matched_line=0
+    return
+  fi
+  matched_line="${matches%%:*}"
+}
+
+require_single_trimmed_workflow_line() {
+  local description="$1"
+  local expected="$2"
+  local line
+  local trimmed
+  local line_number=0
+  local count=0
+  local found_line=0
+
+  while IFS= read -r line; do
+    ((line_number += 1))
+    trimmed="${line#"${line%%[![:space:]]*}"}"
+    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+    if [[ "$trimmed" == "$expected" ]]; then
+      ((count += 1))
+      found_line=$line_number
+    fi
+  done < .github/workflows/ci.yml
+
+  if ((count != 1)); then
+    echo "Expected exactly one executable $description line, found $count." >&2
+    failures=1
+    matched_line=0
+    return
+  fi
+  matched_line=$found_line
+}
 
 while IFS=: read -r file line_number declaration; do
   reference="${declaration#*uses:}"
@@ -55,7 +105,7 @@ while IFS=: read -r file line_number declaration; do
     echo "$file:$line_number: Flutter Git revision is not a full commit SHA: $revision" >&2
     failures=1
   elif [[ "$revision" != "$flutter_revision" ]]; then
-    echo "$file:$line_number: Flutter Git revision differs from the reviewed 3.44.7 commit" >&2
+    echo "$file:$line_number: Flutter Git revision differs from the reviewed 3.47.1 commit" >&2
     failures=1
   fi
 done < <(grep -nH -E '^[[:space:]]+FLUTTER_GIT_REVISION:' "${workflow_files[@]}" || true)
@@ -105,6 +155,118 @@ if ! grep -qF 'git -C $flutterRoot fetch --depth 1 --no-tags origin "$($tagRef):
 fi
 if grep -nH -E '^[[:space:]]+cache:[[:space:]]+true([[:space:]]|$)' "${workflow_files[@]}"; then
   echo 'Flutter Action caching is disabled because the pinned composite action delegates cache work through a mutable nested action reference.' >&2
+  failures=1
+fi
+
+if grep -niH -E '^[[:space:]]*([^#].*)?choco(latey)?([.]exe)?[^#]*innosetup' \
+  "${workflow_files[@]}"; then
+  echo 'Inno Setup must not be installed from a mutable package-manager feed.' >&2
+  failures=1
+fi
+
+require_single_workflow_line \
+  'reviewed Inno Setup version declaration' \
+  "^[[:space:]]+INNO_SETUP_VERSION:[[:space:]]+'${inno_setup_version//./\\.}'[[:space:]]*$"
+require_single_workflow_line \
+  'reviewed Inno Setup SHA-256 declaration' \
+  "^[[:space:]]+INNO_SETUP_SHA256:[[:space:]]+$inno_setup_sha256[[:space:]]*$"
+require_single_workflow_line \
+  'reviewed Inno Setup signer certificate declaration' \
+  "^[[:space:]]+INNO_SETUP_SIGNER_THUMBPRINT:[[:space:]]+$inno_setup_signer_thumbprint[[:space:]]*$"
+require_single_workflow_line \
+  'immutable Inno Setup download declaration' \
+  "^[[:space:]]+INNO_SETUP_URL:[[:space:]]+$inno_setup_url[[:space:]]*$"
+
+require_single_workflow_line \
+  'Inno Setup download' \
+  '^[[:space:]]+Invoke-WebRequest[[:space:]]+-Uri[[:space:]]+\$env:INNO_SETUP_URL[[:space:]]+-OutFile[[:space:]]+\$installerPath[[:space:]]*$'
+inno_download_line=$matched_line
+require_single_workflow_line \
+  'Inno Setup SHA-256 calculation' \
+  '^[[:space:]]+\$actualHash[[:space:]]*=[[:space:]]*\(Get-FileHash[[:space:]]+-LiteralPath[[:space:]]+\$installerPath[[:space:]]+-Algorithm[[:space:]]+SHA256\)\.Hash[[:space:]]*$'
+inno_hash_line=$matched_line
+require_single_trimmed_workflow_line \
+  'Inno Setup case-insensitive hash comparison' \
+  'if (-not $actualHash.Equals($env:INNO_SETUP_SHA256, [System.StringComparison]::OrdinalIgnoreCase)) {'
+inno_hash_compare_line=$matched_line
+require_single_trimmed_workflow_line \
+  'fail-closed Inno Setup hash rejection' \
+  'throw "Inno Setup SHA-256 mismatch: expected $env:INNO_SETUP_SHA256, received $actualHash"'
+inno_hash_throw_line=$matched_line
+require_single_trimmed_workflow_line \
+  'Authenticode signature acquisition' \
+  '$signature = Get-AuthenticodeSignature -LiteralPath $Path'
+inno_signature_acquire_line=$matched_line
+require_single_trimmed_workflow_line \
+  'valid Authenticode status check' \
+  'if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {'
+inno_signature_status_line=$matched_line
+require_single_trimmed_workflow_line \
+  'fail-closed Authenticode status rejection' \
+  'throw "Invalid Authenticode signature for $Path`: $($signature.Status)"'
+inno_signature_throw_line=$matched_line
+require_single_trimmed_workflow_line \
+  'Authenticode certificate subject acquisition' \
+  '$subject = $signature.SignerCertificate.Subject'
+inno_subject_acquire_line=$matched_line
+require_single_trimmed_workflow_line \
+  'exact Pyrsys certificate subject check' \
+  "if (\$subject -ne 'CN=Pyrsys B.V., O=Pyrsys B.V., S=Noord-Holland, C=NL') {"
+inno_subject_check_line=$matched_line
+require_single_trimmed_workflow_line \
+  'fail-closed publisher rejection' \
+  'throw "Unexpected Inno Setup publisher: $subject"'
+inno_subject_throw_line=$matched_line
+require_single_trimmed_workflow_line \
+  'Authenticode signer thumbprint acquisition' \
+  '$thumbprint = $signature.SignerCertificate.Thumbprint'
+inno_thumbprint_acquire_line=$matched_line
+require_single_trimmed_workflow_line \
+  'exact signer thumbprint check' \
+  'if (-not $thumbprint.Equals($env:INNO_SETUP_SIGNER_THUMBPRINT, [System.StringComparison]::OrdinalIgnoreCase)) {'
+inno_thumbprint_check_line=$matched_line
+require_single_trimmed_workflow_line \
+  'fail-closed signer thumbprint rejection' \
+  'throw "Unexpected Inno Setup signer certificate: $thumbprint"'
+inno_thumbprint_throw_line=$matched_line
+require_single_workflow_line \
+  'Inno Setup installer signature verification' \
+  '^[[:space:]]+Assert-PyrsysSignature[[:space:]]+-Path[[:space:]]+\$installerPath[[:space:]]*$'
+inno_installer_signature_line=$matched_line
+require_single_workflow_line \
+  'Inno Setup installer execution' \
+  '^[[:space:]]+\$installer[[:space:]]*=[[:space:]]*Start-Process[[:space:]]+-FilePath[[:space:]]+\$installerPath([[:space:]]+.*)?$'
+inno_install_line=$matched_line
+require_single_workflow_line \
+  'Inno Setup compiler signature verification' \
+  '^[[:space:]]+Assert-PyrsysSignature[[:space:]]+-Path[[:space:]]+\$compilerPath[[:space:]]*$'
+inno_compiler_signature_line=$matched_line
+require_single_workflow_line \
+  'verified Inno Setup compiler export' \
+  '^[[:space:]]+Add-Content[[:space:]]+-LiteralPath[[:space:]]+\$env:GITHUB_ENV[[:space:]]+-Value[[:space:]]+"INNO_SETUP_COMPILER=\$compilerPath"[[:space:]]*$'
+inno_export_line=$matched_line
+require_single_workflow_line \
+  'verified Inno Setup compiler package argument' \
+  '^[[:space:]]+-InnoCompiler[[:space:]]+\$env:INNO_SETUP_COMPILER([[:space:]]+.*)?$'
+inno_package_line=$matched_line
+
+if ! ((inno_signature_acquire_line < inno_signature_status_line &&
+       inno_signature_status_line < inno_signature_throw_line &&
+       inno_signature_throw_line < inno_subject_acquire_line &&
+       inno_subject_acquire_line < inno_subject_check_line &&
+       inno_subject_check_line < inno_subject_throw_line &&
+       inno_subject_throw_line < inno_thumbprint_acquire_line &&
+       inno_thumbprint_acquire_line < inno_thumbprint_check_line &&
+       inno_thumbprint_check_line < inno_thumbprint_throw_line &&
+       inno_download_line < inno_hash_line &&
+       inno_hash_line < inno_hash_compare_line &&
+       inno_hash_compare_line < inno_hash_throw_line &&
+       inno_hash_throw_line < inno_installer_signature_line &&
+       inno_installer_signature_line < inno_install_line &&
+       inno_install_line < inno_compiler_signature_line &&
+       inno_compiler_signature_line < inno_export_line &&
+       inno_export_line < inno_package_line)); then
+  echo 'Verified Inno Setup steps are absent or no longer ordered before package compilation.' >&2
   failures=1
 fi
 

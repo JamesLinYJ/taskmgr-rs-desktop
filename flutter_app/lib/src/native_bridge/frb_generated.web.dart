@@ -7,10 +7,14 @@
 // ignore_for_file: argument_type_not_assignable
 
 import 'api.dart';
+
 import 'dart:async';
 import 'dart:convert';
+
 import 'frb_generated.dart';
+
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_web.dart';
+
 import 'third_party/taskmgr_core.dart';
 
 abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
@@ -158,6 +162,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CpuData dco_decode_box_autoadd_cpu_data(dynamic raw);
 
   @protected
+  DiagnosticStatus dco_decode_box_autoadd_diagnostic_status(dynamic raw);
+
+  @protected
   double dco_decode_box_autoadd_f_64(dynamic raw);
 
   @protected
@@ -253,6 +260,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CpuTopologyMetrics dco_decode_cpu_topology_metrics(dynamic raw);
 
   @protected
+  DiagnosticLevel dco_decode_diagnostic_level(dynamic raw);
+
+  @protected
+  DiagnosticStatus dco_decode_diagnostic_status(dynamic raw);
+
+  @protected
   double dco_decode_f_64(dynamic raw);
 
   @protected
@@ -335,6 +348,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NetworkInterface dco_decode_network_interface(dynamic raw);
+
+  @protected
+  NetworkInterfaceState dco_decode_network_interface_state(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
@@ -601,6 +617,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CpuData sse_decode_box_autoadd_cpu_data(SseDeserializer deserializer);
 
   @protected
+  DiagnosticStatus sse_decode_box_autoadd_diagnostic_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   double sse_decode_box_autoadd_f_64(SseDeserializer deserializer);
 
   @protected
@@ -718,6 +739,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  DiagnosticLevel sse_decode_diagnostic_level(SseDeserializer deserializer);
+
+  @protected
+  DiagnosticStatus sse_decode_diagnostic_status(SseDeserializer deserializer);
+
+  @protected
   double sse_decode_f_64(SseDeserializer deserializer);
 
   @protected
@@ -814,6 +841,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NetworkInterface sse_decode_network_interface(SseDeserializer deserializer);
+
+  @protected
+  NetworkInterfaceState sse_decode_network_interface_state(
+    SseDeserializer deserializer,
+  );
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
@@ -1125,6 +1157,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_cpu_data(CpuData self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_diagnostic_status(
+    DiagnosticStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer);
 
   @protected
@@ -1269,6 +1307,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_diagnostic_level(
+    DiagnosticLevel self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_diagnostic_status(
+    DiagnosticStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_f_64(double self, SseSerializer serializer);
 
   @protected
@@ -1400,6 +1450,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_network_interface(
     NetworkInterface self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_network_interface_state(
+    NetworkInterfaceState self,
     SseSerializer serializer,
   );
 

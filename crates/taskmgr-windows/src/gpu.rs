@@ -13,8 +13,9 @@
 
 //! 用持久 PDH 查询采集 WDDM GPU engine 与 adapter-memory 实例。
 //!
-//! 首轮只建立 PDH 基线并返回明确的“等待基线”错误；只有第二轮开始才产生速率值。
-//! 实例名缓冲区经过边界验证，适配器身份来自 WDDM LUID 与 physical index。
+//! 首轮建立 PDH 速率基线，同时发布已验证的适配器清单与点时指标；只有第二轮开始
+//! 才读取利用率。预热不是错误，实例名缓冲区经过边界验证，适配器身份来自 WDDM
+//! LUID 与 physical index。
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ffi::c_void;
@@ -43,10 +44,9 @@ use windows_sys::Win32::Foundation::{
 };
 use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW};
 use windows_sys::Win32::System::Performance::{
-    PDH_CSTATUS_INVALID_DATA, PDH_CSTATUS_NEW_DATA, PDH_CSTATUS_VALID_DATA,
-    PDH_FMT_COUNTERVALUE_ITEM_W, PDH_FMT_DOUBLE, PDH_FMT_LARGE, PDH_HCOUNTER, PDH_HQUERY,
-    PDH_MORE_DATA, PdhAddEnglishCounterW, PdhCloseQuery, PdhCollectQueryData,
-    PdhGetFormattedCounterArrayW, PdhOpenQueryW,
+    PDH_CSTATUS_NEW_DATA, PDH_CSTATUS_VALID_DATA, PDH_FMT_COUNTERVALUE_ITEM_W, PDH_FMT_DOUBLE,
+    PDH_FMT_LARGE, PDH_HCOUNTER, PDH_HQUERY, PDH_MORE_DATA, PdhAddEnglishCounterW, PdhCloseQuery,
+    PdhCollectQueryData, PdhGetFormattedCounterArrayW, PdhOpenQueryW,
 };
 
 use crate::gpu_metadata::{GpuMetadata, query_gpu_metadata};
@@ -120,17 +120,15 @@ impl GpuSampler {
             self.query = None;
             return Err(error);
         }
-        if !query.primed {
-            query.primed = true;
-            return Err(BackendError {
-                domain: "pdh".to_string(),
-                code: i64::from(PDH_CSTATUS_INVALID_DATA),
-                context: "prime Windows GPU counters".to_string(),
-                message: "GPU counters are waiting for a second sample".to_string(),
-            });
-        }
-
-        let engine = query.read_double(query.engine, query.engine_error.clone())?;
+        let engine_ready = advance_rate_counter_baseline(&mut query.primed);
+        let engine = if engine_ready {
+            query.read_double(query.engine, query.engine_error.clone())?
+        } else {
+            CounterRead {
+                values: Vec::new(),
+                error: None,
+            }
+        };
         let dedicated = query.read_large(query.dedicated, query.dedicated_error.clone())?;
         let shared = query.read_large(query.shared, query.shared_error.clone())?;
         let mut builders = BTreeMap::<AdapterId, AdapterBuilder>::new();
@@ -336,6 +334,14 @@ impl GpuSampler {
             adapters,
         }))
     }
+}
+
+/// Marks the current collection as the baseline and reports whether rate
+/// counters can be formatted from a previous sample.
+fn advance_rate_counter_baseline(primed: &mut bool) -> bool {
+    let ready = *primed;
+    *primed = true;
+    ready
 }
 
 #[derive(Default)]
@@ -905,7 +911,18 @@ fn invalid_data(context: impl Into<String>) -> BackendError {
 
 #[cfg(test)]
 mod tests {
-    use super::{AdapterId, memory_percent, parse_engine_instance, parse_memory_instance};
+    use super::{
+        AdapterId, advance_rate_counter_baseline, memory_percent, parse_engine_instance,
+        parse_memory_instance,
+    };
+
+    #[test]
+    fn first_gpu_collection_is_a_baseline_not_an_error() {
+        let mut primed = false;
+        assert!(!advance_rate_counter_baseline(&mut primed));
+        assert!(primed);
+        assert!(advance_rate_counter_baseline(&mut primed));
+    }
 
     #[test]
     fn parses_wddm_engine_identity() {

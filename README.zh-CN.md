@@ -30,12 +30,12 @@ Linux 的应用程序页优先使用 Wayland，顺序为标准 `ext-foreign-topl
 
 ## 固定工具链
 
-- Flutter `3.44.7`
+- Flutter `3.47.1`
 - Rust `1.97.1`
 - `flutter_rust_bridge` 与 codegen `2.12.0`
 - `tray_manager` `0.5.3`
 
-安装固定版本 Rust，并让 Flutter 3.44.7 位于 `PATH` 后运行：
+安装固定版本 Rust，并让 Flutter 3.47.1 位于 `PATH` 后运行：
 
 ```bash
 cargo +1.97.1 check --workspace --all-targets

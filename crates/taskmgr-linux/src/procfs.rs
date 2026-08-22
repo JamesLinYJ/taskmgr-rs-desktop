@@ -8,12 +8,13 @@
 //   环境:       Fedora Linux 46 x86_64；Linux 7.2.0；Rust 1.97.1
 //   作者:       JamesLinYJ
 //   协助:       OpenAI Codex:gpt-5.6-sol
-//   参考标准:   proc(5)；proc_pid_stat(5)；pidfd_open(2)；pidfd_send_signal(2)；sched_setaffinity(2)；setpriority(2)
+//   参考标准:   proc(5)；proc_pid_stat(5)；pidfd_open(2)；pidfd_send_signal(2)
 // --------------------------------------------------------------------------
 
 //! 从 `/proc` 和 CPU sysfs 构建进程、性能与 CPU 快照。
 //!
 //! 危险操作先校验 PID 与 starttime；终止操作使用 pidfd，绝不降级为 PID-only kill。
+//! `setpriority` 和 `sched_setaffinity` 只接受 PID，无法与 `ProcessIdentity` 原子绑定，因此保持不支持。
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs;
@@ -29,6 +30,8 @@ use taskmgr_core::{
     HISTORY_CAPACITY, HistoryBuffer, PerformanceData, ProcessIdentity, ProcessRow, ProcessesData,
     SnapshotData,
 };
+
+pub(crate) const PID_ONLY_SCHEDULING_UNSUPPORTED: &str = "Linux scheduling mutations are unavailable because PID-only syscalls cannot remain bound to ProcessIdentity";
 
 #[derive(Clone, Debug)]
 struct ParsedStat {
@@ -215,6 +218,7 @@ impl ProcSampler {
                 identity: identity.clone(),
                 parent_pid: Some(stat.parent_pid),
                 image_name: stat.command,
+                show_32_bit_suffix: None,
                 executable_path,
                 user_name: uid.and_then(|uid| users.get(&uid).cloned()),
                 session_id: u32::try_from(session_id).ok(),
@@ -328,6 +332,9 @@ impl ProcSampler {
             cpu_history: self.cpu_history.snapshot(),
             kernel_history: self.kernel_history.snapshot(),
             memory_history: self.memory_history.snapshot(),
+            logical_cpu_labels: (0..self.per_cpu_histories.len())
+                .map(|index| format!("CPU{index}"))
+                .collect(),
             logical_cpu_histories: self
                 .per_cpu_histories
                 .iter()
@@ -481,11 +488,9 @@ impl ProcSampler {
                 identity,
                 include_descendants,
             } => terminate(identity, include_descendants),
-            ActionRequest::SetNice { identity, nice } => set_nice(identity, nice),
-            ActionRequest::SetAffinity {
-                identity,
-                logical_processors,
-            } => set_affinity(identity, &logical_processors),
+            ActionRequest::SetNice { .. } | ActionRequest::SetAffinity { .. } => {
+                ActionResult::unsupported(PID_ONLY_SCHEDULING_UNSUPPORTED)
+            }
             ActionRequest::OpenFileLocation { identity } => open_file_location(identity),
             ActionRequest::SetPriority { .. } => ActionResult::unsupported(
                 "Linux exposes nice values instead of Windows priority classes",
@@ -575,6 +580,7 @@ fn inaccessible_process_row(pid: u32, error: BackendError) -> ProcessRow {
         identity: ProcessIdentity { pid, start_time: 0 },
         parent_pid: None,
         image_name: format!("[{pid}]"),
+        show_32_bit_suffix: None,
         executable_path: None,
         user_name: None,
         session_id: None,
@@ -1320,72 +1326,6 @@ fn open_pidfd(identity: &ProcessIdentity) -> Result<OwnedFd, BackendError> {
     Ok(fd)
 }
 
-fn set_nice(identity: ProcessIdentity, nice: i32) -> ActionResult {
-    if !(-20..=19).contains(&nice) {
-        return ActionResult::failed(BackendError::internal(
-            "setpriority",
-            "nice value must be between -20 and 19",
-        ));
-    }
-    if let Err(error) = validate_identity(&identity) {
-        return ActionResult::failed(error);
-    }
-    let result = unsafe { libc::setpriority(libc::PRIO_PROCESS, identity.pid, nice) };
-    if result != 0 {
-        return ActionResult::failed(BackendError::io("setpriority", &io::Error::last_os_error()));
-    }
-    match validate_identity(&identity) {
-        Ok(_) => ActionResult::succeeded(),
-        Err(error) => ActionResult::failed(error),
-    }
-}
-
-fn set_affinity(identity: ProcessIdentity, processors: &[u32]) -> ActionResult {
-    if processors.is_empty() {
-        return ActionResult::failed(BackendError::internal(
-            "sched_setaffinity",
-            "at least one logical processor must remain selected",
-        ));
-    }
-    if let Err(error) = validate_identity(&identity) {
-        return ActionResult::failed(error);
-    }
-    let mut set = unsafe { std::mem::zeroed::<libc::cpu_set_t>() };
-    unsafe { libc::CPU_ZERO(&mut set) };
-    for &processor in processors {
-        let Ok(processor) = usize::try_from(processor) else {
-            return ActionResult::failed(BackendError::internal(
-                "sched_setaffinity",
-                "logical processor index is out of range",
-            ));
-        };
-        if processor >= libc::CPU_SETSIZE as usize {
-            return ActionResult::failed(BackendError::unsupported(
-                "sched_setaffinity",
-                "logical processor index exceeds cpu_set_t capacity",
-            ));
-        }
-        unsafe { libc::CPU_SET(processor, &mut set) };
-    }
-    let result = unsafe {
-        libc::sched_setaffinity(
-            identity.pid as libc::pid_t,
-            std::mem::size_of::<libc::cpu_set_t>(),
-            &set,
-        )
-    };
-    if result != 0 {
-        return ActionResult::failed(BackendError::io(
-            "sched_setaffinity",
-            &io::Error::last_os_error(),
-        ));
-    }
-    match validate_identity(&identity) {
-        Ok(_) => ActionResult::succeeded(),
-        Err(error) => ActionResult::failed(error),
-    }
-}
-
 fn open_file_location(identity: ProcessIdentity) -> ActionResult {
     if let Err(error) = validate_identity(&identity) {
         return ActionResult::failed(error);
@@ -1413,12 +1353,57 @@ fn open_file_location(identity: ProcessIdentity) -> ActionResult {
 
 #[cfg(test)]
 mod tests {
-    use taskmgr_core::{HISTORY_CAPACITY, HistoryBuffer};
+    use taskmgr_core::{
+        ActionRequest, ActionStatus, HISTORY_CAPACITY, HistoryBuffer, ProcessIdentity,
+    };
 
     use super::{
-        parse_cache_size, parse_cpu_detail_stat, parse_cpu_line, parse_cpu_list,
-        parse_open_file_count, parse_process_stat, resize_cpu_histories,
+        PID_ONLY_SCHEDULING_UNSUPPORTED, ProcSampler, parse_cache_size, parse_cpu_detail_stat,
+        parse_cpu_line, parse_cpu_list, parse_open_file_count, parse_process_stat,
+        resize_cpu_histories,
     };
+
+    #[test]
+    fn pid_only_scheduling_actions_fail_closed_while_termination_stays_routed() {
+        let identity = ProcessIdentity {
+            pid: u32::MAX,
+            start_time: 1,
+        };
+        let mut sampler = ProcSampler::new();
+        let scheduling_actions = [
+            ActionRequest::SetNice {
+                identity: identity.clone(),
+                nice: 0,
+            },
+            ActionRequest::SetAffinity {
+                identity: identity.clone(),
+                logical_processors: vec![0],
+            },
+        ];
+
+        for action in scheduling_actions {
+            let result = sampler.execute(action);
+            assert_eq!(result.status, ActionStatus::Unsupported);
+            let error = result.error.expect("unsupported action has an error");
+            assert_eq!(error.domain, "capability");
+            assert_eq!(error.context, "execute_action");
+            assert_eq!(error.message, PID_ONLY_SCHEDULING_UNSUPPORTED);
+        }
+
+        let termination = sampler.execute(ActionRequest::EndProcess {
+            identity,
+            include_descendants: false,
+        });
+        assert_eq!(termination.status, ActionStatus::Failed);
+        assert_ne!(termination.status, ActionStatus::Unsupported);
+        assert_eq!(
+            termination
+                .error
+                .expect("invalid identity must fail")
+                .context,
+            "validate process identity"
+        );
+    }
 
     #[test]
     fn parses_process_names_containing_spaces_and_parentheses() {
