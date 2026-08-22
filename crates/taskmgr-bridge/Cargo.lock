@@ -1168,6 +1168,7 @@ dependencies = [
 name = "taskmgr-core"
 version = "0.3.0"
 dependencies = [
+ "crc32fast",
  "crossbeam-channel",
  "serde",
  "serde_json",
