@@ -668,6 +668,7 @@ class _DesktopDataTableState<T> extends State<DesktopDataTable<T>> {
   int _selectionVersion = 0;
   int? _sortColumn;
   bool _ascending = true;
+  Offset? _rowSecondaryDownPosition;
 
   @override
   void initState() {
@@ -760,11 +761,16 @@ class _DesktopDataTableState<T> extends State<DesktopDataTable<T>> {
       behavior: HitTestBehavior.opaque,
       onSecondaryTapDown: widget.backgroundContextMenuBuilder == null
           ? null
-          : (details) => showDesktopContextMenu(
-              context,
-              details.globalPosition,
-              widget.backgroundContextMenuBuilder!(),
-            ),
+          : (details) {
+              if (_consumeRowSecondaryDown(details.globalPosition)) {
+                return;
+              }
+              showDesktopContextMenu(
+                context,
+                details.globalPosition,
+                widget.backgroundContextMenuBuilder!(),
+              );
+            },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(DesktopTheme.radiusMedium),
         child: DecoratedBox(
@@ -916,6 +922,11 @@ class _DesktopDataTableState<T> extends State<DesktopDataTable<T>> {
               additive: keyboard.isControlPressed || keyboard.isMetaPressed,
               extend: keyboard.isShiftPressed,
             );
+          } else if (widget.contextMenuBuilder != null &&
+              (event.buttons & kSecondaryMouseButton) != 0) {
+            // Raw pointer dispatch precedes both nested tap recognizers. Remembering this hit lets
+            // the table background ignore the same right click even if its recognizer wins first.
+            _rowSecondaryDownPosition = event.position;
           }
         },
         child: GestureDetector(
@@ -944,6 +955,12 @@ class _DesktopDataTableState<T> extends State<DesktopDataTable<T>> {
         ),
       ),
     );
+  }
+
+  bool _consumeRowSecondaryDown(Offset position) {
+    final rowPosition = _rowSecondaryDownPosition;
+    _rowSecondaryDownPosition = null;
+    return rowPosition != null && (rowPosition - position).distanceSquared < 1;
   }
 
   Widget _buildCellContents(DesktopColumn<T> column, T row, bool selected) {
@@ -1119,12 +1136,20 @@ class _DesktopDataTableState<T> extends State<DesktopDataTable<T>> {
       final rowTop = index * DesktopTheme.rowHeight;
       final rowBottom = rowTop + DesktopTheme.rowHeight;
       final visibleTop = position.pixels;
-      final visibleBottom = visibleTop + position.viewportDimension;
+      // TableView reports the complete viewport, including the pinned header.
+      // Data rows only own the remaining height; treating the header as row
+      // space leaves a Go To Process target just below the lower edge until a
+      // wheel event advances the viewport.
+      final dataViewportHeight =
+          position.viewportDimension > DesktopTheme.headerHeight
+          ? position.viewportDimension - DesktopTheme.headerHeight
+          : 0.0;
+      final visibleBottom = visibleTop + dataViewportHeight;
       double? target;
       if (rowTop < visibleTop) {
         target = rowTop;
       } else if (rowBottom > visibleBottom) {
-        target = rowBottom - position.viewportDimension;
+        target = rowBottom - dataViewportHeight;
       }
       if (target != null) {
         position.jumpTo(target.clamp(0, position.maxScrollExtent));

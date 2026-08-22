@@ -20,6 +20,7 @@ import '../l10n/app_localizations.dart';
 import '../src/native_bridge/third_party/taskmgr_core.dart';
 import '../ui/desktop_controls.dart';
 import '../ui/desktop_graph.dart';
+import '../ui/desktop_theme.dart';
 import '../ui/formatters.dart';
 
 class PerformancePage extends StatelessWidget {
@@ -42,22 +43,51 @@ class PerformancePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final transitionDuration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : DesktopTheme.pageTransitionDuration;
+    final layout = tinyFootprint
+        ? _TinyPerformanceLayout(
+            data: data,
+            showKernelTimes: showKernelTimes,
+            oneGraphPerCpu: oneGraphPerCpu,
+          )
+        : _NormalPerformanceLayout(
+            data: data,
+            showKernelTimes: showKernelTimes,
+            oneGraphPerCpu: oneGraphPerCpu,
+            platform: platform,
+          );
     return GestureDetector(
       key: const ValueKey<String>('performance-page-double-click-target'),
       behavior: HitTestBehavior.opaque,
       onDoubleTap: onToggleTinyFootprint,
-      child: tinyFootprint
-          ? _TinyPerformanceLayout(
-              data: data,
-              showKernelTimes: showKernelTimes,
-              oneGraphPerCpu: oneGraphPerCpu,
-            )
-          : _NormalPerformanceLayout(
-              data: data,
-              showKernelTimes: showKernelTimes,
-              oneGraphPerCpu: oneGraphPerCpu,
-              platform: platform,
-            ),
+      child: AnimatedSwitcher(
+        duration: transitionDuration,
+        reverseDuration: transitionDuration,
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        layoutBuilder: (currentChild, previousChildren) => Stack(
+          fit: StackFit.expand,
+          clipBehavior: Clip.hardEdge,
+          children: <Widget>[...previousChildren, ?currentChild],
+        ),
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.985, end: 1).animate(animation),
+            child: child,
+          ),
+        ),
+        child: KeyedSubtree(
+          key: ValueKey<String>(
+            tinyFootprint
+                ? 'performance-layout-tiny'
+                : 'performance-layout-normal',
+          ),
+          child: layout,
+        ),
+      ),
     );
   }
 }
@@ -153,6 +183,7 @@ class _NormalPerformanceLayout extends StatelessWidget {
                           child: DesktopMeter(
                             value: data?.memoryPercent,
                             label: l10n.memUsage,
+                            displayText: _memoryUsageLabel(data),
                           ),
                         ),
                       ),
@@ -178,9 +209,8 @@ class _NormalPerformanceLayout extends StatelessWidget {
                         child: DesktopGroupBox(
                           label: l10n.memoryUsageHistory,
                           child: DesktopGraph(
-                            primary:
-                                data?.memoryHistory.toList() ??
-                                const <double>[],
+                            primary: data?.memoryHistory ?? const <double>[],
+                            primaryColor: DesktopTheme.graphYellow,
                           ),
                         ),
                       ),
@@ -378,6 +408,16 @@ class _NormalPerformanceLayout extends StatelessWidget {
       ),
     );
   }
+
+  String? _memoryUsageLabel(PerformanceData? value) {
+    final total = value?.memoryTotalKib;
+    final available = value?.memoryAvailableKib;
+    if (total == null || available == null || available > total) {
+      return null;
+    }
+    final usedKib = total - available;
+    return '${(usedKib.toDouble() / (1024 * 1024)).toStringAsFixed(1)} GB';
+  }
 }
 
 class _CpuHistory extends StatelessWidget {
@@ -395,16 +435,18 @@ class _CpuHistory extends StatelessWidget {
   Widget build(BuildContext context) {
     final value = data;
     if (oneGraphPerCpu && (value?.logicalCpuHistories.isNotEmpty ?? false)) {
+      final cpuData = value!;
       return _LogicalCpuGraphs(
-        histories: value!.logicalCpuHistories,
-        kernelHistories: value.logicalKernelHistories,
+        labels: cpuData.logicalCpuLabels,
+        histories: cpuData.logicalCpuHistories,
+        kernelHistories: cpuData.logicalKernelHistories,
         showKernelTimes: showKernelTimes,
       );
     }
     return DesktopGraph(
-      primary: value?.cpuHistory.toList() ?? const <double>[],
+      primary: value?.cpuHistory ?? const <double>[],
       secondary: showKernelTimes
-          ? value?.kernelHistory.toList() ?? const <double>[]
+          ? value?.kernelHistory ?? const <double>[]
           : const <double>[],
     );
   }
@@ -412,11 +454,13 @@ class _CpuHistory extends StatelessWidget {
 
 class _LogicalCpuGraphs extends StatelessWidget {
   const _LogicalCpuGraphs({
+    required this.labels,
     required this.histories,
     required this.kernelHistories,
     required this.showKernelTimes,
   });
 
+  final List<String> labels;
   final List<Float64List> histories;
   final List<Float64List> kernelHistories;
   final bool showKernelTimes;
@@ -438,32 +482,30 @@ class _LogicalCpuGraphs extends StatelessWidget {
           count,
           gap,
         );
-        final rows = (count / columns).ceil();
-        final cellHeight = math.max(
-          1.0,
-          (constraints.maxHeight - gap * (rows - 1)) / rows,
-        );
-        return GridView.builder(
+        return CustomMultiChildLayout(
           key: ValueKey<String>('logical-cpu-grid-$count'),
-          padding: EdgeInsets.zero,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: gap,
-            mainAxisSpacing: gap,
-            mainAxisExtent: cellHeight,
+          delegate: _LogicalCpuGridDelegate(
+            count: count,
+            columns: columns,
+            gap: gap,
           ),
-          itemCount: count,
-          itemBuilder: (context, index) {
-            return _LogicalCpuGraph(
-              key: ValueKey<String>('logical-cpu-$index'),
-              label: replacePrintf(l10n.formatCpuNumber, <Object>[index]),
-              primary: histories[index].toList(growable: false),
-              secondary: showKernelTimes && index < kernelHistories.length
-                  ? kernelHistories[index].toList(growable: false)
-                  : const <double>[],
-            );
-          },
+          children: List<Widget>.generate(
+            count,
+            (index) => LayoutId(
+              id: index,
+              child: _LogicalCpuGraph(
+                key: ValueKey<String>('logical-cpu-$index'),
+                label: index < labels.length && labels[index].trim().isNotEmpty
+                    ? labels[index]
+                    : replacePrintf(l10n.formatCpuNumber, <Object>[index]),
+                primary: histories[index],
+                secondary: showKernelTimes && index < kernelHistories.length
+                    ? kernelHistories[index]
+                    : const <double>[],
+              ),
+            ),
+            growable: false,
+          ),
         );
       },
     );
@@ -505,6 +547,52 @@ class _LogicalCpuGraphs extends StatelessWidget {
   }
 }
 
+class _LogicalCpuGridDelegate extends MultiChildLayoutDelegate {
+  _LogicalCpuGridDelegate({
+    required this.count,
+    required this.columns,
+    required this.gap,
+  });
+
+  final int count;
+  final int columns;
+  final double gap;
+
+  @override
+  void performLayout(Size size) {
+    final rows = (count / columns).ceil();
+    final usableWidth = math.max(0.0, size.width - gap * (columns - 1));
+    final usableHeight = math.max(0.0, size.height - gap * (rows - 1));
+    final cellWidth = usableWidth / columns;
+    final cellHeight = usableHeight / rows;
+    for (var index = 0; index < count; index++) {
+      if (!hasChild(index)) {
+        continue;
+      }
+      final column = index % columns;
+      final row = index ~/ columns;
+      final left = column * (cellWidth + gap);
+      final top = row * (cellHeight + gap);
+      final right = column == columns - 1 ? size.width : left + cellWidth;
+      final bottom = row == rows - 1 ? size.height : top + cellHeight;
+      layoutChild(
+        index,
+        BoxConstraints.tight(
+          Size(math.max(0, right - left), math.max(0, bottom - top)),
+        ),
+      );
+      positionChild(index, Offset(left, top));
+    }
+  }
+
+  @override
+  bool shouldRelayout(_LogicalCpuGridDelegate oldDelegate) {
+    return oldDelegate.count != count ||
+        oldDelegate.columns != columns ||
+        oldDelegate.gap != gap;
+  }
+}
+
 class _LogicalCpuGraph extends StatelessWidget {
   const _LogicalCpuGraph({
     super.key,
@@ -519,30 +607,11 @@ class _LogicalCpuGraph extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Stack(
-          fit: StackFit.expand,
-          children: <Widget>[
-            DesktopGraph(primary: primary, secondary: secondary),
-            if (constraints.maxWidth >= 38 && constraints.maxHeight >= 22)
-              Positioned(
-                left: 4,
-                top: 3,
-                child: IgnorePointer(
-                  child: Text(
-                    label,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 8,
-                      height: 1,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
+    return DesktopGraph(
+      primary: primary,
+      secondary: secondary,
+      compact: true,
+      label: label,
     );
   }
 }

@@ -350,7 +350,10 @@ class _ApplicationsPageState extends State<ApplicationsPage> {
 
   String _title(AppLocalizations l10n, ApplicationRow row) {
     final title = row.title.trim();
-    return title.isEmpty ? l10n.untitledWindow : title;
+    final displayTitle = title.isEmpty ? l10n.untitledWindow : title;
+    return row.show32BitSuffix == true
+        ? '$displayTitle ${l10n.bitness32Suffix}'
+        : displayTitle;
   }
 
   Widget _applicationIcon(ApplicationRow row, {bool large = false}) {
@@ -414,6 +417,7 @@ class _ApplicationIconViewState extends State<_ApplicationIconView> {
   ApplicationIdentity? _cursor;
   ApplicationIdentity? _anchor;
   int _crossAxisCount = 1;
+  Offset? _itemSecondaryDownPosition;
 
   @override
   void initState() {
@@ -453,11 +457,16 @@ class _ApplicationIconViewState extends State<_ApplicationIconView> {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onSecondaryTapDown: (details) => showDesktopContextMenu(
-        context,
-        details.globalPosition,
-        widget.backgroundContextMenuBuilder(),
-      ),
+      onSecondaryTapDown: (details) {
+        if (_consumeItemSecondaryDown(details.globalPosition)) {
+          return;
+        }
+        showDesktopContextMenu(
+          context,
+          details.globalPosition,
+          widget.backgroundContextMenuBuilder(),
+        );
+      },
       child: DecoratedBox(
         key: const ValueKey<String>('applications-icon-view'),
         decoration: BoxDecoration(
@@ -546,6 +555,8 @@ class _ApplicationIconViewState extends State<_ApplicationIconView> {
               additive: keyboard.isControlPressed || keyboard.isMetaPressed,
               extend: keyboard.isShiftPressed,
             );
+          } else if ((event.buttons & kSecondaryMouseButton) != 0) {
+            _itemSecondaryDownPosition = event.position;
           }
         },
         child: GestureDetector(
@@ -575,6 +586,13 @@ class _ApplicationIconViewState extends State<_ApplicationIconView> {
         ),
       ),
     );
+  }
+
+  bool _consumeItemSecondaryDown(Offset position) {
+    final itemPosition = _itemSecondaryDownPosition;
+    _itemSecondaryDownPosition = null;
+    return itemPosition != null &&
+        (itemPosition - position).distanceSquared < 1;
   }
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {

@@ -278,13 +278,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.value.activePage, PageId.processes);
-    expect(find.text('taskmgr_rs'), findsNothing);
+    expect(find.text('taskmgr_rs (32-bit)'), findsNothing);
     expect(_endProcessButton(tester).onPressed, isNull);
 
     controller.value = controller.value.copyWith(processes: initial.processes);
     await tester.pumpAndSettle();
 
-    expect(find.text('taskmgr_rs'), findsOneWidget);
+    expect(find.text('taskmgr_rs (32-bit)'), findsOneWidget);
     expect(_endProcessButton(tester).onPressed, isNotNull);
   });
 
@@ -310,7 +310,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.value.activePage, PageId.processes);
-    expect(find.text('taskmgr_rs'), findsOneWidget);
+    expect(find.text('taskmgr_rs (32-bit)'), findsOneWidget);
     expect(_endProcessButton(tester).onPressed, isNull);
   });
 

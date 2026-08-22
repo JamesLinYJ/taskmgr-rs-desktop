@@ -5,7 +5,7 @@
 #   文件:       scripts/Audit-WindowsBundle.ps1
 #
 #   日期:       2026年08月20日
-#   环境:       Windows x64/ARM64；PowerShell 7；Flutter 3.44.7
+#   环境:       Windows x64/ARM64；PowerShell 7；Flutter 3.47.1
 #   作者:       JamesLinYJ
 #   协助:       OpenAI Codex:gpt-5.6-sol
 #   参考标准:   Flutter Windows bundle 布局；项目单一 Rust cdylib 契约

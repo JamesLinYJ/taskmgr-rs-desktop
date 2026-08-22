@@ -169,6 +169,9 @@ impl X11Applications {
         let atoms = Atoms::intern(connection)?;
         let mut budget = SnapshotBudget::default();
         let windows = client_windows(connection, &mut budget, screen.root, &atoms)?;
+        if let Some(icons) = self.icons.as_mut() {
+            icons.begin_snapshot();
+        }
         let mut icons = self.icons.as_mut();
         let mut rows = Vec::with_capacity(windows.len());
         for window in windows {
@@ -215,6 +218,7 @@ impl X11Applications {
                     process,
                 },
                 title,
+                show_32_bit_suffix: None,
                 status: ApplicationStatus::Running,
                 window_station: None,
                 desktop: None,

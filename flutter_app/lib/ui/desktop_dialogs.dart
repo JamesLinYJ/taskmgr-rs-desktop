@@ -259,9 +259,9 @@ Future<Set<ColumnId>?> showSelectColumnsDialog(
                       label: l10n.ok,
                       width: 76,
                       isDefault: true,
-                      onPressed: () => Navigator.of(
-                        dialogContext,
-                      ).pop(Set<ColumnId>.from(working)),
+                      onPressed: () =>
+                          Navigator.of(dialogContext)
+                              .pop(Set<ColumnId>.from(working)),
                     ),
                     const SizedBox(width: 6),
                     DesktopButton(
@@ -366,9 +366,8 @@ Future<Set<int>?> showProcessorAffinityDialog(
                           return;
                         }
                         if (dialogContext.mounted) {
-                          Navigator.of(
-                            dialogContext,
-                          ).pop(Set<int>.from(working));
+                          Navigator.of(dialogContext)
+                              .pop(Set<int>.from(working));
                         }
                       },
                     ),

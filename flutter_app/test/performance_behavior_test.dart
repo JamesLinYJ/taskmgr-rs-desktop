@@ -19,6 +19,8 @@ import 'package:taskmgr_rs/app/backend_controller.dart';
 import 'package:taskmgr_rs/app/task_manager_app.dart';
 import 'package:taskmgr_rs/src/native_bridge/third_party/taskmgr_core.dart';
 import 'package:taskmgr_rs/ui/desktop_controls.dart';
+import 'package:taskmgr_rs/ui/desktop_graph.dart';
+import 'package:taskmgr_rs/ui/desktop_theme.dart';
 
 import 'support/sample_state.dart';
 import 'support/test_fonts.dart';
@@ -46,9 +48,28 @@ void main() {
         const ValueKey<String>('performance-page-double-click-target'),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(controller.value.settings?.tinyFootprint, isTrue);
+    expect(
+      find.byKey(const ValueKey<String>('performance-layout-normal')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('performance-layout-tiny')),
+      findsOneWidget,
+    );
+    await tester.pump(DesktopTheme.pageTransitionDuration ~/ 2);
+    expect(
+      find.byKey(const ValueKey<String>('performance-layout-normal')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('performance-layout-tiny')),
+      findsOneWidget,
+    );
+    await tester.pumpAndSettle();
+
     expect(find.byType(DesktopMenuBar), findsNothing);
     expect(find.byType(DesktopStatusBar), findsNothing);
     expect(find.text('Physical Memory (K)'), findsNothing);
@@ -87,6 +108,15 @@ void main() {
 
     final grid = find.byKey(const ValueKey<String>('logical-cpu-grid-32'));
     expect(grid, findsOneWidget);
+    expect(
+      find.descendant(of: grid, matching: find.byType(Scrollable)),
+      findsNothing,
+    );
+    expect(find.text('CPU0 - SMT0'), findsOneWidget);
+    expect(find.text('CPU1 - SMT1'), findsOneWidget);
+    final firstGraphElement = tester.element(
+      find.byKey(const ValueKey<String>('logical-cpu-0')),
+    );
     final gridRect = tester.getRect(grid);
     for (var index = 0; index < logicalCount; index++) {
       final graph = find.byKey(ValueKey<String>('logical-cpu-$index'));
@@ -94,6 +124,33 @@ void main() {
       final graphRect = tester.getRect(graph);
       expect(graphRect.top, greaterThanOrEqualTo(gridRect.top - 0.01));
       expect(graphRect.bottom, lessThanOrEqualTo(gridRect.bottom + 0.01));
+    }
+
+    for (final size in const <Size>[
+      Size(620, 460),
+      Size(860, 620),
+      Size(396, 401),
+    ]) {
+      tester.view.physicalSize = size;
+      await tester.pump();
+      expect(
+        identical(
+          tester.element(find.byKey(const ValueKey<String>('logical-cpu-0'))),
+          firstGraphElement,
+        ),
+        isTrue,
+      );
+      final resizedGridRect = tester.getRect(grid);
+      for (var index = 0; index < logicalCount; index++) {
+        final graphRect = tester.getRect(
+          find.byKey(ValueKey<String>('logical-cpu-$index')),
+        );
+        expect(graphRect.top, greaterThanOrEqualTo(resizedGridRect.top - 0.01));
+        expect(
+          graphRect.bottom,
+          lessThanOrEqualTo(resizedGridRect.bottom + 0.01),
+        );
+      }
     }
     expect(tester.takeException(), isNull);
   });
@@ -132,6 +189,31 @@ void main() {
     expect(find.text('Open File Handles'), findsNothing);
     expect(find.text('Virtual Memory (K)'), findsNothing);
   });
+
+  testWidgets(
+    'performance meters and memory history preserve classic visuals',
+    (tester) async {
+      final controller = BackendController.preview(
+        sampleState(PageId.performance, platform: PlatformKind.windows),
+      );
+      await tester.pumpWidget(TaskManagerApp(controller: controller));
+      await tester.pumpAndSettle();
+
+      expect(DesktopMeter.segmentWidth, 33);
+      expect(DesktopMeter.centerGap, 1);
+      expect(DesktopMeter.segmentHeight, 2);
+      expect(DesktopMeter.segmentGap, 2);
+      expect(find.text('19.7 GB'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is DesktopGraph &&
+              widget.primaryColor == DesktopTheme.graphYellow,
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }
 
 Future<void> _doubleTap(WidgetTester tester, Finder target) async {
@@ -171,6 +253,10 @@ PerformanceData _withLogicalCount(PerformanceData value, int count) {
     cpuHistory: value.cpuHistory,
     kernelHistory: value.kernelHistory,
     memoryHistory: value.memoryHistory,
+    logicalCpuLabels: List<String>.generate(
+      count,
+      (index) => 'CPU$index - SMT${index % 2}',
+    ),
     logicalCpuHistories: List<Float64List>.generate(
       count,
       (index) => history(index, 100),

@@ -20,7 +20,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::Command;
 
-use taskmgr_core::{ActionResult, BackendError};
+use taskmgr_core::{ActionResult, BackendError, diagnostics};
 
 pub(crate) fn run(command_line: &str) -> ActionResult {
     let arguments = match parse_command_line(command_line) {
@@ -50,6 +50,48 @@ pub(crate) fn run(command_line: &str) -> ActionResult {
             ActionResult::succeeded()
         }
         Err(error) => ActionResult::failed(BackendError::io("launch task", &error)),
+    }
+}
+
+pub(crate) fn open_diagnostic_folder() -> ActionResult {
+    let Some(directory) = diagnostics::session_directory() else {
+        return ActionResult::failed(BackendError::internal(
+            "open diagnostic folder",
+            "the diagnostic session directory is unavailable",
+        ));
+    };
+    match Command::new("xdg-open").arg(directory).spawn() {
+        Ok(mut child) => {
+            let _ = std::thread::Builder::new()
+                .name("taskmgr-diagnostic-folder-reaper".to_string())
+                .spawn(move || {
+                    let _ = child.wait();
+                });
+            ActionResult::succeeded()
+        }
+        Err(error) => ActionResult::failed(BackendError::io("open diagnostic folder", &error)),
+    }
+}
+
+pub(crate) fn restart_with_detailed_diagnostics() -> ActionResult {
+    let executable = match std::env::current_exe() {
+        Ok(path) => path,
+        Err(error) => {
+            return ActionResult::failed(BackendError::io(
+                "resolve current executable for diagnostic restart",
+                &error,
+            ));
+        }
+    };
+    match Command::new(executable)
+        .args(diagnostics::detailed_restart_arguments())
+        .spawn()
+    {
+        Ok(_) => ActionResult::succeeded(),
+        Err(error) => ActionResult::failed(BackendError::io(
+            "restart with detailed diagnostics",
+            &error,
+        )),
     }
 }
 

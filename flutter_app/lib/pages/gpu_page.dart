@@ -173,7 +173,7 @@ class _GpuPageState extends State<GpuPage> {
             SizedBox(
               height: 52,
               child: DesktopGraph(
-                primary: adapter.dedicatedUsageHistoryPercent.toList(),
+                primary: adapter.dedicatedUsageHistoryPercent,
               ),
             ),
             const SizedBox(height: 5),
@@ -181,9 +181,7 @@ class _GpuPageState extends State<GpuPage> {
             const SizedBox(height: 2),
             SizedBox(
               height: 52,
-              child: DesktopGraph(
-                primary: adapter.sharedUsageHistoryPercent.toList(),
-              ),
+              child: DesktopGraph(primary: adapter.sharedUsageHistoryPercent),
             ),
             const SizedBox(height: 6),
             Expanded(
@@ -458,9 +456,7 @@ class _EngineSlot extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Expanded(
-          child: DesktopGraph(
-            primary: selected?.history.toList() ?? const <double>[],
-          ),
+          child: DesktopGraph(primary: selected?.history ?? const <double>[]),
         ),
       ],
     );

@@ -44,6 +44,32 @@ void main() {
     expect(find.text('Logical Processors'), findsOneWidget);
     expect(find.text('Firmware Max Frequency'), findsOneWidget);
     expect(find.text('5.45 GHz'), findsOneWidget);
+    expect(find.textContaining('Average Frequency: 3.82 GHz'), findsOneWidget);
+    expect(find.textContaining('Physical Cores: 16'), findsOneWidget);
+    expect(find.textContaining('Logical Processors: 32'), findsOneWidget);
+    expect(find.textContaining('Threads/Core: 2'), findsOneWidget);
+    expect(find.textContaining('Core Classes: Uniform: 16'), findsOneWidget);
+    expect(find.text('CPU Usage'), findsNWidgets(2));
+
+    final narrowGrid = tester.widget<GridView>(
+      find.byKey(const ValueKey<String>('cpu-details-grid')),
+    );
+    expect(
+      (narrowGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount)
+          .crossAxisCount,
+      2,
+    );
+
+    tester.view.physicalSize = const Size(1200, 720);
+    await tester.pumpAndSettle();
+    final wideGrid = tester.widget<GridView>(
+      find.byKey(const ValueKey<String>('cpu-details-grid')),
+    );
+    expect(
+      (wideGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount)
+          .crossAxisCount,
+      4,
+    );
     expect(tester.takeException(), isNull);
   });
 

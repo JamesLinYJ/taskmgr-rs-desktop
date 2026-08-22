@@ -98,6 +98,7 @@ impl KdeSession {
             .roundtrip(&mut self.state)
             .map_err(|error| wayland_error("refresh KDE Plasma windows", error))?;
         let current_pid = std::process::id();
+        self.icons.begin_snapshot();
         let icons = &mut self.icons;
         let mut rows = self
             .state
@@ -129,6 +130,7 @@ impl KdeSession {
                         .or_else(|| window.app_id.clone())
                         .filter(|value| !value.is_empty())
                         .unwrap_or_default(),
+                    show_32_bit_suffix: None,
                     status: ApplicationStatus::Running,
                     window_station: None,
                     desktop: (!window.desktops.is_empty()).then(|| window.desktops.join(", ")),

@@ -19,6 +19,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string] $Helper,
 
+    [string] $InnoCompiler,
+
     [ValidateSet('x64', 'arm64')]
     [string] $Architecture = 'x64',
 
@@ -72,12 +74,20 @@ try {
         $zip.Dispose()
     }
 
-    $isccCommand = Get-Command ISCC.exe -ErrorAction SilentlyContinue
-    $isccPath = if ($null -eq $isccCommand) { $null } else { $isccCommand.Source }
-    if ($null -eq $isccPath) {
-        $defaultIscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
-        if (Test-Path -LiteralPath $defaultIscc -PathType Leaf) {
-            $isccPath = $defaultIscc
+    if ($PSBoundParameters.ContainsKey('InnoCompiler')) {
+        if (-not (Test-Path -LiteralPath $InnoCompiler -PathType Leaf)) {
+            throw "Explicit Inno Setup compiler is missing: $InnoCompiler"
+        }
+        $isccPath = (Resolve-Path -LiteralPath $InnoCompiler).Path
+    }
+    else {
+        $isccCommand = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+        $isccPath = if ($null -eq $isccCommand) { $null } else { $isccCommand.Source }
+        if ($null -eq $isccPath) {
+            $defaultIscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+            if (Test-Path -LiteralPath $defaultIscc -PathType Leaf) {
+                $isccPath = $defaultIscc
+            }
         }
     }
     if ($null -ne $isccPath) {

@@ -19,7 +19,8 @@ use std::path::Path;
 use std::time::Instant;
 
 use taskmgr_core::{
-    BackendError, HISTORY_CAPACITY, HistoryBuffer, NetworkData, NetworkInterface, SnapshotData,
+    BackendError, HISTORY_CAPACITY, HistoryBuffer, NetworkData, NetworkInterface,
+    NetworkInterfaceState, SnapshotData,
 };
 
 struct Baseline {
@@ -63,8 +64,10 @@ impl NetworkSampler {
                 .filter(|speed| *speed > 0)
                 .and_then(|megabits| u64::try_from(megabits).ok())
                 .map(|megabits| megabits.saturating_mul(1_000_000));
-            let operational =
-                fs::read_to_string(path.join("operstate")).is_ok_and(|state| state.trim() == "up");
+            let operstate = fs::read_to_string(path.join("operstate"))
+                .ok()
+                .map(|state| state.trim().to_string());
+            let operational = operstate.as_deref() == Some("up");
             let description = fs::read_to_string(path.join("device/uevent"))
                 .ok()
                 .and_then(|text| {
@@ -93,12 +96,12 @@ impl NetworkSampler {
                 (elapsed > 0.0 && current >= baseline.sent)
                     .then_some((current - baseline.sent) as f64 / elapsed)
             });
-            if let Some(value) = received_rate {
-                baseline.received_history.push(value);
-            }
-            if let Some(value) = sent_rate {
-                baseline.sent_history.push(value);
-            }
+            let received_utilization = utilization_percent(received_rate, speed);
+            let sent_utilization = utilization_percent(sent_rate, speed);
+            baseline
+                .received_history
+                .push(received_utilization.unwrap_or(0.0));
+            baseline.sent_history.push(sent_utilization.unwrap_or(0.0));
             if let Some(value) = received {
                 baseline.received = value;
             }
@@ -106,12 +109,12 @@ impl NetworkSampler {
                 baseline.sent = value;
             }
             baseline.sampled_at = now;
-            let utilization_percent = speed.and_then(|bits_per_second| {
-                (bits_per_second > 0).then(|| {
-                    (received_rate.unwrap_or(0.0) + sent_rate.unwrap_or(0.0)) * 8.0 * 100.0
-                        / bits_per_second as f64
-                })
-            });
+            let utilization_percent = match (received_utilization, sent_utilization) {
+                (Some(received), Some(sent)) => Some(received.max(sent)),
+                (Some(received), None) => Some(received),
+                (None, Some(sent)) => Some(sent),
+                (None, None) => None,
+            };
             let row_error = (received.is_none() || sent.is_none()).then(|| {
                 BackendError::unsupported(
                     "network statistics",
@@ -123,6 +126,7 @@ impl NetworkSampler {
                 name,
                 description,
                 operational,
+                state: linux_interface_state(operstate.as_deref()),
                 link_speed_bits_per_second: speed,
                 received_bytes_per_second: received_rate,
                 sent_bytes_per_second: sent_rate,
@@ -135,6 +139,23 @@ impl NetworkSampler {
         self.baselines.retain(|name, _| live.contains(name));
         interfaces.sort_by(|left, right| left.name.cmp(&right.name));
         Ok(SnapshotData::Network(NetworkData { interfaces }))
+    }
+}
+
+fn utilization_percent(bytes_per_second: Option<f64>, link_speed: Option<u64>) -> Option<f64> {
+    let (bytes_per_second, link_speed) = bytes_per_second.zip(link_speed)?;
+    (link_speed > 0 && bytes_per_second.is_finite())
+        .then(|| (bytes_per_second * 8.0 * 100.0 / link_speed as f64).clamp(0.0, 100.0))
+}
+
+fn linux_interface_state(state: Option<&str>) -> NetworkInterfaceState {
+    match state {
+        Some("up") => NetworkInterfaceState::Connected,
+        Some("dormant") => NetworkInterfaceState::Connecting,
+        Some("down" | "lowerlayerdown") => NetworkInterfaceState::Disconnected,
+        Some("notpresent") => NetworkInterfaceState::HardwareMissing,
+        Some("testing") => NetworkInterfaceState::Connecting,
+        _ => NetworkInterfaceState::Unknown,
     }
 }
 

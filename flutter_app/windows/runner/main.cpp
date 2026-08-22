@@ -16,12 +16,15 @@
 #include <windows.h>
 
 #include "flutter_window.h"
+#include "single_instance.h"
 #include "utils.h"
 
 namespace {
 constexpr wchar_t kDefaultWindowTitle[] = L"Windows NT Task Manager";
 constexpr int kOriginalWindowWidth = 396;
 constexpr int kOriginalWindowHeight = 401;
+constexpr DWORD kStartupMutexWaitMilliseconds = 2000;
+constexpr DWORD kActivationTimeoutMilliseconds = 2000;
 }  // namespace
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
@@ -30,6 +33,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {
     CreateAndAttachConsole();
+  }
+
+  auto startup_mutex =
+      taskmgr::StartupMutex::Acquire(kStartupMutexWaitMilliseconds);
+  const UINT activation_message = taskmgr::ActivationMessage();
+  if (taskmgr::ActivateAuthenticatedInstance(
+          activation_message, kActivationTimeoutMilliseconds)) {
+    return EXIT_SUCCESS;
   }
 
   // Initialize COM, so that it is available for use in the library and/or
@@ -50,6 +61,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
+  // A live, authenticated HWND can now receive the activation message. Do not
+  // retain the startup gate for the lifetime of the application.
+  startup_mutex.Release();
 
   ::MSG msg;
   while (::GetMessage(&msg, nullptr, 0, 0)) {

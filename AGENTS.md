@@ -23,7 +23,7 @@
 
 ## 2. 固定技术基线
 
-- Flutter `3.44.7`，Dart 使用该 Flutter SDK 自带版本。
+- Flutter `3.47.1`，Dart 使用该 Flutter SDK 自带的 `3.13.1`。
 - Rust `1.97.1`，edition 2024，版本由 `rust-toolchain.toml` 固定。
 - `flutter_rust_bridge 2.12.0`，使用 Cargokit 集成；生成代码提交仓库并由 CI 检查漂移。
 - 正式目标仅为 Windows/Linux 的 x64、ARM64；不恢复 Windows x86。

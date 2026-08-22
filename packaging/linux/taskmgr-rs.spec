@@ -41,7 +41,10 @@ install -Dpm0755 %{launcher_path} %{buildroot}/usr/bin/taskmgr_rs
 install -Dpm0644 %{desktop_path} %{buildroot}/usr/share/applications/%{application_id}.desktop
 install -Dpm0644 %{policy_path} %{buildroot}/usr/share/polkit-1/actions/%{application_id}.policy
 install -d %{buildroot}/usr/share/gnome-shell/extensions/%{extension_uuid}
-install -m 0644 %{extension_path}/metadata.json %{extension_path}/extension.js \
+install -m 0644 \
+    %{extension_path}/metadata.json \
+    %{extension_path}/extension.js \
+    %{extension_path}/authorization.js \
     %{buildroot}/usr/share/gnome-shell/extensions/%{extension_uuid}
 install -d %{buildroot}/usr/share/icons/hicolor
 cp -a %{icons_path}/. %{buildroot}/usr/share/icons/hicolor/

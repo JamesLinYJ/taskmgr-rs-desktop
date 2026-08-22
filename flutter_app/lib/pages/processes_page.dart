@@ -283,7 +283,9 @@ class _ProcessesPageState extends State<ProcessesPage> {
         DesktopColumn(
           label: l10n.processColumnImageName,
           width: width(ColumnId.imageName, 107),
-          value: (r) => r.imageName,
+          value: (r) => r.show32BitSuffix == true
+              ? '${r.imageName} ${l10n.bitness32Suffix}'
+              : r.imageName,
         ),
       if (show(ColumnId.pid))
         DesktopColumn(

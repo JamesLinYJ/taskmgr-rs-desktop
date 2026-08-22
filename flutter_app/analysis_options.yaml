@@ -13,6 +13,13 @@ analyzer:
   # Cargokit is vendored third-party build tooling with its own package graph.
   exclude:
     - native_builder/cargokit/**
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   # The lint rules applied to this project can be customized in the

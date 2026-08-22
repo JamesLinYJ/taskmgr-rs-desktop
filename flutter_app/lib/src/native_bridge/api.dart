@@ -4,8 +4,10 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import 'frb_generated.dart';
+
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+
 import 'third_party/taskmgr_core.dart';
 part 'api.freezed.dart';
 
@@ -57,6 +59,24 @@ abstract class BackendHandle implements RustOpaqueInterface {}
 sealed class BridgeActionRequest with _$BridgeActionRequest {
   const BridgeActionRequest._();
 
+  const factory BridgeActionRequest.showAboutDialog({required String title}) =
+      BridgeActionRequest_ShowAboutDialog;
+  const factory BridgeActionRequest.showRunDialog() =
+      BridgeActionRequest_ShowRunDialog;
+  const factory BridgeActionRequest.configureDiagnostics({
+    required bool detailed,
+    required bool sensitive,
+  }) = BridgeActionRequest_ConfigureDiagnostics;
+  const factory BridgeActionRequest.openDiagnosticFolder() =
+      BridgeActionRequest_OpenDiagnosticFolder;
+  const factory BridgeActionRequest.saveDiagnosticBundle() =
+      BridgeActionRequest_SaveDiagnosticBundle;
+  const factory BridgeActionRequest.restartWithDetailedDiagnostics() =
+      BridgeActionRequest_RestartWithDetailedDiagnostics;
+  const factory BridgeActionRequest.recordUiError({
+    required String message,
+    String? stack,
+  }) = BridgeActionRequest_RecordUiError;
   const factory BridgeActionRequest.runTask({required String commandLine}) =
       BridgeActionRequest_RunTask;
   const factory BridgeActionRequest.endProcess({
@@ -100,6 +120,8 @@ sealed class BridgeBackendEvent with _$BridgeBackendEvent {
 
   const factory BridgeBackendEvent.capabilities(PlatformCapabilities field0) =
       BridgeBackendEvent_Capabilities;
+  const factory BridgeBackendEvent.diagnostics(DiagnosticStatus field0) =
+      BridgeBackendEvent_Diagnostics;
   const factory BridgeBackendEvent.applications({
     required SnapshotMeta meta,
     required ApplicationsData data,

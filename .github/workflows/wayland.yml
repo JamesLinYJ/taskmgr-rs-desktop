@@ -4,8 +4,8 @@
 #
 #   文件:       .github/workflows/wayland.yml
 #
-#   日期:       2026年08月20日
-#   环境:       GitHub-hosted Ubuntu x64；KWin Wayland；Flutter 3.44.7；Rust 1.97.1
+#   日期:       2026年08月22日
+#   环境:       GitHub-hosted Ubuntu x64；KWin Wayland；Flutter 3.47.1；Rust 1.97.1
 #   作者:       JamesLinYJ
 #   协助:       OpenAI Codex:gpt-5.6-sol
 #   参考标准:   KDE plasma-window-management；Flutter Linux integration_test
@@ -57,11 +57,11 @@ jobs:
           toolchain: 1.97.1
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
-          flutter-version: 3.44.7
+          flutter-version: 3.47.1
           channel: stable
       - name: Verify pinned Flutter SDK
         env:
-          FLUTTER_GIT_REVISION: 84fc5cbb223bc12f83d65b647ff8a56caf779ffd
+          FLUTTER_GIT_REVISION: 6655482ec06e547f90abf8ae7590466f4415978d
         run: |
           actual_revision="$(git -C "$FLUTTER_ROOT" rev-parse HEAD)"
           if [[ "$actual_revision" != "$FLUTTER_GIT_REVISION" ]]; then

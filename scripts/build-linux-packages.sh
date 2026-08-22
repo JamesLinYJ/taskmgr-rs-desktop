@@ -36,7 +36,9 @@ if [[ ! -x "$helper" ]]; then
   echo "taskmgr-helper is missing or not executable: $helper" >&2
   exit 1
 fi
-if [[ ! -f "$extension_source/metadata.json" || ! -f "$extension_source/extension.js" ]]; then
+if [[ ! -f "$extension_source/metadata.json" ||
+      ! -f "$extension_source/extension.js" ||
+      ! -f "$extension_source/authorization.js" ]]; then
   echo "GNOME Shell extension source is incomplete: $extension_source" >&2
   exit 1
 fi
@@ -65,6 +67,7 @@ install -d "$portable_root/share/gnome-shell/extensions/$extension_uuid"
 install -m 0644 \
   "$extension_source/metadata.json" \
   "$extension_source/extension.js" \
+  "$extension_source/authorization.js" \
   "$portable_root/share/gnome-shell/extensions/$extension_uuid"
 tar \
   --sort=name \
@@ -98,6 +101,7 @@ install_tree() {
   install -m 0644 \
     "$extension_source/metadata.json" \
     "$extension_source/extension.js" \
+    "$extension_source/authorization.js" \
     "$root/usr/share/gnome-shell/extensions/$extension_uuid"
   install -d "$root/usr/share/icons/hicolor"
   cp -a -- \

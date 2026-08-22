@@ -14,6 +14,7 @@
 import 'dart:async';
 import 'dart:ui' show AppExitType;
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -31,6 +32,7 @@ import '../src/native_bridge/third_party/taskmgr_core.dart';
 import '../ui/desktop_controls.dart';
 import '../ui/desktop_dialogs.dart';
 import '../ui/desktop_theme.dart';
+import '../ui/diagnostic_dialog.dart';
 import '../ui/formatters.dart';
 import 'app_window_controller.dart';
 import 'backend_controller.dart';
@@ -210,6 +212,7 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
                         onSelected: widget.controller.selectPage,
                       ),
                     Expanded(
+                      key: const ValueKey<String>('task-manager-page-content'),
                       child: Container(
                         margin: tinyFootprint
                             ? EdgeInsets.zero
@@ -490,14 +493,14 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
     roots.add(
       DesktopMenuRoot(l10n.help, <DesktopMenuEntry>[
         DesktopMenuEntry(label: l10n.helpTopics, enabled: false),
+        DesktopMenuEntry(
+          label: l10n.diagnosticLogs,
+          onPressed: () => _showDiagnostics(context),
+        ),
         const DesktopMenuEntry.separator(),
         DesktopMenuEntry(
           label: l10n.aboutTaskManager,
-          onPressed: () => showDesktopMessage(
-            context,
-            title: l10n.aboutTaskManager,
-            message: '${l10n.appTitle}\nv0.3.0',
-          ),
+          onPressed: () => _showAbout(context),
         ),
       ]),
     );
@@ -628,7 +631,14 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
       ),
       child: KeyedSubtree(
         key: ValueKey<PageId>(page),
-        child: _page(context, state, page),
+        child: _PageRenderCache(
+          controller: widget.controller,
+          page: page,
+          localRevision: page == PageId.processes
+              ? _processSelectionGeneration
+              : 0,
+          builder: _page,
+        ),
       ),
     );
   }
@@ -720,6 +730,18 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
   }
 
   Future<void> _runTask(BuildContext context) async {
+    if (defaultTargetPlatform == TargetPlatform.windows) {
+      final result = await widget.controller.execute(
+        const BridgeActionRequest.showRunDialog(),
+      );
+      if (context.mounted) {
+        await showActionFailure(context, result);
+        if (result?.status == ActionStatus.succeeded) {
+          await widget.controller.refresh(PageId.applications);
+        }
+      }
+      return;
+    }
     final commandLine = await showRunTaskDialog(context);
     if (!context.mounted || commandLine == null) {
       return;
@@ -733,6 +755,32 @@ class _TaskManagerWindowState extends State<_TaskManagerWindow> {
         await widget.controller.refresh(PageId.applications);
       }
     }
+  }
+
+  Future<void> _showAbout(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    if (defaultTargetPlatform == TargetPlatform.windows) {
+      final result = await widget.controller.execute(
+        BridgeActionRequest.showAboutDialog(title: l10n.appTitle),
+      );
+      if (context.mounted) {
+        await showActionFailure(context, result);
+      }
+      return;
+    }
+    await showDesktopMessage(
+      context,
+      title: l10n.aboutTaskManager,
+      message: '${l10n.appTitle}\nv0.3.0',
+    );
+  }
+
+  Future<void> _showDiagnostics(BuildContext context) {
+    return showDiagnosticLogsDialog(
+      context,
+      controller: widget.controller,
+      onRestarted: _exitTaskManager,
+    );
   }
 
   Future<void> _setAlwaysOnTop(BuildContext context, bool enabled) async {
@@ -1097,5 +1145,149 @@ class _SnapshotNotice extends StatelessWidget {
         style: const TextStyle(color: Color(0xff7a2e0e)),
       ),
     );
+  }
+}
+
+typedef _CachedPageBuilder = Widget Function(
+  BuildContext context,
+  BackendState state,
+  PageId page,
+);
+
+/// Keeps an unchanged active page subtree out of unrelated backend rebuilds.
+///
+/// The status bar consumes the always-on performance snapshot even while another
+/// page is visible. Without this cache, that snapshot rebuilt every row and graph
+/// on the active page. Identity comparison is intentional: backend snapshots are
+/// immutable and a changed reference is the commit boundary for that page.
+class _PageRenderCache extends StatefulWidget {
+  const _PageRenderCache({
+    required this.controller,
+    required this.page,
+    required this.localRevision,
+    required this.builder,
+  });
+
+  final BackendController controller;
+  final PageId page;
+  final int localRevision;
+  final _CachedPageBuilder builder;
+
+  @override
+  State<_PageRenderCache> createState() => _PageRenderCacheState();
+}
+
+class _PageRenderCacheState extends State<_PageRenderCache> {
+  late _PageRenderFingerprint _fingerprint;
+  Widget? _cachedChild;
+
+  @override
+  void initState() {
+    super.initState();
+    _fingerprint = _PageRenderFingerprint.capture(
+      widget.controller.value,
+      widget.page,
+      widget.localRevision,
+    );
+    widget.controller.addListener(_handleBackendUpdate);
+  }
+
+  @override
+  void didChangeDependencies() {
+    _cachedChild = null;
+    super.didChangeDependencies();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PageRenderCache oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_handleBackendUpdate);
+      widget.controller.addListener(_handleBackendUpdate);
+    }
+    final next = _PageRenderFingerprint.capture(
+      widget.controller.value,
+      widget.page,
+      widget.localRevision,
+    );
+    if (!_fingerprint.sameAs(next)) {
+      _fingerprint = next;
+      _cachedChild = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_handleBackendUpdate);
+    super.dispose();
+  }
+
+  void _handleBackendUpdate() {
+    final next = _PageRenderFingerprint.capture(
+      widget.controller.value,
+      widget.page,
+      widget.localRevision,
+    );
+    if (_fingerprint.sameAs(next)) {
+      return;
+    }
+    setState(() {
+      _fingerprint = next;
+      _cachedChild = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _cachedChild ??= RepaintBoundary(
+      child: widget.builder(context, widget.controller.value, widget.page),
+    );
+  }
+}
+
+class _PageRenderFingerprint {
+  const _PageRenderFingerprint({
+    required this.data,
+    required this.meta,
+    required this.settings,
+    required this.capabilities,
+    required this.localRevision,
+  });
+
+  factory _PageRenderFingerprint.capture(
+    BackendState state,
+    PageId page,
+    int localRevision,
+  ) {
+    final data = switch (page) {
+      PageId.applications => state.applications,
+      PageId.processes => state.processes,
+      PageId.performance => state.performance,
+      PageId.cpu => state.cpu,
+      PageId.gpu => state.gpu,
+      PageId.network => state.network,
+      PageId.users => state.users,
+    };
+    return _PageRenderFingerprint(
+      data: data,
+      meta: state.metaFor(page),
+      settings: state.settings,
+      capabilities: state.capabilities,
+      localRevision: localRevision,
+    );
+  }
+
+  final Object? data;
+  final SnapshotMeta? meta;
+  final UiSettings? settings;
+  final PlatformCapabilities? capabilities;
+  final int localRevision;
+
+  bool sameAs(_PageRenderFingerprint other) {
+    return identical(data, other.data) &&
+        identical(meta, other.meta) &&
+        identical(settings, other.settings) &&
+        identical(capabilities, other.capabilities) &&
+        localRevision == other.localRevision;
   }
 }

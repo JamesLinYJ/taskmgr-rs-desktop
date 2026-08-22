@@ -21,13 +21,18 @@ use std::slice;
 use std::time::Instant;
 
 use taskmgr_core::{
-    BackendError, HISTORY_CAPACITY, HistoryBuffer, NetworkData, NetworkInterface, SnapshotData,
+    BackendError, HISTORY_CAPACITY, HistoryBuffer, NetworkData, NetworkInterface,
+    NetworkInterfaceState, SnapshotData,
 };
 use windows_sys::Win32::Foundation::NO_ERROR;
 use windows_sys::Win32::NetworkManagement::IpHelper::{
-    FreeMibTable, GetIfTable2, IF_TYPE_SOFTWARE_LOOPBACK, MIB_IF_ROW2, MIB_IF_TABLE2,
+    FreeMibTable, GetIfTable2, IF_TYPE_SOFTWARE_LOOPBACK, IF_TYPE_TUNNEL, MIB_IF_ROW2,
+    MIB_IF_TABLE2,
 };
-use windows_sys::Win32::NetworkManagement::Ndis::IfOperStatusUp;
+use windows_sys::Win32::NetworkManagement::Ndis::{
+    IfOperStatusDormant, IfOperStatusDown, IfOperStatusLowerLayerDown, IfOperStatusNotPresent,
+    IfOperStatusTesting, IfOperStatusUp, NET_IF_ADMIN_STATUS_DOWN,
+};
 
 use crate::native::{error_from_code, wide_slice_to_string};
 
@@ -56,7 +61,7 @@ impl NetworkSampler {
         let mut interfaces = Vec::with_capacity(table.rows().len());
         let mut live = HashSet::with_capacity(table.rows().len());
         for row in table.rows() {
-            if row.Type == IF_TYPE_SOFTWARE_LOOPBACK {
+            if row.Type == IF_TYPE_SOFTWARE_LOOPBACK || row.Type == IF_TYPE_TUNNEL {
                 continue;
             }
             // SAFETY: NET_LUID_LH is returned initialized by GetIfTable2; reading Value is the
@@ -77,22 +82,25 @@ impl NetworkSampler {
                 .then_some((row.InOctets - baseline.received) as f64 / elapsed);
             let sent_rate = (elapsed > 0.0 && row.OutOctets >= baseline.sent)
                 .then_some((row.OutOctets - baseline.sent) as f64 / elapsed);
-            if let Some(value) = received_rate {
-                baseline.received_history.push(value);
-            }
-            if let Some(value) = sent_rate {
-                baseline.sent_history.push(value);
-            }
+            let received_utilization = utilization_percent(received_rate, row.ReceiveLinkSpeed);
+            let sent_utilization = utilization_percent(sent_rate, row.TransmitLinkSpeed);
+            baseline
+                .received_history
+                .push(received_utilization.unwrap_or(0.0));
+            baseline.sent_history.push(sent_utilization.unwrap_or(0.0));
             baseline.received = row.InOctets;
             baseline.sent = row.OutOctets;
             baseline.sampled_at = now;
 
             let link_speed = row.ReceiveLinkSpeed.max(row.TransmitLinkSpeed);
-            let utilization_percent = received_rate.zip(sent_rate).and_then(|(received, sent)| {
-                (link_speed > 0).then(|| {
-                    ((received + sent) * 8.0 * 100.0 / link_speed as f64).clamp(0.0, 100.0)
-                })
-            });
+            // A full-duplex link owns an independent capacity in each direction. Adding the two
+            // ratios can fabricate 200%; classic Task Manager reports the busier direction.
+            let utilization_percent = match (received_utilization, sent_utilization) {
+                (Some(received), Some(sent)) => Some(received.max(sent)),
+                (Some(received), None) => Some(received),
+                (None, Some(sent)) => Some(sent),
+                (None, None) => None,
+            };
             let alias = wide_slice_to_string(&row.Alias);
             let description = wide_slice_to_string(&row.Description);
             interfaces.push(NetworkInterface {
@@ -104,6 +112,7 @@ impl NetworkSampler {
                 },
                 description: (!description.is_empty()).then_some(description),
                 operational: row.OperStatus == IfOperStatusUp,
+                state: interface_state(row),
                 link_speed_bits_per_second: (link_speed > 0).then_some(link_speed),
                 received_bytes_per_second: received_rate,
                 sent_bytes_per_second: sent_rate,
@@ -116,6 +125,29 @@ impl NetworkSampler {
         self.baselines.retain(|luid, _| live.contains(luid));
         interfaces.sort_by_key(|interface| interface.name.to_lowercase());
         Ok(SnapshotData::Network(NetworkData { interfaces }))
+    }
+}
+
+fn utilization_percent(bytes_per_second: Option<f64>, link_speed: u64) -> Option<f64> {
+    let bytes_per_second = bytes_per_second?;
+    (link_speed > 0 && bytes_per_second.is_finite())
+        .then(|| (bytes_per_second * 8.0 * 100.0 / link_speed as f64).clamp(0.0, 100.0))
+}
+
+fn interface_state(row: &MIB_IF_ROW2) -> NetworkInterfaceState {
+    if row.AdminStatus == NET_IF_ADMIN_STATUS_DOWN {
+        return NetworkInterfaceState::HardwareDisabled;
+    }
+    if row.OperStatus == IfOperStatusUp {
+        NetworkInterfaceState::Connected
+    } else if row.OperStatus == IfOperStatusDown || row.OperStatus == IfOperStatusLowerLayerDown {
+        NetworkInterfaceState::Disconnected
+    } else if row.OperStatus == IfOperStatusTesting || row.OperStatus == IfOperStatusDormant {
+        NetworkInterfaceState::Connecting
+    } else if row.OperStatus == IfOperStatusNotPresent {
+        NetworkInterfaceState::HardwareMissing
+    } else {
+        NetworkInterfaceState::Unknown
     }
 }
 

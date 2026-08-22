@@ -27,6 +27,21 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
   final controller = await BackendController.create();
+  final previousFlutterError = FlutterError.onError;
+  FlutterError.onError = (details) {
+    controller.reportUiError(details.exception, details.stack);
+    if (previousFlutterError != null) {
+      previousFlutterError(details);
+    } else {
+      FlutterError.presentError(details);
+    }
+  };
+  final dispatcher = WidgetsBinding.instance.platformDispatcher;
+  final previousPlatformError = dispatcher.onError;
+  dispatcher.onError = (error, stackTrace) {
+    controller.reportUiError(error, stackTrace);
+    return previousPlatformError?.call(error, stackTrace) ?? false;
+  };
   AppWindowController appWindow = const NoopAppWindowController();
   final desktopWindow = DesktopAppWindowController(
     onGeometryChanged: controller.setWindowGeometry,
@@ -47,14 +62,13 @@ Future<void> main() async {
         WidgetsBinding.instance.platformDispatcher.locales,
         AppLocalizations.supportedLocales,
       );
-      final windowTitle = (await AppLocalizations.delegate.load(
-        windowLocale,
-      )).appTitle;
+      final windowTitle = (await AppLocalizations.delegate.load(windowLocale))
+          .appTitle;
       await desktopWindow.initialize(settings, title: windowTitle);
       appWindow = desktopWindow;
-    } catch (error) {
+    } catch (error, stackTrace) {
       desktopWindow.dispose();
-      controller.reportUiError(error);
+      controller.reportUiError(error, stackTrace);
     }
   }
   runApp(TaskManagerApp(controller: controller, windowController: appWindow));

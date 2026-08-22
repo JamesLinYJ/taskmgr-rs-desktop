@@ -55,10 +55,17 @@ extension BridgeActionRequestPatterns on BridgeActionRequest {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( BridgeActionRequest_RunTask value)?  runTask,TResult Function( BridgeActionRequest_EndProcess value)?  endProcess,TResult Function( BridgeActionRequest_SetPriority value)?  setPriority,TResult Function( BridgeActionRequest_SetNice value)?  setNice,TResult Function( BridgeActionRequest_SetAffinity value)?  setAffinity,TResult Function( BridgeActionRequest_OpenFileLocation value)?  openFileLocation,TResult Function( BridgeActionRequest_Window value)?  window,TResult Function( BridgeActionRequest_ArrangeWindows value)?  arrangeWindows,TResult Function( BridgeActionRequest_UserSession value)?  userSession,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( BridgeActionRequest_ShowAboutDialog value)?  showAboutDialog,TResult Function( BridgeActionRequest_ShowRunDialog value)?  showRunDialog,TResult Function( BridgeActionRequest_ConfigureDiagnostics value)?  configureDiagnostics,TResult Function( BridgeActionRequest_OpenDiagnosticFolder value)?  openDiagnosticFolder,TResult Function( BridgeActionRequest_SaveDiagnosticBundle value)?  saveDiagnosticBundle,TResult Function( BridgeActionRequest_RestartWithDetailedDiagnostics value)?  restartWithDetailedDiagnostics,TResult Function( BridgeActionRequest_RecordUiError value)?  recordUiError,TResult Function( BridgeActionRequest_RunTask value)?  runTask,TResult Function( BridgeActionRequest_EndProcess value)?  endProcess,TResult Function( BridgeActionRequest_SetPriority value)?  setPriority,TResult Function( BridgeActionRequest_SetNice value)?  setNice,TResult Function( BridgeActionRequest_SetAffinity value)?  setAffinity,TResult Function( BridgeActionRequest_OpenFileLocation value)?  openFileLocation,TResult Function( BridgeActionRequest_Window value)?  window,TResult Function( BridgeActionRequest_ArrangeWindows value)?  arrangeWindows,TResult Function( BridgeActionRequest_UserSession value)?  userSession,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case BridgeActionRequest_RunTask() when runTask != null:
+case BridgeActionRequest_ShowAboutDialog() when showAboutDialog != null:
+return showAboutDialog(_that);case BridgeActionRequest_ShowRunDialog() when showRunDialog != null:
+return showRunDialog(_that);case BridgeActionRequest_ConfigureDiagnostics() when configureDiagnostics != null:
+return configureDiagnostics(_that);case BridgeActionRequest_OpenDiagnosticFolder() when openDiagnosticFolder != null:
+return openDiagnosticFolder(_that);case BridgeActionRequest_SaveDiagnosticBundle() when saveDiagnosticBundle != null:
+return saveDiagnosticBundle(_that);case BridgeActionRequest_RestartWithDetailedDiagnostics() when restartWithDetailedDiagnostics != null:
+return restartWithDetailedDiagnostics(_that);case BridgeActionRequest_RecordUiError() when recordUiError != null:
+return recordUiError(_that);case BridgeActionRequest_RunTask() when runTask != null:
 return runTask(_that);case BridgeActionRequest_EndProcess() when endProcess != null:
 return endProcess(_that);case BridgeActionRequest_SetPriority() when setPriority != null:
 return setPriority(_that);case BridgeActionRequest_SetNice() when setNice != null:
@@ -85,10 +92,17 @@ return userSession(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( BridgeActionRequest_RunTask value)  runTask,required TResult Function( BridgeActionRequest_EndProcess value)  endProcess,required TResult Function( BridgeActionRequest_SetPriority value)  setPriority,required TResult Function( BridgeActionRequest_SetNice value)  setNice,required TResult Function( BridgeActionRequest_SetAffinity value)  setAffinity,required TResult Function( BridgeActionRequest_OpenFileLocation value)  openFileLocation,required TResult Function( BridgeActionRequest_Window value)  window,required TResult Function( BridgeActionRequest_ArrangeWindows value)  arrangeWindows,required TResult Function( BridgeActionRequest_UserSession value)  userSession,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( BridgeActionRequest_ShowAboutDialog value)  showAboutDialog,required TResult Function( BridgeActionRequest_ShowRunDialog value)  showRunDialog,required TResult Function( BridgeActionRequest_ConfigureDiagnostics value)  configureDiagnostics,required TResult Function( BridgeActionRequest_OpenDiagnosticFolder value)  openDiagnosticFolder,required TResult Function( BridgeActionRequest_SaveDiagnosticBundle value)  saveDiagnosticBundle,required TResult Function( BridgeActionRequest_RestartWithDetailedDiagnostics value)  restartWithDetailedDiagnostics,required TResult Function( BridgeActionRequest_RecordUiError value)  recordUiError,required TResult Function( BridgeActionRequest_RunTask value)  runTask,required TResult Function( BridgeActionRequest_EndProcess value)  endProcess,required TResult Function( BridgeActionRequest_SetPriority value)  setPriority,required TResult Function( BridgeActionRequest_SetNice value)  setNice,required TResult Function( BridgeActionRequest_SetAffinity value)  setAffinity,required TResult Function( BridgeActionRequest_OpenFileLocation value)  openFileLocation,required TResult Function( BridgeActionRequest_Window value)  window,required TResult Function( BridgeActionRequest_ArrangeWindows value)  arrangeWindows,required TResult Function( BridgeActionRequest_UserSession value)  userSession,}){
 final _that = this;
 switch (_that) {
-case BridgeActionRequest_RunTask():
+case BridgeActionRequest_ShowAboutDialog():
+return showAboutDialog(_that);case BridgeActionRequest_ShowRunDialog():
+return showRunDialog(_that);case BridgeActionRequest_ConfigureDiagnostics():
+return configureDiagnostics(_that);case BridgeActionRequest_OpenDiagnosticFolder():
+return openDiagnosticFolder(_that);case BridgeActionRequest_SaveDiagnosticBundle():
+return saveDiagnosticBundle(_that);case BridgeActionRequest_RestartWithDetailedDiagnostics():
+return restartWithDetailedDiagnostics(_that);case BridgeActionRequest_RecordUiError():
+return recordUiError(_that);case BridgeActionRequest_RunTask():
 return runTask(_that);case BridgeActionRequest_EndProcess():
 return endProcess(_that);case BridgeActionRequest_SetPriority():
 return setPriority(_that);case BridgeActionRequest_SetNice():
@@ -111,10 +125,17 @@ return userSession(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( BridgeActionRequest_RunTask value)?  runTask,TResult? Function( BridgeActionRequest_EndProcess value)?  endProcess,TResult? Function( BridgeActionRequest_SetPriority value)?  setPriority,TResult? Function( BridgeActionRequest_SetNice value)?  setNice,TResult? Function( BridgeActionRequest_SetAffinity value)?  setAffinity,TResult? Function( BridgeActionRequest_OpenFileLocation value)?  openFileLocation,TResult? Function( BridgeActionRequest_Window value)?  window,TResult? Function( BridgeActionRequest_ArrangeWindows value)?  arrangeWindows,TResult? Function( BridgeActionRequest_UserSession value)?  userSession,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( BridgeActionRequest_ShowAboutDialog value)?  showAboutDialog,TResult? Function( BridgeActionRequest_ShowRunDialog value)?  showRunDialog,TResult? Function( BridgeActionRequest_ConfigureDiagnostics value)?  configureDiagnostics,TResult? Function( BridgeActionRequest_OpenDiagnosticFolder value)?  openDiagnosticFolder,TResult? Function( BridgeActionRequest_SaveDiagnosticBundle value)?  saveDiagnosticBundle,TResult? Function( BridgeActionRequest_RestartWithDetailedDiagnostics value)?  restartWithDetailedDiagnostics,TResult? Function( BridgeActionRequest_RecordUiError value)?  recordUiError,TResult? Function( BridgeActionRequest_RunTask value)?  runTask,TResult? Function( BridgeActionRequest_EndProcess value)?  endProcess,TResult? Function( BridgeActionRequest_SetPriority value)?  setPriority,TResult? Function( BridgeActionRequest_SetNice value)?  setNice,TResult? Function( BridgeActionRequest_SetAffinity value)?  setAffinity,TResult? Function( BridgeActionRequest_OpenFileLocation value)?  openFileLocation,TResult? Function( BridgeActionRequest_Window value)?  window,TResult? Function( BridgeActionRequest_ArrangeWindows value)?  arrangeWindows,TResult? Function( BridgeActionRequest_UserSession value)?  userSession,}){
 final _that = this;
 switch (_that) {
-case BridgeActionRequest_RunTask() when runTask != null:
+case BridgeActionRequest_ShowAboutDialog() when showAboutDialog != null:
+return showAboutDialog(_that);case BridgeActionRequest_ShowRunDialog() when showRunDialog != null:
+return showRunDialog(_that);case BridgeActionRequest_ConfigureDiagnostics() when configureDiagnostics != null:
+return configureDiagnostics(_that);case BridgeActionRequest_OpenDiagnosticFolder() when openDiagnosticFolder != null:
+return openDiagnosticFolder(_that);case BridgeActionRequest_SaveDiagnosticBundle() when saveDiagnosticBundle != null:
+return saveDiagnosticBundle(_that);case BridgeActionRequest_RestartWithDetailedDiagnostics() when restartWithDetailedDiagnostics != null:
+return restartWithDetailedDiagnostics(_that);case BridgeActionRequest_RecordUiError() when recordUiError != null:
+return recordUiError(_that);case BridgeActionRequest_RunTask() when runTask != null:
 return runTask(_that);case BridgeActionRequest_EndProcess() when endProcess != null:
 return endProcess(_that);case BridgeActionRequest_SetPriority() when setPriority != null:
 return setPriority(_that);case BridgeActionRequest_SetNice() when setNice != null:
@@ -140,9 +161,16 @@ return userSession(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String commandLine)?  runTask,TResult Function( ProcessIdentity identity,  bool includeDescendants)?  endProcess,TResult Function( ProcessIdentity identity,  ProcessPriority priority)?  setPriority,TResult Function( ProcessIdentity identity,  int nice)?  setNice,TResult Function( ProcessIdentity identity,  Uint32List logicalProcessors)?  setAffinity,TResult Function( ProcessIdentity identity)?  openFileLocation,TResult Function( ApplicationIdentity identity,  WindowAction operation)?  window,TResult Function( List<ApplicationIdentity> identities,  WindowArrangement arrangement)?  arrangeWindows,TResult Function( UserSessionIdentity identity,  UserAction operation,  String? title,  String? message)?  userSession,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String title)?  showAboutDialog,TResult Function()?  showRunDialog,TResult Function( bool detailed,  bool sensitive)?  configureDiagnostics,TResult Function()?  openDiagnosticFolder,TResult Function()?  saveDiagnosticBundle,TResult Function()?  restartWithDetailedDiagnostics,TResult Function( String message,  String? stack)?  recordUiError,TResult Function( String commandLine)?  runTask,TResult Function( ProcessIdentity identity,  bool includeDescendants)?  endProcess,TResult Function( ProcessIdentity identity,  ProcessPriority priority)?  setPriority,TResult Function( ProcessIdentity identity,  int nice)?  setNice,TResult Function( ProcessIdentity identity,  Uint32List logicalProcessors)?  setAffinity,TResult Function( ProcessIdentity identity)?  openFileLocation,TResult Function( ApplicationIdentity identity,  WindowAction operation)?  window,TResult Function( List<ApplicationIdentity> identities,  WindowArrangement arrangement)?  arrangeWindows,TResult Function( UserSessionIdentity identity,  UserAction operation,  String? title,  String? message)?  userSession,required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case BridgeActionRequest_RunTask() when runTask != null:
+case BridgeActionRequest_ShowAboutDialog() when showAboutDialog != null:
+return showAboutDialog(_that.title);case BridgeActionRequest_ShowRunDialog() when showRunDialog != null:
+return showRunDialog();case BridgeActionRequest_ConfigureDiagnostics() when configureDiagnostics != null:
+return configureDiagnostics(_that.detailed,_that.sensitive);case BridgeActionRequest_OpenDiagnosticFolder() when openDiagnosticFolder != null:
+return openDiagnosticFolder();case BridgeActionRequest_SaveDiagnosticBundle() when saveDiagnosticBundle != null:
+return saveDiagnosticBundle();case BridgeActionRequest_RestartWithDetailedDiagnostics() when restartWithDetailedDiagnostics != null:
+return restartWithDetailedDiagnostics();case BridgeActionRequest_RecordUiError() when recordUiError != null:
+return recordUiError(_that.message,_that.stack);case BridgeActionRequest_RunTask() when runTask != null:
 return runTask(_that.commandLine);case BridgeActionRequest_EndProcess() when endProcess != null:
 return endProcess(_that.identity,_that.includeDescendants);case BridgeActionRequest_SetPriority() when setPriority != null:
 return setPriority(_that.identity,_that.priority);case BridgeActionRequest_SetNice() when setNice != null:
@@ -169,9 +197,16 @@ return userSession(_that.identity,_that.operation,_that.title,_that.message);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String commandLine)  runTask,required TResult Function( ProcessIdentity identity,  bool includeDescendants)  endProcess,required TResult Function( ProcessIdentity identity,  ProcessPriority priority)  setPriority,required TResult Function( ProcessIdentity identity,  int nice)  setNice,required TResult Function( ProcessIdentity identity,  Uint32List logicalProcessors)  setAffinity,required TResult Function( ProcessIdentity identity)  openFileLocation,required TResult Function( ApplicationIdentity identity,  WindowAction operation)  window,required TResult Function( List<ApplicationIdentity> identities,  WindowArrangement arrangement)  arrangeWindows,required TResult Function( UserSessionIdentity identity,  UserAction operation,  String? title,  String? message)  userSession,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String title)  showAboutDialog,required TResult Function()  showRunDialog,required TResult Function( bool detailed,  bool sensitive)  configureDiagnostics,required TResult Function()  openDiagnosticFolder,required TResult Function()  saveDiagnosticBundle,required TResult Function()  restartWithDetailedDiagnostics,required TResult Function( String message,  String? stack)  recordUiError,required TResult Function( String commandLine)  runTask,required TResult Function( ProcessIdentity identity,  bool includeDescendants)  endProcess,required TResult Function( ProcessIdentity identity,  ProcessPriority priority)  setPriority,required TResult Function( ProcessIdentity identity,  int nice)  setNice,required TResult Function( ProcessIdentity identity,  Uint32List logicalProcessors)  setAffinity,required TResult Function( ProcessIdentity identity)  openFileLocation,required TResult Function( ApplicationIdentity identity,  WindowAction operation)  window,required TResult Function( List<ApplicationIdentity> identities,  WindowArrangement arrangement)  arrangeWindows,required TResult Function( UserSessionIdentity identity,  UserAction operation,  String? title,  String? message)  userSession,}) {final _that = this;
 switch (_that) {
-case BridgeActionRequest_RunTask():
+case BridgeActionRequest_ShowAboutDialog():
+return showAboutDialog(_that.title);case BridgeActionRequest_ShowRunDialog():
+return showRunDialog();case BridgeActionRequest_ConfigureDiagnostics():
+return configureDiagnostics(_that.detailed,_that.sensitive);case BridgeActionRequest_OpenDiagnosticFolder():
+return openDiagnosticFolder();case BridgeActionRequest_SaveDiagnosticBundle():
+return saveDiagnosticBundle();case BridgeActionRequest_RestartWithDetailedDiagnostics():
+return restartWithDetailedDiagnostics();case BridgeActionRequest_RecordUiError():
+return recordUiError(_that.message,_that.stack);case BridgeActionRequest_RunTask():
 return runTask(_that.commandLine);case BridgeActionRequest_EndProcess():
 return endProcess(_that.identity,_that.includeDescendants);case BridgeActionRequest_SetPriority():
 return setPriority(_that.identity,_that.priority);case BridgeActionRequest_SetNice():
@@ -194,9 +229,16 @@ return userSession(_that.identity,_that.operation,_that.title,_that.message);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String commandLine)?  runTask,TResult? Function( ProcessIdentity identity,  bool includeDescendants)?  endProcess,TResult? Function( ProcessIdentity identity,  ProcessPriority priority)?  setPriority,TResult? Function( ProcessIdentity identity,  int nice)?  setNice,TResult? Function( ProcessIdentity identity,  Uint32List logicalProcessors)?  setAffinity,TResult? Function( ProcessIdentity identity)?  openFileLocation,TResult? Function( ApplicationIdentity identity,  WindowAction operation)?  window,TResult? Function( List<ApplicationIdentity> identities,  WindowArrangement arrangement)?  arrangeWindows,TResult? Function( UserSessionIdentity identity,  UserAction operation,  String? title,  String? message)?  userSession,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String title)?  showAboutDialog,TResult? Function()?  showRunDialog,TResult? Function( bool detailed,  bool sensitive)?  configureDiagnostics,TResult? Function()?  openDiagnosticFolder,TResult? Function()?  saveDiagnosticBundle,TResult? Function()?  restartWithDetailedDiagnostics,TResult? Function( String message,  String? stack)?  recordUiError,TResult? Function( String commandLine)?  runTask,TResult? Function( ProcessIdentity identity,  bool includeDescendants)?  endProcess,TResult? Function( ProcessIdentity identity,  ProcessPriority priority)?  setPriority,TResult? Function( ProcessIdentity identity,  int nice)?  setNice,TResult? Function( ProcessIdentity identity,  Uint32List logicalProcessors)?  setAffinity,TResult? Function( ProcessIdentity identity)?  openFileLocation,TResult? Function( ApplicationIdentity identity,  WindowAction operation)?  window,TResult? Function( List<ApplicationIdentity> identities,  WindowArrangement arrangement)?  arrangeWindows,TResult? Function( UserSessionIdentity identity,  UserAction operation,  String? title,  String? message)?  userSession,}) {final _that = this;
 switch (_that) {
-case BridgeActionRequest_RunTask() when runTask != null:
+case BridgeActionRequest_ShowAboutDialog() when showAboutDialog != null:
+return showAboutDialog(_that.title);case BridgeActionRequest_ShowRunDialog() when showRunDialog != null:
+return showRunDialog();case BridgeActionRequest_ConfigureDiagnostics() when configureDiagnostics != null:
+return configureDiagnostics(_that.detailed,_that.sensitive);case BridgeActionRequest_OpenDiagnosticFolder() when openDiagnosticFolder != null:
+return openDiagnosticFolder();case BridgeActionRequest_SaveDiagnosticBundle() when saveDiagnosticBundle != null:
+return saveDiagnosticBundle();case BridgeActionRequest_RestartWithDetailedDiagnostics() when restartWithDetailedDiagnostics != null:
+return restartWithDetailedDiagnostics();case BridgeActionRequest_RecordUiError() when recordUiError != null:
+return recordUiError(_that.message,_that.stack);case BridgeActionRequest_RunTask() when runTask != null:
 return runTask(_that.commandLine);case BridgeActionRequest_EndProcess() when endProcess != null:
 return endProcess(_that.identity,_that.includeDescendants);case BridgeActionRequest_SetPriority() when setPriority != null:
 return setPriority(_that.identity,_that.priority);case BridgeActionRequest_SetNice() when setNice != null:
@@ -210,6 +252,336 @@ return userSession(_that.identity,_that.operation,_that.title,_that.message);cas
 
 }
 }
+
+}
+
+/// @nodoc
+
+
+class BridgeActionRequest_ShowAboutDialog extends BridgeActionRequest {
+  const BridgeActionRequest_ShowAboutDialog({required this.title}): super._();
+
+
+ final  String title;
+
+/// Create a copy of BridgeActionRequest
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$BridgeActionRequest_ShowAboutDialogCopyWith<BridgeActionRequest_ShowAboutDialog> get copyWith => _$BridgeActionRequest_ShowAboutDialogCopyWithImpl<BridgeActionRequest_ShowAboutDialog>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BridgeActionRequest_ShowAboutDialog&&(identical(other.title, title) || other.title == title));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,title);
+
+@override
+String toString() {
+  return 'BridgeActionRequest.showAboutDialog(title: $title)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $BridgeActionRequest_ShowAboutDialogCopyWith<$Res> implements $BridgeActionRequestCopyWith<$Res> {
+  factory $BridgeActionRequest_ShowAboutDialogCopyWith(BridgeActionRequest_ShowAboutDialog value, $Res Function(BridgeActionRequest_ShowAboutDialog) _then) = _$BridgeActionRequest_ShowAboutDialogCopyWithImpl;
+@useResult
+$Res call({
+ String title
+});
+
+
+
+
+}
+/// @nodoc
+class _$BridgeActionRequest_ShowAboutDialogCopyWithImpl<$Res>
+    implements $BridgeActionRequest_ShowAboutDialogCopyWith<$Res> {
+  _$BridgeActionRequest_ShowAboutDialogCopyWithImpl(this._self, this._then);
+
+  final BridgeActionRequest_ShowAboutDialog _self;
+  final $Res Function(BridgeActionRequest_ShowAboutDialog) _then;
+
+/// Create a copy of BridgeActionRequest
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? title = null,}) {
+  return _then(BridgeActionRequest_ShowAboutDialog(
+title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class BridgeActionRequest_ShowRunDialog extends BridgeActionRequest {
+  const BridgeActionRequest_ShowRunDialog(): super._();
+
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BridgeActionRequest_ShowRunDialog);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'BridgeActionRequest.showRunDialog()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class BridgeActionRequest_ConfigureDiagnostics extends BridgeActionRequest {
+  const BridgeActionRequest_ConfigureDiagnostics({required this.detailed, required this.sensitive}): super._();
+
+
+ final  bool detailed;
+ final  bool sensitive;
+
+/// Create a copy of BridgeActionRequest
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$BridgeActionRequest_ConfigureDiagnosticsCopyWith<BridgeActionRequest_ConfigureDiagnostics> get copyWith => _$BridgeActionRequest_ConfigureDiagnosticsCopyWithImpl<BridgeActionRequest_ConfigureDiagnostics>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BridgeActionRequest_ConfigureDiagnostics&&(identical(other.detailed, detailed) || other.detailed == detailed)&&(identical(other.sensitive, sensitive) || other.sensitive == sensitive));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,detailed,sensitive);
+
+@override
+String toString() {
+  return 'BridgeActionRequest.configureDiagnostics(detailed: $detailed, sensitive: $sensitive)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $BridgeActionRequest_ConfigureDiagnosticsCopyWith<$Res> implements $BridgeActionRequestCopyWith<$Res> {
+  factory $BridgeActionRequest_ConfigureDiagnosticsCopyWith(BridgeActionRequest_ConfigureDiagnostics value, $Res Function(BridgeActionRequest_ConfigureDiagnostics) _then) = _$BridgeActionRequest_ConfigureDiagnosticsCopyWithImpl;
+@useResult
+$Res call({
+ bool detailed, bool sensitive
+});
+
+
+
+
+}
+/// @nodoc
+class _$BridgeActionRequest_ConfigureDiagnosticsCopyWithImpl<$Res>
+    implements $BridgeActionRequest_ConfigureDiagnosticsCopyWith<$Res> {
+  _$BridgeActionRequest_ConfigureDiagnosticsCopyWithImpl(this._self, this._then);
+
+  final BridgeActionRequest_ConfigureDiagnostics _self;
+  final $Res Function(BridgeActionRequest_ConfigureDiagnostics) _then;
+
+/// Create a copy of BridgeActionRequest
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? detailed = null,Object? sensitive = null,}) {
+  return _then(BridgeActionRequest_ConfigureDiagnostics(
+detailed: null == detailed ? _self.detailed : detailed // ignore: cast_nullable_to_non_nullable
+as bool,sensitive: null == sensitive ? _self.sensitive : sensitive // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class BridgeActionRequest_OpenDiagnosticFolder extends BridgeActionRequest {
+  const BridgeActionRequest_OpenDiagnosticFolder(): super._();
+
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BridgeActionRequest_OpenDiagnosticFolder);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'BridgeActionRequest.openDiagnosticFolder()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class BridgeActionRequest_SaveDiagnosticBundle extends BridgeActionRequest {
+  const BridgeActionRequest_SaveDiagnosticBundle(): super._();
+
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BridgeActionRequest_SaveDiagnosticBundle);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'BridgeActionRequest.saveDiagnosticBundle()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class BridgeActionRequest_RestartWithDetailedDiagnostics extends BridgeActionRequest {
+  const BridgeActionRequest_RestartWithDetailedDiagnostics(): super._();
+
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BridgeActionRequest_RestartWithDetailedDiagnostics);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'BridgeActionRequest.restartWithDetailedDiagnostics()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class BridgeActionRequest_RecordUiError extends BridgeActionRequest {
+  const BridgeActionRequest_RecordUiError({required this.message, this.stack}): super._();
+
+
+ final  String message;
+ final  String? stack;
+
+/// Create a copy of BridgeActionRequest
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$BridgeActionRequest_RecordUiErrorCopyWith<BridgeActionRequest_RecordUiError> get copyWith => _$BridgeActionRequest_RecordUiErrorCopyWithImpl<BridgeActionRequest_RecordUiError>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BridgeActionRequest_RecordUiError&&(identical(other.message, message) || other.message == message)&&(identical(other.stack, stack) || other.stack == stack));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,message,stack);
+
+@override
+String toString() {
+  return 'BridgeActionRequest.recordUiError(message: $message, stack: $stack)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $BridgeActionRequest_RecordUiErrorCopyWith<$Res> implements $BridgeActionRequestCopyWith<$Res> {
+  factory $BridgeActionRequest_RecordUiErrorCopyWith(BridgeActionRequest_RecordUiError value, $Res Function(BridgeActionRequest_RecordUiError) _then) = _$BridgeActionRequest_RecordUiErrorCopyWithImpl;
+@useResult
+$Res call({
+ String message, String? stack
+});
+
+
+
+
+}
+/// @nodoc
+class _$BridgeActionRequest_RecordUiErrorCopyWithImpl<$Res>
+    implements $BridgeActionRequest_RecordUiErrorCopyWith<$Res> {
+  _$BridgeActionRequest_RecordUiErrorCopyWithImpl(this._self, this._then);
+
+  final BridgeActionRequest_RecordUiError _self;
+  final $Res Function(BridgeActionRequest_RecordUiError) _then;
+
+/// Create a copy of BridgeActionRequest
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? message = null,Object? stack = freezed,}) {
+  return _then(BridgeActionRequest_RecordUiError(
+message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
+as String,stack: freezed == stack ? _self.stack : stack // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
 
 }
 
@@ -689,7 +1061,7 @@ as WindowAction,
 
 
 class BridgeActionRequest_ArrangeWindows extends BridgeActionRequest {
-  const BridgeActionRequest_ArrangeWindows({required final  List<ApplicationIdentity> identities, required this.arrangement}): _identities = identities,super._();
+  const BridgeActionRequest_ArrangeWindows({required  List<ApplicationIdentity> identities, required this.arrangement}): _identities = identities,super._();
 
 
  final  List<ApplicationIdentity> _identities;
@@ -875,11 +1247,12 @@ extension BridgeBackendEventPatterns on BridgeBackendEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( BridgeBackendEvent_Capabilities value)?  capabilities,TResult Function( BridgeBackendEvent_Applications value)?  applications,TResult Function( BridgeBackendEvent_Processes value)?  processes,TResult Function( BridgeBackendEvent_Performance value)?  performance,TResult Function( BridgeBackendEvent_Cpu value)?  cpu,TResult Function( BridgeBackendEvent_Gpu value)?  gpu,TResult Function( BridgeBackendEvent_Network value)?  network,TResult Function( BridgeBackendEvent_Users value)?  users,TResult Function( BridgeBackendEvent_PageUnavailable value)?  pageUnavailable,TResult Function( BridgeBackendEvent_PrivilegeChanged value)?  privilegeChanged,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( BridgeBackendEvent_Capabilities value)?  capabilities,TResult Function( BridgeBackendEvent_Diagnostics value)?  diagnostics,TResult Function( BridgeBackendEvent_Applications value)?  applications,TResult Function( BridgeBackendEvent_Processes value)?  processes,TResult Function( BridgeBackendEvent_Performance value)?  performance,TResult Function( BridgeBackendEvent_Cpu value)?  cpu,TResult Function( BridgeBackendEvent_Gpu value)?  gpu,TResult Function( BridgeBackendEvent_Network value)?  network,TResult Function( BridgeBackendEvent_Users value)?  users,TResult Function( BridgeBackendEvent_PageUnavailable value)?  pageUnavailable,TResult Function( BridgeBackendEvent_PrivilegeChanged value)?  privilegeChanged,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case BridgeBackendEvent_Capabilities() when capabilities != null:
-return capabilities(_that);case BridgeBackendEvent_Applications() when applications != null:
+return capabilities(_that);case BridgeBackendEvent_Diagnostics() when diagnostics != null:
+return diagnostics(_that);case BridgeBackendEvent_Applications() when applications != null:
 return applications(_that);case BridgeBackendEvent_Processes() when processes != null:
 return processes(_that);case BridgeBackendEvent_Performance() when performance != null:
 return performance(_that);case BridgeBackendEvent_Cpu() when cpu != null:
@@ -906,11 +1279,12 @@ return privilegeChanged(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( BridgeBackendEvent_Capabilities value)  capabilities,required TResult Function( BridgeBackendEvent_Applications value)  applications,required TResult Function( BridgeBackendEvent_Processes value)  processes,required TResult Function( BridgeBackendEvent_Performance value)  performance,required TResult Function( BridgeBackendEvent_Cpu value)  cpu,required TResult Function( BridgeBackendEvent_Gpu value)  gpu,required TResult Function( BridgeBackendEvent_Network value)  network,required TResult Function( BridgeBackendEvent_Users value)  users,required TResult Function( BridgeBackendEvent_PageUnavailable value)  pageUnavailable,required TResult Function( BridgeBackendEvent_PrivilegeChanged value)  privilegeChanged,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( BridgeBackendEvent_Capabilities value)  capabilities,required TResult Function( BridgeBackendEvent_Diagnostics value)  diagnostics,required TResult Function( BridgeBackendEvent_Applications value)  applications,required TResult Function( BridgeBackendEvent_Processes value)  processes,required TResult Function( BridgeBackendEvent_Performance value)  performance,required TResult Function( BridgeBackendEvent_Cpu value)  cpu,required TResult Function( BridgeBackendEvent_Gpu value)  gpu,required TResult Function( BridgeBackendEvent_Network value)  network,required TResult Function( BridgeBackendEvent_Users value)  users,required TResult Function( BridgeBackendEvent_PageUnavailable value)  pageUnavailable,required TResult Function( BridgeBackendEvent_PrivilegeChanged value)  privilegeChanged,}){
 final _that = this;
 switch (_that) {
 case BridgeBackendEvent_Capabilities():
-return capabilities(_that);case BridgeBackendEvent_Applications():
+return capabilities(_that);case BridgeBackendEvent_Diagnostics():
+return diagnostics(_that);case BridgeBackendEvent_Applications():
 return applications(_that);case BridgeBackendEvent_Processes():
 return processes(_that);case BridgeBackendEvent_Performance():
 return performance(_that);case BridgeBackendEvent_Cpu():
@@ -933,11 +1307,12 @@ return privilegeChanged(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( BridgeBackendEvent_Capabilities value)?  capabilities,TResult? Function( BridgeBackendEvent_Applications value)?  applications,TResult? Function( BridgeBackendEvent_Processes value)?  processes,TResult? Function( BridgeBackendEvent_Performance value)?  performance,TResult? Function( BridgeBackendEvent_Cpu value)?  cpu,TResult? Function( BridgeBackendEvent_Gpu value)?  gpu,TResult? Function( BridgeBackendEvent_Network value)?  network,TResult? Function( BridgeBackendEvent_Users value)?  users,TResult? Function( BridgeBackendEvent_PageUnavailable value)?  pageUnavailable,TResult? Function( BridgeBackendEvent_PrivilegeChanged value)?  privilegeChanged,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( BridgeBackendEvent_Capabilities value)?  capabilities,TResult? Function( BridgeBackendEvent_Diagnostics value)?  diagnostics,TResult? Function( BridgeBackendEvent_Applications value)?  applications,TResult? Function( BridgeBackendEvent_Processes value)?  processes,TResult? Function( BridgeBackendEvent_Performance value)?  performance,TResult? Function( BridgeBackendEvent_Cpu value)?  cpu,TResult? Function( BridgeBackendEvent_Gpu value)?  gpu,TResult? Function( BridgeBackendEvent_Network value)?  network,TResult? Function( BridgeBackendEvent_Users value)?  users,TResult? Function( BridgeBackendEvent_PageUnavailable value)?  pageUnavailable,TResult? Function( BridgeBackendEvent_PrivilegeChanged value)?  privilegeChanged,}){
 final _that = this;
 switch (_that) {
 case BridgeBackendEvent_Capabilities() when capabilities != null:
-return capabilities(_that);case BridgeBackendEvent_Applications() when applications != null:
+return capabilities(_that);case BridgeBackendEvent_Diagnostics() when diagnostics != null:
+return diagnostics(_that);case BridgeBackendEvent_Applications() when applications != null:
 return applications(_that);case BridgeBackendEvent_Processes() when processes != null:
 return processes(_that);case BridgeBackendEvent_Performance() when performance != null:
 return performance(_that);case BridgeBackendEvent_Cpu() when cpu != null:
@@ -963,10 +1338,11 @@ return privilegeChanged(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( PlatformCapabilities field0)?  capabilities,TResult Function( SnapshotMeta meta,  ApplicationsData data)?  applications,TResult Function( SnapshotMeta meta,  ProcessesData data)?  processes,TResult Function( SnapshotMeta meta,  PerformanceData data)?  performance,TResult Function( SnapshotMeta meta,  CpuData data)?  cpu,TResult Function( SnapshotMeta meta,  GpuData data)?  gpu,TResult Function( SnapshotMeta meta,  NetworkData data)?  network,TResult Function( SnapshotMeta meta,  UsersData data)?  users,TResult Function( PageId page,  SnapshotMeta meta)?  pageUnavailable,TResult Function( PrivilegeResult field0)?  privilegeChanged,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( PlatformCapabilities field0)?  capabilities,TResult Function( DiagnosticStatus field0)?  diagnostics,TResult Function( SnapshotMeta meta,  ApplicationsData data)?  applications,TResult Function( SnapshotMeta meta,  ProcessesData data)?  processes,TResult Function( SnapshotMeta meta,  PerformanceData data)?  performance,TResult Function( SnapshotMeta meta,  CpuData data)?  cpu,TResult Function( SnapshotMeta meta,  GpuData data)?  gpu,TResult Function( SnapshotMeta meta,  NetworkData data)?  network,TResult Function( SnapshotMeta meta,  UsersData data)?  users,TResult Function( PageId page,  SnapshotMeta meta)?  pageUnavailable,TResult Function( PrivilegeResult field0)?  privilegeChanged,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case BridgeBackendEvent_Capabilities() when capabilities != null:
-return capabilities(_that.field0);case BridgeBackendEvent_Applications() when applications != null:
+return capabilities(_that.field0);case BridgeBackendEvent_Diagnostics() when diagnostics != null:
+return diagnostics(_that.field0);case BridgeBackendEvent_Applications() when applications != null:
 return applications(_that.meta,_that.data);case BridgeBackendEvent_Processes() when processes != null:
 return processes(_that.meta,_that.data);case BridgeBackendEvent_Performance() when performance != null:
 return performance(_that.meta,_that.data);case BridgeBackendEvent_Cpu() when cpu != null:
@@ -993,10 +1369,11 @@ return privilegeChanged(_that.field0);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( PlatformCapabilities field0)  capabilities,required TResult Function( SnapshotMeta meta,  ApplicationsData data)  applications,required TResult Function( SnapshotMeta meta,  ProcessesData data)  processes,required TResult Function( SnapshotMeta meta,  PerformanceData data)  performance,required TResult Function( SnapshotMeta meta,  CpuData data)  cpu,required TResult Function( SnapshotMeta meta,  GpuData data)  gpu,required TResult Function( SnapshotMeta meta,  NetworkData data)  network,required TResult Function( SnapshotMeta meta,  UsersData data)  users,required TResult Function( PageId page,  SnapshotMeta meta)  pageUnavailable,required TResult Function( PrivilegeResult field0)  privilegeChanged,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( PlatformCapabilities field0)  capabilities,required TResult Function( DiagnosticStatus field0)  diagnostics,required TResult Function( SnapshotMeta meta,  ApplicationsData data)  applications,required TResult Function( SnapshotMeta meta,  ProcessesData data)  processes,required TResult Function( SnapshotMeta meta,  PerformanceData data)  performance,required TResult Function( SnapshotMeta meta,  CpuData data)  cpu,required TResult Function( SnapshotMeta meta,  GpuData data)  gpu,required TResult Function( SnapshotMeta meta,  NetworkData data)  network,required TResult Function( SnapshotMeta meta,  UsersData data)  users,required TResult Function( PageId page,  SnapshotMeta meta)  pageUnavailable,required TResult Function( PrivilegeResult field0)  privilegeChanged,}) {final _that = this;
 switch (_that) {
 case BridgeBackendEvent_Capabilities():
-return capabilities(_that.field0);case BridgeBackendEvent_Applications():
+return capabilities(_that.field0);case BridgeBackendEvent_Diagnostics():
+return diagnostics(_that.field0);case BridgeBackendEvent_Applications():
 return applications(_that.meta,_that.data);case BridgeBackendEvent_Processes():
 return processes(_that.meta,_that.data);case BridgeBackendEvent_Performance():
 return performance(_that.meta,_that.data);case BridgeBackendEvent_Cpu():
@@ -1019,10 +1396,11 @@ return privilegeChanged(_that.field0);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( PlatformCapabilities field0)?  capabilities,TResult? Function( SnapshotMeta meta,  ApplicationsData data)?  applications,TResult? Function( SnapshotMeta meta,  ProcessesData data)?  processes,TResult? Function( SnapshotMeta meta,  PerformanceData data)?  performance,TResult? Function( SnapshotMeta meta,  CpuData data)?  cpu,TResult? Function( SnapshotMeta meta,  GpuData data)?  gpu,TResult? Function( SnapshotMeta meta,  NetworkData data)?  network,TResult? Function( SnapshotMeta meta,  UsersData data)?  users,TResult? Function( PageId page,  SnapshotMeta meta)?  pageUnavailable,TResult? Function( PrivilegeResult field0)?  privilegeChanged,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( PlatformCapabilities field0)?  capabilities,TResult? Function( DiagnosticStatus field0)?  diagnostics,TResult? Function( SnapshotMeta meta,  ApplicationsData data)?  applications,TResult? Function( SnapshotMeta meta,  ProcessesData data)?  processes,TResult? Function( SnapshotMeta meta,  PerformanceData data)?  performance,TResult? Function( SnapshotMeta meta,  CpuData data)?  cpu,TResult? Function( SnapshotMeta meta,  GpuData data)?  gpu,TResult? Function( SnapshotMeta meta,  NetworkData data)?  network,TResult? Function( SnapshotMeta meta,  UsersData data)?  users,TResult? Function( PageId page,  SnapshotMeta meta)?  pageUnavailable,TResult? Function( PrivilegeResult field0)?  privilegeChanged,}) {final _that = this;
 switch (_that) {
 case BridgeBackendEvent_Capabilities() when capabilities != null:
-return capabilities(_that.field0);case BridgeBackendEvent_Applications() when applications != null:
+return capabilities(_that.field0);case BridgeBackendEvent_Diagnostics() when diagnostics != null:
+return diagnostics(_that.field0);case BridgeBackendEvent_Applications() when applications != null:
 return applications(_that.meta,_that.data);case BridgeBackendEvent_Processes() when processes != null:
 return processes(_that.meta,_that.data);case BridgeBackendEvent_Performance() when performance != null:
 return performance(_that.meta,_that.data);case BridgeBackendEvent_Cpu() when cpu != null:
@@ -1099,6 +1477,72 @@ class _$BridgeBackendEvent_CapabilitiesCopyWithImpl<$Res>
   return _then(BridgeBackendEvent_Capabilities(
 null == field0 ? _self.field0 : field0 // ignore: cast_nullable_to_non_nullable
 as PlatformCapabilities,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class BridgeBackendEvent_Diagnostics extends BridgeBackendEvent {
+  const BridgeBackendEvent_Diagnostics(this.field0): super._();
+
+
+ final  DiagnosticStatus field0;
+
+/// Create a copy of BridgeBackendEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$BridgeBackendEvent_DiagnosticsCopyWith<BridgeBackendEvent_Diagnostics> get copyWith => _$BridgeBackendEvent_DiagnosticsCopyWithImpl<BridgeBackendEvent_Diagnostics>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BridgeBackendEvent_Diagnostics&&(identical(other.field0, field0) || other.field0 == field0));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,field0);
+
+@override
+String toString() {
+  return 'BridgeBackendEvent.diagnostics(field0: $field0)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $BridgeBackendEvent_DiagnosticsCopyWith<$Res> implements $BridgeBackendEventCopyWith<$Res> {
+  factory $BridgeBackendEvent_DiagnosticsCopyWith(BridgeBackendEvent_Diagnostics value, $Res Function(BridgeBackendEvent_Diagnostics) _then) = _$BridgeBackendEvent_DiagnosticsCopyWithImpl;
+@useResult
+$Res call({
+ DiagnosticStatus field0
+});
+
+
+
+
+}
+/// @nodoc
+class _$BridgeBackendEvent_DiagnosticsCopyWithImpl<$Res>
+    implements $BridgeBackendEvent_DiagnosticsCopyWith<$Res> {
+  _$BridgeBackendEvent_DiagnosticsCopyWithImpl(this._self, this._then);
+
+  final BridgeBackendEvent_Diagnostics _self;
+  final $Res Function(BridgeBackendEvent_Diagnostics) _then;
+
+/// Create a copy of BridgeBackendEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? field0 = null,}) {
+  return _then(BridgeBackendEvent_Diagnostics(
+null == field0 ? _self.field0 : field0 // ignore: cast_nullable_to_non_nullable
+as DiagnosticStatus,
   ));
 }
 

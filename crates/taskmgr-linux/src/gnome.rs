@@ -4,11 +4,11 @@
 //
 //   文件:       crates/taskmgr-linux/src/gnome.rs
 //
-//   日期:       2026年08月21日
-//   环境:       Fedora Linux 46 x86_64；GNOME Shell 51.beta；Rust 1.97.1
+//   日期:       2026年08月22日
+//   环境:       Windows 11 x64；x86_64-unknown-linux-gnu 交叉检查；Rust 1.97.1
 //   作者:       JamesLinYJ
 //   协助:       OpenAI Codex:gpt-5.6-sol
-//   参考标准:   D-Bus Specification；GNOME Shell Extension API；项目 WindowProvider1 协议
+//   参考标准:   D-Bus Specification；org.freedesktop.DBus 凭据接口；GNOME Shell Extension API；proc(5)；项目 WindowProvider1 协议
 // --------------------------------------------------------------------------
 
 //! 在 GNOME 未实现 foreign-toplevel 标准协议时，连接用户显式启用的只读 Shell 扩展。
@@ -27,6 +27,7 @@ use crate::desktop_icons::DesktopIconResolver;
 const DESTINATION: &str = "org.gnome.Shell";
 const OBJECT_PATH: &str = "/org/taskmgr_rs/WindowProvider";
 const INTERFACE: &str = "org.taskmgr_rs.WindowProvider1";
+const ACCESS_DENIED_ERROR: &str = "org.taskmgr_rs.WindowProvider1.Error.AccessDenied";
 const PROTOCOL_VERSION: u32 = 1;
 const MAX_RESPONSE_BYTES: usize = 4 * 1024 * 1024;
 const MAX_WINDOWS: usize = 4096;
@@ -52,6 +53,12 @@ impl GnomeSession {
             let proxy = provider_proxy(&connection)?;
             match proxy.call::<_, _, u32>("GetVersion", &()) {
                 Ok(version) => version,
+                Err(error) if is_access_denied(&error) => {
+                    return Err(gnome_error(
+                        "authenticate the installed WindowProvider1 client",
+                        error,
+                    ));
+                }
                 Err(_) => return Ok(None),
             }
         };
@@ -132,6 +139,7 @@ impl GnomeSession {
             });
         }
         let current_pid = std::process::id();
+        self.icons.begin_snapshot();
         let mut rows = Vec::with_capacity(snapshot.windows.len());
         for window in snapshot.windows {
             if window.skip_taskbar || window.pid == Some(current_pid) {
@@ -167,6 +175,7 @@ impl GnomeSession {
                     .or_else(|| window.app_id.clone())
                     .or(window.wm_class)
                     .unwrap_or_default(),
+                show_32_bit_suffix: None,
                 status: ApplicationStatus::Running,
                 window_station: None,
                 desktop: window.workspace.map(|index| (index + 1).to_string()),
@@ -188,6 +197,13 @@ impl GnomeSession {
 fn provider_proxy(connection: &Connection) -> Result<Proxy<'_>, BackendError> {
     Proxy::new(connection, DESTINATION, OBJECT_PATH, INTERFACE)
         .map_err(|error| gnome_error("create GNOME window provider proxy", error))
+}
+
+fn is_access_denied(error: &zbus::Error) -> bool {
+    matches!(
+        error,
+        zbus::Error::MethodError(name, _, _) if name.as_str() == ACCESS_DENIED_ERROR
+    )
 }
 
 pub(crate) fn is_gnome_session() -> bool {

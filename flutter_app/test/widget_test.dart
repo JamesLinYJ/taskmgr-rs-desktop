@@ -13,15 +13,54 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:taskmgr_rs/app/backend_controller.dart';
 import 'package:taskmgr_rs/app/backend_state.dart';
 import 'package:taskmgr_rs/app/task_manager_app.dart';
+import 'package:taskmgr_rs/l10n/app_localizations.dart';
+import 'package:taskmgr_rs/pages/processes_page.dart';
+import 'package:taskmgr_rs/src/native_bridge/api.dart' as native;
 import 'package:taskmgr_rs/src/native_bridge/third_party/taskmgr_core.dart';
+import 'package:taskmgr_rs/ui/desktop_controls.dart';
 import 'package:taskmgr_rs/ui/desktop_theme.dart';
 
 import 'support/sample_state.dart';
 
 void main() {
+  testWidgets('coalesces a Rust snapshot burst into one UI notification', (
+    tester,
+  ) async {
+    final controller = BackendController.preview(sampleState(PageId.processes));
+    addTearDown(controller.dispose);
+    var notifications = 0;
+    controller.addListener(() => notifications += 1);
+    final meta = SnapshotMeta(
+      generation: BigInt.one,
+      sampledAtMillis: BigInt.one,
+      stale: false,
+    );
+
+    controller.acceptEventForTesting(
+      native.BridgeBackendEvent.processes(
+        meta: meta,
+        data: const ProcessesData(rows: <ProcessRow>[]),
+      ),
+    );
+    controller.acceptEventForTesting(
+      native.BridgeBackendEvent.pageUnavailable(
+        page: PageId.network,
+        meta: meta,
+      ),
+    );
+
+    expect(notifications, 0);
+    await tester.pump(const Duration(milliseconds: 9));
+    expect(notifications, 1);
+    expect(controller.value.processes?.rows, isEmpty);
+    expect(controller.value.metaFor(PageId.processes), meta);
+    expect(controller.value.metaFor(PageId.network), meta);
+  });
+
   testWidgets('shows the seven task-manager tabs', (tester) async {
     final controller = BackendController.preview(
       const BackendState(loading: false),
@@ -97,6 +136,59 @@ void main() {
     expect(
       find.byKey(const ValueKey<PageId>(PageId.processes)),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('Go To Process reveals its row without a wheel event', (
+    tester,
+  ) async {
+    final rows = List<ProcessRow>.generate(
+      240,
+      (index) => ProcessRow(
+        identity: ProcessIdentity(
+          pid: index + 1,
+          startTime: BigInt.from(index + 1),
+        ),
+        imageName: 'process-$index.exe',
+        userName: 'SYSTEM',
+      ),
+    );
+    final target = rows[220];
+    final controller = BackendController.preview(
+      sampleState(PageId.processes)
+          .copyWith(processes: ProcessesData(rows: rows)),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: DesktopTheme.data(),
+        localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: ProcessesPage(
+            controller: controller,
+            data: ProcessesData(rows: rows),
+            capability: null,
+            confirmations: false,
+            processColumns: const <ColumnLayout>[],
+            logicalProcessors: const <int>[],
+            initialSelection: target.identity,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final table = find.byType(DesktopDataTable<ProcessRow>);
+    final targetText = find.text('process-220.exe');
+    expect(targetText, findsOneWidget);
+    expect(
+      tester.getRect(targetText).bottom,
+      lessThanOrEqualTo(tester.getRect(table).bottom),
     );
   });
 }

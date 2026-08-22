@@ -141,7 +141,7 @@ shutdownBackend(BackendHandle)
 - 用户：utmpx 用于基础登录会话，systemd-logind D-Bus 用于可用时的完整会话与控制。
 - 应用程序优先 Wayland：依次尝试 `ext-foreign-toplevel-list-v1`、wlroots、KDE Plasma 兼容协议；三者均不可用的 GNOME 会话连接用户显式启用、版本化、只读且有资源上限的 Shell 扩展，最后才回退 X11/EWMH。标准协议始终优先；KDE/GNOME 都明确标为桌面适配器，禁止 `Eval`、`unsafe_mode` 和私有调试接口。
 - 应用图标统一按 Wayland app ID、GNOME/KDE themed icon、XDG desktop ID 与 `StartupWMClass` 解析 hicolor/主题图标；所有路径、PNG 尺寸、目录项与缓存均有界，无法准确解析时才使用中性默认图标。
-- 进程终止使用 pidfd；优先级、亲和性操作执行前后校验 starttime，并将无法原子证明的情况返回失败。
+- 进程终止使用 pidfd；Linux 的 `setpriority(2)` 与 `sched_setaffinity(2)` 不能将变更原子绑定到 `ProcessIdentity`，因此当前不声明 SetNice/SetAffinity 能力并在 provider/helper 两层失败关闭，待有可证明不会作用于复用 PID 的内核机制后再启用。
 
 ### 5.2 Windows
 
@@ -171,7 +171,7 @@ shutdownBackend(BackendHandle)
 
 ## 8. 构建与发布
 
-- 固定 Rust `1.97.1`、Flutter `3.44.7`、Dart `3.12.2`、`flutter_rust_bridge`/codegen `2.12.0`、`tray_manager 0.5.3`、`png 0.18.1`、`zbus 5.14.0`、`ash 0.38.0` 与 `libloading 0.8.9`。
+- 固定 Rust `1.97.1`、Flutter `3.47.1`、Dart `3.13.1`、`flutter_rust_bridge`/codegen `2.12.0`、`tray_manager 0.5.3`、`png 0.18.1`、`zbus 5.14.0`、`ash 0.38.0` 与 `libloading 0.8.9`。
 - FRB 使用 Cargokit；生成的 Rust/Dart glue 提交仓库，CI 重生成后必须 `git diff --exit-code`。
 - Linux 运行时 application ID 固定为中性的 `org.taskmgr_rs.TaskManager`，并作为 desktop 文件、hicolor 图标与 polkit action 的统一前缀；该 ID 不包含作者、协助者或代码托管账户名称。
 - Windows：x64/ARM64 的 Inno Setup 安装 EXE 与便携 ZIP，包含 Flutter bundle、Rust DLL 和 UAC helper。
@@ -217,7 +217,7 @@ shutdownBackend(BackendHandle)
 - [~] 建立 helper 白名单协议；UAC/polkit 会话 IPC 与调用者验证尚未完成。
 - [x] 创建仅含 Windows/Linux 的 Flutter desktop scaffold。
 - [x] 已建立九种完整 ARB（含独立 `zh_HK`）、内置 Noto Sans，并迁移应用图标、默认应用窗口图标及原版 12 级 CPU 托盘图标。
-- [x] 已实现现代桌面主题、菜单、标签、状态栏、虚拟表格、图表、七页，以及运行、选列、优先级、nice、亲和性和消息等对话框；总在最前、切换后最小化、窗口几何持久化、应用页三种持久化视图、应用多选、批量窗口动作、Windows 平铺/层叠、“转到进程”、既有快捷键及托盘交互已连接真实动作。
+- [x] 已实现现代桌面主题、菜单、标签、状态栏、虚拟表格、图表、七页，以及运行、选列、优先级、nice、亲和性和消息等对话框；总在最前、切换后最小化、窗口几何持久化、应用页三种持久化视图、应用多选、批量窗口动作、Windows 平铺/层叠、“转到进程”、既有快捷键及托盘交互按平台能力连接真实动作；Linux SetNice/SetAffinity 因身份绑定不具备原子安全性而隐藏并失败关闭。
 - [x] 接入七页控制器、真实 Rust 事件流、设置读写和有界刷新。
 - [~] 已添加 Linux desktop entry、KDE Wayland 权限声明、polkit policy、Inno Setup 定义及 DEB/RPM/tar.gz/ZIP 构建审计脚本；GitHub-hosted x64/ARM64 runner 已生成并审计四个平台的全部计划包，实际安装、升级、卸载与签名验收仍待完成。
 - [x] 建立 Windows/Linux × x64/ARM64 CI、生成漂移检查及 bundle 内容审计。
@@ -229,8 +229,9 @@ shutdownBackend(BackendHandle)
 - Flutter 已通过 `flutter analyze` 和全部 81 项测试，包括九张现代桌面页面/应用视图真实 Noto 字体 golden、性能页双击精简模式、原版尺寸下 32 逻辑核完整布局、Windows/Linux 性能字段语义分流、CPU 四组强类型详情、超过四个 GPU 引擎的可选展示、九语言 Windows NT 标题、140 ms 页面切换、窗口选项、窗口菜单、多选/平铺、“转到进程”的完整身份定位与 PID 复用防护、三种应用视图与 16/32px 图标 PNG/回退、12 级 CPU 托盘映射、托盘可用性门控、既有快捷键与快照换代后的选择同步行为，以及 9 个 locale × `396 × 401` 客户区 × 100%/125%/150%/200% × 7 页的无溢出测试。
 - 性能页保持原有仪表、历史图和四个统计框布局；Windows 使用 Handles、Commit Charge、Paged/Nonpaged 等原生语义，Linux 使用 `/proc/sys/fs/file-nr` 的在用文件句柄以及 `Committed_AS`、`CommitLimit`、Swap、Slab、KernelStack、PageTables。Linux 不再遍历并静默少算受权限限制的 `/proc/<pid>/fd`，也不再把文件描述符数伪装成 Windows handle 数。
 - Linux x64/ARM64 release bundle 均已完成实包构建与内容审计，每个平台只包含一个项目 Rust 动态库 `libtaskmgr_native.so`。
+- Windows 发布 CI 从 Inno Setup 官方不可变 release asset 安装 6.7.3，执行固定 SHA-256 与 Pyrsys B.V. Authenticode 双重校验后写入随机临时目录；打包脚本只接收该次验证所得的显式 `ISCC.exe` 路径，CI 固定审计同时拒绝回退到可变 Chocolatey feed。
 - KWin 6.7.4 虚拟 Wayland 会话已验证 desktop entry 授权、KDE Plasma 后端选择、真实 Zenity 顶层窗口枚举、含 AppIndicator 插件的 Flutter 展示和后端有序关闭。
-- GNOME Shell 51.beta Wayland 真实会话已验证用户扩展处于 `ACTIVE`、`WindowProvider1.GetVersion` 返回协议 1、`GetWindows` 返回原生 Wayland/XWayland 混合窗口；Flutter 应用页实际展示 7 个其他应用窗口并排除自身，ChatGPT 等应用通过 XDG 图标映射显示真实图标。当前会话没有 StatusNotifierWatcher 时应用也会跳过 AppIndicator，不再触发 `GtkStatusIcon` 回退。
+- GNOME Shell 51.beta Wayland 真实会话曾验证用户扩展处于 `ACTIVE`、`WindowProvider1.GetVersion` 返回协议 1、`GetWindows` 返回原生 Wayland/XWayland 混合窗口；Flutter 应用页实际展示 7 个其他应用窗口并排除自身，ChatGPT 等应用通过 XDG 图标映射显示真实图标。当前会话没有 StatusNotifierWatcher 时应用也会跳过 AppIndicator，不再触发 `GtkStatusIcon` 回退。本次为两个 D-Bus 方法增加的调用者身份认证尚未在真实 GNOME 会话复验，不能沿用该历史结果作为新认证路径的运行时证据。
 - GNOME Wayland 的系统关闭按钮已完成真实生命周期验证：`window_manager` 先保留原生窗口，Flutter 等待 Rust 采样线程停止及 FRB 事件流自然关闭后再发出跨桌面的 `System.exitApplication(required)`；重复关闭请求会合并，退出过程不再发生 GTK 对象二次释放、隐式 Flutter view 移除或向已取消 Dart port 发送事件的竞态。
 - Wayland 后端选择固定为标准 ext → wlroots → KDE Plasma → GNOME 用户授权只读提供器 → X11；标准协议绑定失败时会继续尝试下一 Wayland 后端，而不是直接降到 X11。
 - “运行/新建任务”已贯通 Flutter、FRB 与两平台后端：Linux 直接按参数启动可执行文件或以 `xdg-open` 打开文档/目录/URI，Windows 使用 `ShellExecuteW`；两端都不把输入交给命令 shell，helper 也明确拒绝此非提权动作。
